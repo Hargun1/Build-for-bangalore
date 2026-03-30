@@ -5,39 +5,87 @@ import api from "../services/api";
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState("verifying"); // verifying, success, error
-  const [message, setMessage] = useState("Verifying your email...");
+  const [status, setStatus] = useState("idle"); // idle, verifying, success, error
+  const [message, setMessage] = useState("Enter the OTP sent to your email.");
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const verifyEmail = async () => {
-      const token = searchParams.get("token");
-      if (!token) {
-        setStatus("error");
-        setMessage("Verification token not found. Please check your email link.");
-        return;
-      }
+    const queryEmail = searchParams.get("email");
+    if (queryEmail) {
+      setEmail(queryEmail);
+    }
 
+    const token = searchParams.get("token");
+    if (!token) {
+      return;
+    }
+
+    const verifyLegacyToken = async () => {
+      setStatus("verifying");
+      setMessage("Verifying your email...");
       try {
         const response = await api.post("/auth/verify-email", { token });
         setStatus("success");
         setMessage("Email verified successfully! Redirecting to dashboard...");
-
-        // Store token and redirect to dashboard
         localStorage.setItem("token", response.data.token);
-        setTimeout(() => navigate("/dashboard"), 2000);
+        setTimeout(() => navigate("/dashboard"), 1500);
       } catch (error) {
         setStatus("error");
-        setMessage(error.response?.data?.message || "Verification failed. The link may have expired.");
+        setMessage(error.response?.data?.message || "Verification failed. Please try OTP verification.");
       }
     };
 
-    verifyEmail();
+    verifyLegacyToken();
   }, [searchParams, navigate]);
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setStatus("verifying");
+    setMessage("Verifying OTP...");
+
+    try {
+      const response = await api.post("/auth/verify-email", {
+        email: email.trim(),
+        otp: otp.trim(),
+      });
+
+      setStatus("success");
+      setMessage("Email verified successfully! Redirecting to dashboard...");
+      localStorage.setItem("token", response.data.token);
+      setTimeout(() => navigate("/dashboard"), 1500);
+    } catch (error) {
+      setStatus("error");
+      setMessage(error.response?.data?.message || "Verification failed. Please check the OTP and try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email.trim()) {
+      setStatus("error");
+      setMessage("Please enter your email to resend OTP.");
+      return;
+    }
+
+    try {
+      await api.post("/auth/resend-verification", { email: email.trim() });
+      setStatus("idle");
+      setMessage("A new OTP has been sent to your email.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error.response?.data?.message || "Failed to resend OTP.");
+    }
+  };
 
   return (
     <div style={styles.container}>
       <div style={styles.box}>
         <h1>Email Verification</h1>
+        <p style={styles.hint}>Enter the 6-digit OTP sent to your inbox.</p>
 
         {status === "verifying" && (
           <div style={styles.verifying}>
@@ -57,14 +105,38 @@ export default function VerifyEmail() {
           <div style={styles.error}>
             <div style={styles.errorIcon}>✕</div>
             <p>{message}</p>
-            <button
-              style={styles.button}
-              onClick={() => navigate("/register")}
-            >
-              Back to Register
-            </button>
           </div>
         )}
+
+        <form style={styles.form} onSubmit={handleVerifyOtp}>
+          <input
+            style={styles.input}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            style={styles.input}
+            type="text"
+            placeholder="6-digit OTP"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            required
+            maxLength={6}
+          />
+          <button style={styles.button} type="submit" disabled={submitting}>
+            {submitting ? "Verifying..." : "Verify OTP"}
+          </button>
+        </form>
+
+        <button style={styles.linkButton} type="button" onClick={handleResend}>
+          Resend OTP
+        </button>
+        <button style={styles.secondaryButton} type="button" onClick={() => navigate("/register")}>
+          Back to Register
+        </button>
       </div>
     </div>
   );
@@ -85,6 +157,22 @@ const styles = {
     boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
     textAlign: "center",
     maxWidth: "400px",
+  },
+  hint: {
+    color: "#555",
+    marginBottom: "18px",
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    marginTop: "18px",
+  },
+  input: {
+    padding: "12px",
+    borderRadius: "8px",
+    border: "1px solid #ccc",
+    fontSize: "15px",
   },
   verifying: {
     display: "flex",
@@ -144,5 +232,20 @@ const styles = {
     borderRadius: "5px",
     cursor: "pointer",
     fontSize: "16px",
+  },
+  linkButton: {
+    marginTop: "10px",
+    background: "none",
+    border: "none",
+    color: "#0f766e",
+    cursor: "pointer",
+    fontWeight: 600,
+  },
+  secondaryButton: {
+    marginTop: "8px",
+    background: "none",
+    border: "none",
+    color: "#666",
+    cursor: "pointer",
   },
 };

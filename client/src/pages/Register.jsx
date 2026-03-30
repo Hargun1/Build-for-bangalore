@@ -273,7 +273,7 @@ export default function Register() {
                       margin: "0 0 1.5rem",
                     }}
                   >
-                    We sent a verification link to<br />
+                    We sent a 6-digit OTP to<br />
                     <strong style={{ color: "var(--login-primary)" }}>{form.email}</strong>
                   </p>
 
@@ -292,10 +292,27 @@ export default function Register() {
                     </div>
                     <div style={{ fontSize: "0.85rem", color: "var(--login-text-muted)", lineHeight: 1.5 }}>
                       1. Open the email from PranexusAI<br />
-                      2. Click the verification link<br />
-                      3. You'll be redirected to your dashboard
+                      2. Copy the 6-digit OTP code<br />
+                      3. Enter it on the Verify Email screen
                     </div>
                   </div>
+
+                  <button
+                    onClick={() => navigate(`/verify-email?email=${encodeURIComponent(form.email)}`)}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      borderRadius: "12px",
+                      padding: "0.85rem 1rem",
+                      background: "linear-gradient(135deg, #00f5d4, #00bbf9)",
+                      color: "#06131e",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      marginBottom: "0.75rem",
+                    }}
+                  >
+                    Enter OTP
+                  </button>
 
                   <button
                     onClick={handleResend}

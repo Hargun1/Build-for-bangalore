@@ -10,25 +10,24 @@ const transporter = nodemailer.createTransport({
 });
 
 /**
- * Send email verification link
+ * Send email verification OTP
  */
-const sendVerificationEmail = async (email, verificationToken) => {
-  const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+const sendVerificationEmail = async (email, verificationOtp) => {
 
   const mailOptions = {
     from: process.env.GMAIL_USER || "hargunmadan9034@gmail.com",
     to: email,
-    subject: "Verify Your Email - Build For Bangalore Health App",
+    subject: "Your PranexusAI verification code",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Email Verification</h2>
-        <p>Thank you for registering with Build For Bangalore Health App!</p>
-        <p>Please verify your email by clicking the button below:</p>
-        <a href="${verificationLink}" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
-          Verify Email
-        </a>
-        <p>Or copy this link: <a href="${verificationLink}">${verificationLink}</a></p>
-        <p>This link will expire in 24 hours.</p>
+        <p>Thank you for registering with PranexusAI.</p>
+        <p>Use the following one-time code to verify your email:</p>
+        <div style="font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #0f766e; margin: 18px 0;">
+          ${verificationOtp}
+        </div>
+        <p>This code will expire in 10 minutes.</p>
+        <p>Enter this code on the Verify Email screen in the app.</p>
         <p>If you didn't create this account, please ignore this email.</p>
       </div>
     `,
