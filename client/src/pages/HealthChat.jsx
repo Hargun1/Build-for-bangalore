@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import "./HealthChat.css";
-
-const OPENROUTER_API_KEY = "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";
+import { askHealthQuestion } from "../services/healthService";
 
 const SYSTEM_PROMPT = `You are a helpful health assistant. Provide clear, concise medical information and guidance. 
 Keep responses brief and actionable. Always recommend consulting a doctor for serious concerns.
@@ -35,89 +34,45 @@ export default function HealthChat() {
     setInput("");
     setIsLoading(true);
 
-    // Models confirmed working with this key (tested via curl)
-    const models = [
-      "google/gemma-3-4b-it:free",
-      "google/gemma-3-12b-it:free",
-      "stepfun/step-3.5-flash:free",
-      "z-ai/glm-4.5-air:free",
-      "meta-llama/llama-3.2-3b-instruct:free",
-      "mistralai/mistral-small-3.1-24b-instruct:free",
-    ];
+    try {
+      const response = await askHealthQuestion({
+        question: input.trim(),
+        history: messages.slice(-8).map((m) => ({ role: m.role, content: m.content })),
+        systemPrompt: SYSTEM_PROMPT,
+      });
 
-    const chatMessages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...messages.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user", content: input.trim() },
-    ];
+      const data = response.data || {};
 
-    let lastError = null;
+      const composedText = data.answer
+        || [
+          data.description,
+          data.generalAdvice,
+          data.disclaimer,
+        ].filter(Boolean).join("\n\n");
 
-    for (const model of models) {
-      try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            "HTTP-Referer": window.location.origin,
-            "X-Title": "PranexusAI Health Chat",
-          },
-          body: JSON.stringify({
-            model,
-            messages: chatMessages,
-            max_tokens: 800,
-          }),
-        });
+      const assistantText = composedText || "I couldn't generate a response right now. Please try again.";
 
-        const data = await response.json();
-        console.log(`API Response (${model}):`, data);
-
-        if (data.error) {
-          // If rate-limited, try next model immediately
-          console.warn(`Model ${model} failed: ${data.error.message}`);
-          lastError = data.error.message;
-          continue;
-        }
-
-        // Extract text from either content or reasoning field
-        const msg = data.choices?.[0]?.message;
-        const text =
-          msg?.content ||
-          msg?.reasoning ||
-          msg?.reasoning_details?.[0]?.text ||
-          null;
-
-        if (text) {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: Date.now() + 1,
-              role: "assistant",
-              content: text,
-            },
-          ]);
-          setIsLoading(false);
-          return; // success
-        }
-
-        lastError = "Empty response from model";
-      } catch (error) {
-        console.warn(`Model ${model} error:`, error.message);
-        lastError = error.message;
-      }
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "assistant",
+          content: assistantText,
+        },
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: "assistant",
+          content: "Sorry, health chat is temporarily unavailable. Please try again shortly.",
+        },
+      ]);
+      console.warn("Health chat request failed:", error?.message || error);
+    } finally {
+      setIsLoading(false);
     }
-
-    // All models failed
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + 1,
-        role: "assistant",
-        content: `Sorry, all AI models are temporarily rate-limited. Please wait a minute and try again.`,
-      },
-    ]);
-    setIsLoading(false);
   };
 
   const handleKeyDown = (e) => {

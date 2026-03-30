@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const path = require("path");
+const fs = require("fs");
 require("dotenv").config();
 
 const app = express();
@@ -31,11 +32,26 @@ app.get("/api/ping", (req, res) => res.json({ status: "ok" }));
 // Serve React frontend in production (single Render service)
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.join(__dirname, "../client/dist");
-  app.use(express.static(clientDist));
-  // All non-API routes return the React app
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(clientDist, "index.html"));
-  });
+  const clientIndex = path.join(clientDist, "index.html");
+  const hasFrontendBuild = fs.existsSync(clientIndex);
+
+  if (hasFrontendBuild) {
+    app.use(express.static(clientDist));
+    // All non-API routes return the React app
+    app.get("*", (req, res) => {
+      res.sendFile(clientIndex);
+    });
+  } else {
+    console.warn(`Frontend build not found at ${clientIndex}. Serving API-only mode.`);
+    app.get("/", (req, res) => {
+      res.status(200).json({
+        service: "PranexusAI backend",
+        status: "running",
+        mode: "api-only",
+        note: "Frontend build is missing. Deploy client separately or ensure client/dist is built during deploy.",
+      });
+    });
+  }
 } else {
   app.get("/", (req, res) => {
     res.status(200).json({

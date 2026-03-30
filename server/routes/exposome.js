@@ -7,6 +7,9 @@ const axios = require("axios");
 // ── Open-Meteo API (free, no key required) ──
 const OPEN_METEO_WEATHER = "https://api.open-meteo.com/v1/forecast";
 const OPEN_METEO_AQI     = "https://air-quality-api.open-meteo.com/v1/air-quality";
+const OPENWEATHER_CURRENT = "https://api.openweathermap.org/data/2.5/weather";
+const OPENWEATHER_AIR = "https://api.openweathermap.org/data/2.5/air_pollution";
+const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
 
 const WMO_DESCRIPTION = {
   0: "Clear sky",
@@ -400,6 +403,60 @@ function getMockData(lat, lon) {
   };
 }
 
+async function fetchOpenWeatherFallback(lat, lon) {
+  if (!OPENWEATHER_API_KEY) {
+    throw new Error("OPENWEATHER_API_KEY not configured");
+  }
+
+  const [weatherRes, airRes] = await Promise.all([
+    axios.get(OPENWEATHER_CURRENT, {
+      params: { lat, lon, appid: OPENWEATHER_API_KEY, units: "metric" },
+    }),
+    axios.get(OPENWEATHER_AIR, {
+      params: { lat, lon, appid: OPENWEATHER_API_KEY },
+    }),
+  ]);
+
+  const w = weatherRes.data;
+  const air = airRes.data?.list?.[0] || {};
+  const comps = air.components || {};
+  const rawAqi = Number(air.main?.aqi || 2);
+  const aqi = Math.min(5, Math.max(1, rawAqi));
+
+  return {
+    weather: {
+      temp: Math.round(w.main?.temp ?? 28),
+      feelsLike: Math.round(w.main?.feels_like ?? w.main?.temp ?? 28),
+      humidity: w.main?.humidity ?? 60,
+      description: w.weather?.[0]?.description || "Unknown",
+      icon: w.weather?.[0]?.icon || "01d",
+      windSpeed: w.wind?.speed ?? 0,
+      pressure: w.main?.pressure ?? 1012,
+      visibility: w.visibility ?? 10000,
+      clouds: w.clouds?.all ?? 0,
+      sunrise: w.sys?.sunrise || 0,
+      sunset: w.sys?.sunset || 0,
+    },
+    pollutants: {
+      pm25: comps.pm2_5 || 0,
+      pm10: comps.pm10 || 0,
+      co: comps.co || 0,
+      no2: comps.no2 || 0,
+      o3: comps.o3 || 0,
+      so2: comps.so2 || 0,
+      nh3: comps.nh3 || 0,
+    },
+    aqi,
+    uvIndex: 0,
+    location: {
+      lat: Number(lat),
+      lon: Number(lon),
+      city: w.name || "Your Location",
+      country: w.sys?.country || "",
+    },
+  };
+}
+
 // ── Routes ──────────────────────────────────────────────────
 
 // GET /api/exposome/current — fetch current environmental data
@@ -502,7 +559,28 @@ router.get("/current", auth, async (req, res) => {
 
       return res.json(responseData);
     } catch (apiErr) {
-      console.warn("Open-Meteo API error, falling back to mock data:", apiErr.message);
+      console.warn("Open-Meteo API error:", apiErr.message);
+
+      // Secondary fallback: OpenWeather (if key is configured)
+      try {
+        const ow = await fetchOpenWeatherFallback(lat, lon);
+        const alerts = generateHealthAlerts(ow.weather, ow.pollutants, ow.aqi, ow.uvIndex);
+
+        return res.json({
+          weather: ow.weather,
+          aqi: ow.aqi,
+          aqiCategory: getAQICategory(ow.aqi),
+          uvIndex: ow.uvIndex,
+          sunlightIntensity: getSunlightIntensity(ow.uvIndex),
+          pollutants: ow.pollutants,
+          alerts,
+          location: ow.location,
+          aiRisk: {},
+          _fallbackSource: "openweather",
+        });
+      } catch (owErr) {
+        console.warn("OpenWeather fallback failed, using mock data:", owErr.message);
+      }
     }
 
     // Fallback to mock data
