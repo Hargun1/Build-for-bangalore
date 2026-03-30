@@ -43,6 +43,8 @@ if (process.env.NODE_ENV === "production") {
     });
   } else {
     console.warn(`Frontend build not found at ${clientIndex}. Serving API-only mode.`);
+    const configuredClientUrl = process.env.CLIENT_URL;
+
     app.get("/", (req, res) => {
       res.status(200).json({
         service: "PranexusAI backend",
@@ -50,6 +52,16 @@ if (process.env.NODE_ENV === "production") {
         mode: "api-only",
         note: "Frontend build is missing. Deploy client separately or ensure client/dist is built during deploy.",
       });
+    });
+
+    // If a browser hits backend non-API routes (e.g. /login, /register),
+    // send users to the deployed client app instead of returning 404.
+    app.get("*", (req, res) => {
+      if (configuredClientUrl) {
+        return res.redirect(302, configuredClientUrl);
+      }
+
+      return res.status(404).json({ message: "Route not found. Use /api/* endpoints on backend." });
     });
   }
 } else {
