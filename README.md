@@ -1,262 +1,205 @@
-# PranexusAI — Full Stack MERN + Python AI Boilerplate
+# PranexusAI
 
-A production-ready health prediction and prevention platform built with React, Node/Express, MongoDB, and Python FastAPI.
+PranexusAI is a full-stack health intelligence platform for prevention, monitoring, and guided action. It combines a React/Vite frontend, a Node/Express API, a MongoDB data layer, and a FastAPI AI microservice to cover personal health tracking, environmental risk, nutrition analysis, emergency support, and doctor matching.
 
-**Status:** ✅ Fully scaffolded. All 3 services ready to develop.
+## Overview
 
----
+The app is organized into three working layers:
 
-## 📦 What's Included
+- Frontend: a multi-page React application for login, dashboards, health tools, and interactive wellness views.
+- Backend: an authenticated Express API for user data, metrics, appointments, reports, grocery scans, exposome data, and proxying AI requests.
+- AI service: a FastAPI microservice that powers prediction, recommendations, scoring, and matching workflows.
 
-### Frontend (React + Vite)
-- ✅ Auth system (Login/Register with JWT)
-- ✅ 11 pages (Landing, Dashboard, GlassBody, Exposome, Appointments, Grocery, Goals, Wearable, Emergency)
-- ✅ Component folders for each feature (with TODOs for each dev)
-- ✅ API service layer (`healthService.js`)
-- ✅ Custom hooks (`useHealthMetrics`)
-- ✅ Dark theme UI
+## Features
 
-### Backend (Node/Express)
-- ✅ 7 Mongoose models (User, HealthMetrics, Prediction, Appointment, GroceryScan, ExposomeData, MedicalReport)
-- ✅ 6 route files with full CRUD logic
-- ✅ JWT auth middleware
-- ✅ AI service caller (`aiService.js`) with all 11 endpoints
+### Frontend Experience
 
-### AI Microservice (Python FastAPI)
-- ✅ 11 fully functional endpoints:
-  - `POST /predict/risk` — disease risk prediction
-  - `POST /recommend` — personalized recommendations
-  - `POST /baseline-compare` — health improvement tracking
-  - `POST /glycemic-curve` — glucose response modeling
-  - `POST /sleep-debt` — sleep analysis
-  - `POST /dopamine-score` — screen time impact
-  - `POST /age-biological` — biological age estimation
-  - `POST /grocery-analyze` — nutrition analysis
-  - `POST /exposome-risk` — environmental risk assessment
-  - `POST /goal-plan` — milestone planning
-  - `POST /emergency-detect` — emergency detection
-- ✅ Rule-based ML engine (ready for real models)
+- Authentication flows for login, registration, and email verification.
+- A main dashboard for health status and analytics.
+- A 3D-style Glass Body experience for organ and body-system exploration.
+- Exposome views for weather, air quality, and environmental health context.
+- Appointment booking and appointment history management.
+- Grocery and food analysis workflows, including scan-based nutrition review.
+- Goal planning for wellness milestones and progress tracking.
+- Wearable health panels for sleep, stress, activity, temperature, cardiovascular data, and related signals.
+- Emergency tools for SOS, vitals monitoring, first aid guidance, timelines, contacts, and alerts.
+- Health chat for question-and-answer style support.
 
-### Root Config
-- ✅ `docker-compose.yml` (optional Docker setup)
-- ✅ `.gitignore` (node_modules, .env, models)
-- ✅ `package.json` with `npm run dev` for all services
-- ✅ `.env.example` with all variables documented
+### Backend Capabilities
 
----
+- JWT-based authentication.
+- Email verification with OTP and resend support.
+- User profile access and updates.
+- Emergency contacts management.
+- Daily health metric logging and retrieval.
+- AI-backed health prediction and historical prediction storage.
+- Medical report creation and retrieval.
+- Appointment CRUD for signed-in users.
+- Grocery scan history and image analysis support.
+- Food plate analysis endpoint.
+- Health Q&A endpoint.
+- Exposome capture with current conditions, calendar suggestions, and history.
+- Doctor listing and symptom-based doctor matching.
 
-## 🚀 Getting Started
+### AI Microservice Capabilities
+
+The FastAPI service exposes the following intelligence routes:
+
+- `/predict/risk` - disease and risk score prediction.
+- `/recommend` - personalized health recommendations.
+- `/baseline-compare` - compare current habits against baseline behavior.
+- `/glycemic-curve` - glucose response modeling.
+- `/sleep-debt` - sleep deficit analysis.
+- `/dopamine-score` - screen-time and stimulation impact scoring.
+- `/age-biological` - biological age estimation.
+- `/grocery-analyze` - grocery cart nutrition analysis.
+- `/grocery-analyze/image` - grocery image analysis.
+- `/exposome-risk` - environmental risk scoring.
+- `/goal-plan` - milestone and goal planning.
+- `/emergency-detect` - emergency pattern detection.
+- `/food-plate` - plate and meal analysis.
+- `/health-qa` - health question answering.
+- `/doctor-match` - symptom-based doctor matching.
+
+## Tech Stack
+
+- Frontend: React, Vite, React Router, Framer Motion, GSAP, Three.js, Recharts, Swiper.
+- Backend: Node.js, Express, MongoDB, Mongoose, JWT, Nodemailer, Axios.
+- AI Service: Python, FastAPI, Pydantic, OpenRouter-backed analysis helpers.
+
+## Project Structure
+
+```text
+buildForBenglore/
+├── client/                  React frontend
+│   ├── src/
+│   │   ├── pages/           Route-level screens
+│   │   ├── components/      Feature components
+│   │   ├── context/         Auth and vitals state
+│   │   ├── hooks/           Shared React hooks
+│   │   └── services/        API client wrappers
+│   └── package.json
+├── server/                  Node/Express backend
+│   ├── routes/              API route groups
+│   ├── models/              Mongoose models
+│   ├── middleware/          Auth middleware
+│   ├── services/            External service adapters
+│   └── server.js            API entry point
+├── ai-service/              FastAPI microservice
+│   ├── routers/             AI endpoints
+│   ├── services/            Risk and scoring logic
+│   ├── utils/               Shared helpers
+│   └── main.py              AI entry point
+├── docker-compose.yml       Optional local stack
+├── package.json             Root scripts
+└── pranexusai_project_plan.md
+```
+
+## Getting Started
 
 ### Prerequisites
-- **Node.js** 18+ (for client & server)
-- **Python** 3.9+ (for AI service)
-- **MongoDB Atlas** account (free tier OK)
 
-### Setup (Day 1)
+- Node.js 18 or newer.
+- Python 3.9 or newer.
+- MongoDB connection string.
 
-#### 1. Clone / Setup
+### Install
+
 ```bash
-git clone <repo>
-cd buildForBenglore
 npm install
-```
-
-#### 2. Configure Environment
-Copy and edit `.env` files:
-```bash
-# server/.env — fill in your MongoDB connection string
-MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/pranexusai
-JWT_SECRET=your_random_secret_here
-
-# ai-service/.env
-MONGODB_URI=<same as above>
-PORT=8000
-
-# client/.env
-VITE_API_URL=http://localhost:5000/api
-```
-
-#### 3. Install Dependencies
-```bash
 npm run install:all
 ```
 
-#### 4. Start Services (choose one method)
+### Environment Variables
 
-**Option A: Locally (3 terminals)**
+Create the needed environment files and set the values below.
+
 ```bash
-# Terminal 1 — Frontend
-cd client && npm run dev              # http://localhost:3000
+# server/.env
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/pranexusai
+JWT_SECRET=your_random_secret_here
+CLIENT_URL=http://localhost:3000
 
-# Terminal 2 — Backend
-cd server && npm run dev              # http://localhost:5000
+# ai-service/.env
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/pranexusai
+OPENROUTER_API_KEY=your_openrouter_key_here
+CORS_ORIGINS=http://localhost:3000,http://localhost:5001
 
-# Terminal 3 — AI Service (requires Python)
-cd ai-service
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000  # http://localhost:8000
+# client/.env
+VITE_API_URL=http://localhost:5001/api
+VITE_API_PROXY_TARGET=http://localhost:5001
 ```
 
-**Option B: Docker (all-in-one)**
+### Run Locally
+
+The frontend runs on port `3000`, the backend defaults to `5001`, and the AI service runs on `8000`.
+
+```bash
+# Terminal 1
+cd client
+npm run dev
+
+# Terminal 2
+cd server
+npm run dev
+
+# Terminal 3
+cd ai-service
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+You can also start the full stack with Docker if you have it configured.
+
 ```bash
 docker-compose up
 ```
 
----
+## Main Routes
 
-## 📋 Feature Assignment
+### Frontend Pages
 
-| Dev | Component | Files |
-|---|---|---|
-| **Dev 1** | Glass Body, Emergency, Medical Reports | `client/src/components/GlassBody/`, `Emergency/` |
-| **Dev 2** | Dashboard, Health Charts, Exposome, Wearable | `client/src/components/Dashboard/`, `Exposome/`, `Wearable/` |
-| **Dev 3** | Appointments, Grocery, Goals | `client/src/components/Appointments/`, `Grocery/`, `GoalPlanner/` |
-| **AI Dev** | All 11 AI endpoints | `ai-service/routers/` |
+- `/login`
+- `/register`
+- `/verify-email`
+- `/dashboard`
+- `/glass-body`
+- `/exposome`
+- `/appointments`
+- `/grocery`
+- `/goals`
+- `/wearable`
+- `/emergency`
+- `/chat`
 
-Each component file has a `// TODO` comment showing what to build.
+### Backend API Groups
 
----
+- `/api/auth` - register, login, verify email, resend verification.
+- `/api/users` - current user profile and emergency contacts.
+- `/api/health` - metrics, predictions, reports, and AI health actions.
+- `/api/appointments` - appointment create, list, and update.
+- `/api/grocery` - scan, history, and image-based grocery analysis.
+- `/api/food-plate` - plate analysis.
+- `/api/health-qa` - AI health question answering.
+- `/api/exposome` - current environmental risk, suggestions, and history.
+- `/api/doctors` - doctor listing and AI-assisted matching.
 
-## 🔗 API Contract
+## Quick API Checks
 
-### Example Request
-
-**Frontend calls Backend:**
-```javascript
-// client/src/services/healthService.js
-import api from "./api";
-const response = await api.post("/health/analyze");
-```
-
-**Backend calls AI Service:**
-```javascript
-// server/services/aiService.js
-const aiService = require("./aiService");
-const prediction = await aiService.predictRisk({ userId, metrics });
-```
-
-**AI Service returns:**
-```json
-{
-  "userId": "12345",
-  "riskScores": {
-    "diabetes": 0.6,
-    "cardiac": 0.3,
-    "obesity": 0.4,
-    "stress": 0.5,
-    "sleepDisorder": 0.2
-  },
-  "topRisks": [
-    {"condition": "diabetes", "score": 0.6}
-  ],
-  "trend": "stable"
-}
-```
-
-All endpoints are documented in the project plan (`pranexusai_project_plan.md`).
-
----
-
-## 📁 Folder Structure
-
-```
-buildForBenglore/
-├── client/                  (React Vite frontend)
-│   ├── src/
-│   │   ├── components/      ← Dev 1, 2, 3 work here
-│   │   ├── pages/
-│   │   ├── services/        (API layer — pre-wired)
-│   │   ├── hooks/
-│   │   ├── context/         (Auth)
-│   │   └── App.jsx
-│   └── package.json
-│
-├── server/                  (Node/Express backend)
-│   ├── models/              (Mongoose schemas)
-│   ├── routes/              (API endpoints)
-│   ├── middleware/          (JWT auth)
-│   ├── services/            (AI caller)
-│   ├── server.js            (entry point)
-│   └── package.json
-│
-├── ai-service/              (Python FastAPI microservice)
-│   ├── routers/             (11 endpoints)
-│   ├── services/            (risk_engine, etc.)
-│   ├── utils/               (MongoDB connection)
-│   ├── main.py              (entry point)
-│   ├── requirements.txt
-│   └── .env
-│
-├── docker-compose.yml       (optional: Docker setup)
-├── package.json             (root scripts)
-├── .gitignore
-├── .env.example
-└── pranexusai_project_plan.md (full architecture)
-```
-
----
-
-## 🧪 Testing the APIs
-
-### 1. Test Frontend (without backend)
 ```bash
-cd client && npm run dev
-# Open http://localhost:3000
-# Should see: Landing page with Login/Register links
-```
-
-### 2. Test Backend
-```bash
-cd server && npm run dev
-# Endpoint: http://localhost:5000/api/ping
-curl http://localhost:5000/api/ping
-# Should return: {"status": "ok"}
-```
-
-### 3. Test AI Service
-```bash
-cd ai-service
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-# Endpoint: http://localhost:8000/ping
+curl http://localhost:5001/api/ping
 curl http://localhost:8000/ping
-# Should return: {"status": "ok", "service": "PranexusAI AI Service"}
 ```
 
-### 4. Test Full Flow (with mock data)
-```bash
-# After starting all 3 services, from client:
-curl -X POST http://localhost:5000/api/health/analyze \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"userId": "123"}'
-```
+## Notes
 
----
+- The backend is configured to serve the React app in production when a frontend build is present.
+- The client Vite dev server proxies `/api` calls to the backend.
+- The AI service falls back gracefully when external providers are unavailable, so the app can still return deterministic results for many flows.
 
-## 📝 Next Steps
+## Deployment
 
-1. **Day 1:**
-   - Set up MongoDB Atlas connection
-   - Run `npm install`
-   - Start all 3 services
-   - Test basic endpoints
-
-2. **Week 1-2:**
-   - Dev 1: Build Glass Body component
-   - Dev 2: Build Health Dashboard charts
-   - Dev 3: Build Appointment booking
-   - AI Dev: Implement real ML models
-
-3. **Week 3:**
-   - Integrate frontend with backend
-   - Wire up all AI endpoints
-   - Add external APIs (OpenWeatherMap, AQICN, Google Calendar)
-
-4. **Week 4:**
-   - Polish UI, test flows
-   - Deploy to Railway / Render / Fly.io
-   - Optimize models
+The repository includes Docker and Render-oriented deployment files. If you deploy the backend as a single service, build the client first so `client/dist` is available for static serving.
 
 ---
 
