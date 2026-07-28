@@ -211,8 +211,14 @@ router.post("/resend-verification", async (req, res) => {
     // Send verification email
     await sendVerificationEmail(email, verificationToken);
 
-    res.json({ message: "Verification OTP sent. Please check your email." });
-const axios = require("axios");
+    res.json({
+      message: "Verification OTP sent. Please check your email.",
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 // POST /api/auth/google
 router.post("/google", async (req, res) => {
