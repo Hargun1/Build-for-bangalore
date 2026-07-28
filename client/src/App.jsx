@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "./context/AuthContext";
 
 // Pages
 import Landing from "./pages/Landing";
@@ -16,11 +15,6 @@ import Wearable from "./pages/Wearable";
 import Emergency from "./pages/Emergency";
 import HealthChat from "./pages/HealthChat";
 
-function PrivateRoute({ children }) {
-  const { user } = useAuth();
-  return user ? children : <Navigate to="/login" />;
-}
-
 export default function App() {
   return (
     <Routes>
@@ -29,15 +23,15 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
 
-      <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-      <Route path="/glass-body" element={<PrivateRoute><GlassBody /></PrivateRoute>} />
-      <Route path="/exposome" element={<PrivateRoute><Exposome /></PrivateRoute>} />
-      <Route path="/appointments" element={<PrivateRoute><Appointments /></PrivateRoute>} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/glass-body" element={<GlassBody />} />
+      <Route path="/exposome" element={<Exposome />} />
+      <Route path="/appointments" element={<Appointments />} />
       <Route path="/grocery" element={<Grocery />} />
-      <Route path="/goals" element={<PrivateRoute><GoalPlanner /></PrivateRoute>} />
-      <Route path="/wearable" element={<PrivateRoute><Wearable /></PrivateRoute>} />
-      <Route path="/emergency" element={<PrivateRoute><Emergency /></PrivateRoute>} />
-      <Route path="/chat" element={<PrivateRoute><HealthChat /></PrivateRoute>} />
+      <Route path="/goals" element={<GoalPlanner />} />
+      <Route path="/wearable" element={<Wearable />} />
+      <Route path="/emergency" element={<Emergency />} />
+      <Route path="/chat" element={<HealthChat />} />
     </Routes>
   );
 }

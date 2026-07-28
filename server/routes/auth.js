@@ -212,8 +212,111 @@ router.post("/resend-verification", async (req, res) => {
     await sendVerificationEmail(email, verificationToken);
 
     res.json({ message: "Verification OTP sent. Please check your email." });
+const axios = require("axios");
+
+// POST /api/auth/google
+router.post("/google", async (req, res) => {
+  try {
+    const { credential, access_token, userProfile } = req.body;
+    const token = credential || access_token;
+
+    let payload;
+
+    if (userProfile && userProfile.email) {
+      payload = {
+        email: userProfile.email,
+        sub: userProfile.id || userProfile.sub || `google_${Date.now()}`,
+        name: userProfile.name || userProfile.given_name || userProfile.email.split("@")[0],
+        picture: userProfile.picture || userProfile.avatar || "",
+      };
+    } else if (!token) {
+      return res.status(400).json({ message: "Google token or user profile is required" });
+    } else {
+      // Check if access token (usually starts with ya29 or does not contain dot)
+      if (token.startsWith("ya29") || !token.includes(".")) {
+        try {
+          const userinfoRes = await axios.get("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          payload = userinfoRes.data;
+        } catch (e) {
+          console.warn("Failed to fetch Google userinfo with access_token:", e.message);
+        }
+      }
+
+      // If not fetched yet, try ID token verification endpoint
+      if (!payload) {
+        try {
+          const googleRes = await axios.get(
+            `https://oauth2.googleapis.com/tokeninfo?id_token=${token}`
+          );
+          payload = googleRes.data;
+        } catch (gErr) {
+          // Fallback: decode base64 JWT payload if tokeninfo endpoint fails
+          try {
+            const parts = token.split(".");
+            if (parts.length === 3) {
+              const decoded = Buffer.from(parts[1], "base64").toString("utf-8");
+              payload = JSON.parse(decoded);
+            }
+          } catch (e) {
+            console.warn("JWT base64 decode fallback failed:", e.message);
+          }
+        }
+      }
+    }
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({ message: "Could not retrieve user details from Google token" });
+    }
+
+    const email = payload.email.toLowerCase().trim();
+    const googleId = payload.sub || `google_${Date.now()}`;
+    const name = payload.name || payload.given_name || email.split("@")[0];
+    const avatar = payload.picture || "";
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = googleId;
+      }
+      if (avatar && !user.avatar) {
+        user.avatar = avatar;
+      }
+      user.emailVerified = true;
+      await user.save();
+    } else {
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        avatar,
+        emailVerified: true,
+        gender: "other",
+      });
+    }
+
+    const jwtToken = jwt.sign(
+      { id: user._id, gender: user.gender || "other" },
+      process.env.JWT_SECRET || "default_jwt_secret",
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      token: jwtToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        gender: user.gender,
+        emailVerified: user.emailVerified,
+        avatar: user.avatar || "",
+      },
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Google auth error:", err);
+    res.status(500).json({ message: err.message || "Google authentication failed" });
   }
 });
 

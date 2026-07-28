@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useGoogleLogin } from "@react-oauth/google";
 import { motion, AnimatePresence } from "framer-motion";
 import HealthOrb from "../components/Shared/HealthOrb";
 import api from "../services/api";
@@ -34,8 +35,31 @@ export default function Login() {
     }
     return "dark";
   });
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = async (tokenResponse) => {
+    setError("");
+    setLoading(true);
+    try {
+      await loginWithGoogle(tokenResponse.access_token);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Google authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = (err) => {
+    console.error("Google Login Error:", err);
+    setError("Google Sign-In was cancelled or failed.");
+  };
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: handleGoogleError,
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -362,7 +386,13 @@ export default function Login() {
             </div>
 
             <div className="login-social-buttons">
-              <button type="button" className="login-social-btn">
+              <button
+                type="button"
+                className="login-social-btn"
+                onClick={() => googleLogin()}
+                title="Sign in with Google"
+                aria-label="Sign in with Google"
+              >
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />

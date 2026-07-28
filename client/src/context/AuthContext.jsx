@@ -32,6 +32,14 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
+  const loginWithGoogle = async (credential) => {
+    const res = await api.post("/auth/google", { credential });
+    localStorage.setItem("token", res.data.token);
+    setToken(res.data.token);
+    setUser(res.data.user);
+    return res.data;
+  };
+
   const register = async (data) => {
     const res = await api.post("/auth/register", data);
     // No token returned — user must verify email first
@@ -48,7 +56,7 @@ export function AuthProvider({ children }) {
   if (loading) return null;
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, login, loginWithGoogle, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
