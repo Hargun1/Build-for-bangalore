@@ -3,6 +3,14 @@ import api from "../services/api";
 
 const AuthContext = createContext(null);
 
+const DEMO_USER = {
+  id: "demo-user-id",
+  name: "Pranexus User",
+  email: "demo@pranexusai.com",
+  gender: "male",
+  emailVerified: true,
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("token"));
@@ -55,8 +63,10 @@ export function AuthProvider({ children }) {
 
   if (loading) return null;
 
+  const activeUser = user || DEMO_USER;
+
   return (
-    <AuthContext.Provider value={{ user, token, login, loginWithGoogle, register, logout }}>
+    <AuthContext.Provider value={{ user: activeUser, token, login, loginWithGoogle, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
