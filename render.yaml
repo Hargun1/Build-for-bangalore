@@ -1,21 +1,37 @@
 services:
+  # Node/Express backend service (serves API and static client build if present)
   - type: web
-    name: pranexusai
+    name: pranexusai-backend
     runtime: node
-    buildCommand: cd client && npm install && npm run build && cd ../server && npm install
-    startCommand: cd server && node server.js
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
       - key: MONGODB_URI
-        sync: false   # set manually in Render dashboard
+        sync: false
       - key: JWT_SECRET
-        sync: false   # set manually in Render dashboard
+        sync: false
       - key: GMAIL_USER
-        sync: false   # set manually in Render dashboard
+        sync: false
       - key: GMAIL_PASSWORD
-        sync: false   # set manually in Render dashboard
+        sync: false
       - key: CLIENT_URL
-        sync: false   # set to your Render service URL e.g. https://pranexusai.onrender.com
+        sync: false
+
+  # React Frontend (Static Site deployment option with SPA rewrite rule)
+  - type: static
+    name: pranexusai-client
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false
