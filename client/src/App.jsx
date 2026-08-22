@@ -21,84 +21,21 @@ import ProtectedRoute from "./components/Shared/ProtectedRoute";
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
 
       {/* Protected Routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/glass-body"
-        element={
-          <ProtectedRoute>
-            <GlassBody />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/exposome"
-        element={
-          <ProtectedRoute>
-            <Exposome />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/appointments"
-        element={
-          <ProtectedRoute>
-            <Appointments />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/grocery"
-        element={
-          <ProtectedRoute>
-            <Grocery />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/goals"
-        element={
-          <ProtectedRoute>
-            <GoalPlanner />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/wearable"
-        element={
-          <ProtectedRoute>
-            <Wearable />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/emergency"
-        element={
-          <ProtectedRoute>
-            <Emergency />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          <ProtectedRoute>
-            <HealthChat />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/glass-body" element={<GlassBody />} />
+      <Route path="/exposome" element={<Exposome />} />
+      <Route path="/appointments" element={<Appointments />} />
+      <Route path="/grocery" element={<Grocery />} />
+      <Route path="/goals" element={<GoalPlanner />} />
+      <Route path="/wearable" element={<Wearable />} />
+      <Route path="/emergency" element={<Emergency />} />
+      <Route path="/chat" element={<HealthChat />} />
 
       {/* Gracefully handle unknown routes */}
       <Route path="*" element={<Navigate to="/" replace />} />

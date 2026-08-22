@@ -2,6 +2,7 @@ import { Link, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import "./Login.css";
+import "./Landing.css";
 
 export default function Landing() {
   const { user } = useAuth();
