@@ -1,3 +1,4 @@
+import asyncio
 import re
 from typing import Literal, Optional, get_args
 
@@ -6,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..context import SAFETY_RULES, UserContext, describe
 from ..llm import LLMUnavailable, get_llm
-from ..safety import detect_red_flag
+from ..safety import classify_with_llm, combine, detect_red_flag
 
 router = APIRouter()
 
@@ -88,14 +89,31 @@ async def triage(body: TriageRequest):
         "will likely want to check, without diagnosing. Add up to 3 safe self-care steps, up to 3 warning signs that mean "
         "they should go sooner, and up to 3 questions to ask the doctor. " + SAFETY_RULES
     )
-    try:
-        res = await get_llm().complete([{"role": "user", "content": prompt}], schema=Triage, temperature=0.2)
+    async def classify():
+        try:
+            return await classify_with_llm(body.symptoms)
+        except LLMUnavailable:
+            return None
+
+    async def plan():
+        try:
+            return await get_llm().complete([{"role": "user", "content": prompt}], schema=Triage, temperature=0.2)
+        except LLMUnavailable:
+            return None
+
+    llm_level, res = await asyncio.gather(classify(), plan())
+    flag = combine(flag, llm_level)
+    if flag and flag.level in ("emergency", "crisis"):
+        return {"specialty": "general", "urgency": "emergency", "summary": flag.message, "selfCare": [], "seeDoctorIf": [],
+                "questionsForDoctor": [], "redFlag": flag.model_dump(), "aiSource": "safety-ai"}
+
+    if res is not None:
         out = res.data.model_dump()
         source = res.source
-    except LLMUnavailable:
+    else:
         out = keyword_triage(body.symptoms)
         source = "keywords"
-    if flag:  # "urgent" level flags raise the floor
+    if flag:  # "urgent" flags raise the floor
         out["urgency"] = "urgent" if out["urgency"] in ("soon", "routine") else out["urgency"]
         out["redFlag"] = flag.model_dump()
     return {**out, "aiSource": source}

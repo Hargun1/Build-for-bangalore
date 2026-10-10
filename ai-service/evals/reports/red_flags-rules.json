@@ -1,0 +1,486 @@
+{
+  "suite": "red_flags",
+  "mode": "rules",
+  "ran_at": "2026-10-10 21:12 UTC",
+  "metrics": {
+    "cases": 67,
+    "immediate_recall": 1.0,
+    "urgent_recall": 1.0,
+    "false_positive_rate": 0.0,
+    "precision": 1.0,
+    "exact_level_accuracy": 1.0,
+    "missed": [],
+    "false_positives": []
+  },
+  "rows": [
+    {
+      "id": "r001",
+      "text": "I have crushing chest pain spreading to my left arm",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r002",
+      "text": "Heavy pressure in my chest and I'm sweating",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r003",
+      "text": "pain in my chest since 20 minutes and feeling breathless",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r004",
+      "text": "chest tightness and my left arm feels numb",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r005",
+      "text": "I think I'm having a heart attack",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r006",
+      "text": "seene mein dard ho raha hai",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r007",
+      "text": "my chest hurts badly and the pain goes to my jaw",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r008",
+      "text": "sudden tearing pain in my chest going to my back",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r009",
+      "text": "my mother's face is drooping on one side",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r010",
+      "text": "his speech is slurred and he can't lift his right arm",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r011",
+      "text": "left side of my body suddenly went numb",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r012",
+      "text": "I suddenly can't see out of one eye and feel confused",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r013",
+      "text": "worst headache of my life came on suddenly",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r014",
+      "text": "I think my grandmother is having a stroke right now",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r015",
+      "text": "I can't breathe properly and it's getting worse",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r016",
+      "text": "severe shortness of breath while resting",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r017",
+      "text": "his lips are turning blue",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r018",
+      "text": "saans nahi aa rahi",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r019",
+      "text": "my child is choking on a piece of food",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r020",
+      "text": "unable to breathe after the bee sting",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r021",
+      "text": "my throat is swelling after eating peanuts",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r022",
+      "text": "lips and tongue are swelling up fast",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r023",
+      "text": "I think this is anaphylaxis",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r024",
+      "text": "my father collapsed and is unconscious",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r025",
+      "text": "she is having a seizure and shaking",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r026",
+      "text": "bachche ko fit aa raha hai",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r027",
+      "text": "heavy bleeding from a deep cut that won't stop",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r028",
+      "text": "he is vomiting blood",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r029",
+      "text": "bad head injury after falling from the stairs",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "r030",
+      "text": "I want to kill myself",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules"
+    },
+    {
+      "id": "r031",
+      "text": "I've been thinking about ending my life",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules"
+    },
+    {
+      "id": "r032",
+      "text": "I don't want to live anymore",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules"
+    },
+    {
+      "id": "r033",
+      "text": "I have no reason to live",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules"
+    },
+    {
+      "id": "r034",
+      "text": "thinking of hurting myself tonight",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules"
+    },
+    {
+      "id": "r035",
+      "text": "I keep having suicidal thoughts",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules"
+    },
+    {
+      "id": "r036",
+      "text": "I want to die",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules"
+    },
+    {
+      "id": "r037",
+      "text": "planning to take all my sleeping pills at once",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules"
+    },
+    {
+      "id": "r038",
+      "text": "I have been cutting myself again",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules"
+    },
+    {
+      "id": "r039",
+      "text": "fever and a stiff neck since this morning",
+      "expected": "urgent",
+      "predicted": "urgent",
+      "source": "rules"
+    },
+    {
+      "id": "r040",
+      "text": "high fever with confusion in my grandmother",
+      "expected": "urgent",
+      "predicted": "urgent",
+      "source": "rules"
+    },
+    {
+      "id": "r041",
+      "text": "my baby has a fever of 102",
+      "expected": "urgent",
+      "predicted": "urgent",
+      "source": "rules"
+    },
+    {
+      "id": "r042",
+      "text": "dengue patient now has bleeding gums",
+      "expected": "urgent",
+      "predicted": "urgent",
+      "source": "rules"
+    },
+    {
+      "id": "r043",
+      "text": "fever with a rash that doesn't fade when I press a glass on it",
+      "expected": "urgent",
+      "predicted": "urgent",
+      "source": "rules"
+    },
+    {
+      "id": "n001",
+      "text": "Chest day at the gym made my pecs really sore",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n002",
+      "text": "I watched a documentary about heart attacks last night",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n003",
+      "text": "How can I lower my risk of a heart attack?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n004",
+      "text": "My grandfather had a stroke five years ago and recovered well",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n005",
+      "text": "What are the risk factors for stroke?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n006",
+      "text": "I can't breathe through my nose because of a cold",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n007",
+      "text": "I'm a bit out of breath after running 5 km, is that normal?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n008",
+      "text": "This traffic is killing me",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n009",
+      "text": "I'm dying to try the new keto diet",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n010",
+      "text": "My gums bleed a little when I brush",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n011",
+      "text": "What should I eat for better sleep?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n012",
+      "text": "How do I prevent a head injury while cycling?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n013",
+      "text": "What is a seizure and what causes it?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n014",
+      "text": "My lips are blue from eating jamun",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n015",
+      "text": "I have a mild fever and a runny nose",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n016",
+      "text": "My heart rate goes up to 160 when I sprint",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n018",
+      "text": "I want to lose 5 kg before my wedding",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n019",
+      "text": "My father had a heart attack in 2019, what diet should he follow now?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n020",
+      "text": "I feel stressed about exams",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n021",
+      "text": "How much water should I drink in summer?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n022",
+      "text": "My knee swells after long walks",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n023",
+      "text": "I hate my job and want to quit",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n024",
+      "text": "Allergic rhinitis makes my nose itchy every morning",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    },
+    {
+      "id": "n025",
+      "text": "My child had a seizure last year, which doctor should follow up?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules"
+    }
+  ]
+}

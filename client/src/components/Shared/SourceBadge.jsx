@@ -11,10 +11,11 @@ export default function SourceBadge({ source }) {
     template: "Template plan (AI unavailable)",
     keywords: "Keyword match (AI unavailable)",
     "safety-rules": "Safety rules",
+    "safety-ai": "Safety check (AI)",
     unavailable: "AI unavailable",
   };
   if (labels[provider]) {
-    return <span className={`ui-badge ${provider === "safety-rules" ? "ui-badge-bad" : "ui-badge-warn"}`}>{labels[provider]}</span>;
+    return <span className={`ui-badge ${provider.startsWith("safety") ? "ui-badge-bad" : "ui-badge-warn"}`}>{labels[provider]}</span>;
   }
   const names = { gemini: "Gemini", groq: "Groq", openrouter: "OpenRouter" };
   return (

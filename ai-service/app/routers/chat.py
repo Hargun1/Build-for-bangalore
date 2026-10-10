@@ -1,3 +1,4 @@
+import asyncio
 from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -5,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..context import SAFETY_RULES, UserContext, describe
 from ..llm import LLMUnavailable, get_llm
-from ..safety import detect_red_flag
+from ..safety import classify_with_llm, combine, detect_red_flag
 
 router = APIRouter()
 
@@ -54,13 +55,29 @@ async def chat(body: ChatRequest):
         system += f"\nTheir recent logged data: {body.metricsSummary}"
 
     messages = [{"role": "system", "content": system}] + [m.model_dump() for m in body.messages[-12:]]
-    try:
-        res = await get_llm().complete(messages, temperature=0.5, max_tokens=900)
-    except LLMUnavailable as exc:
-        raise HTTPException(status_code=503, detail="The AI assistant is unavailable right now. Please try again in a few minutes.") from exc
+
+    # Second safety layer runs at the same time as the answer, so it adds no waiting time.
+    async def classify():
+        try:
+            return await classify_with_llm(last_user)
+        except LLMUnavailable:
+            return None
+
+    async def answer():
+        try:
+            return await get_llm().complete(messages, temperature=0.5, max_tokens=900)
+        except LLMUnavailable:
+            return None
+
+    llm_level, res = await asyncio.gather(classify(), answer())
+    flag = combine(red_flag, llm_level)
+    if flag and flag.level in ("emergency", "crisis"):
+        return {"reply": flag.message, "redFlag": flag.model_dump(), "aiSource": "safety-ai"}
+    if res is None:
+        raise HTTPException(status_code=503, detail="The AI assistant is unavailable right now. Please try again in a few minutes.")
 
     return {
         "reply": res.text.strip(),
-        "redFlag": red_flag.model_dump() if red_flag else None,
+        "redFlag": flag.model_dump() if flag else None,
         "aiSource": res.source,
     }

@@ -1,0 +1,67 @@
+{"id": "r001", "text": "I have crushing chest pain spreading to my left arm", "expected": "emergency"}
+{"id": "r002", "text": "Heavy pressure in my chest and I'm sweating", "expected": "emergency"}
+{"id": "r003", "text": "pain in my chest since 20 minutes and feeling breathless", "expected": "emergency"}
+{"id": "r004", "text": "chest tightness and my left arm feels numb", "expected": "emergency"}
+{"id": "r005", "text": "I think I'm having a heart attack", "expected": "emergency"}
+{"id": "r006", "text": "seene mein dard ho raha hai", "expected": "emergency"}
+{"id": "r007", "text": "my chest hurts badly and the pain goes to my jaw", "expected": "emergency"}
+{"id": "r008", "text": "sudden tearing pain in my chest going to my back", "expected": "emergency"}
+{"id": "r009", "text": "my mother's face is drooping on one side", "expected": "emergency"}
+{"id": "r010", "text": "his speech is slurred and he can't lift his right arm", "expected": "emergency"}
+{"id": "r011", "text": "left side of my body suddenly went numb", "expected": "emergency"}
+{"id": "r012", "text": "I suddenly can't see out of one eye and feel confused", "expected": "emergency"}
+{"id": "r013", "text": "worst headache of my life came on suddenly", "expected": "emergency"}
+{"id": "r014", "text": "I think my grandmother is having a stroke right now", "expected": "emergency"}
+{"id": "r015", "text": "I can't breathe properly and it's getting worse", "expected": "emergency"}
+{"id": "r016", "text": "severe shortness of breath while resting", "expected": "emergency"}
+{"id": "r017", "text": "his lips are turning blue", "expected": "emergency"}
+{"id": "r018", "text": "saans nahi aa rahi", "expected": "emergency"}
+{"id": "r019", "text": "my child is choking on a piece of food", "expected": "emergency"}
+{"id": "r020", "text": "unable to breathe after the bee sting", "expected": "emergency"}
+{"id": "r021", "text": "my throat is swelling after eating peanuts", "expected": "emergency"}
+{"id": "r022", "text": "lips and tongue are swelling up fast", "expected": "emergency"}
+{"id": "r023", "text": "I think this is anaphylaxis", "expected": "emergency"}
+{"id": "r024", "text": "my father collapsed and is unconscious", "expected": "emergency"}
+{"id": "r025", "text": "she is having a seizure and shaking", "expected": "emergency"}
+{"id": "r026", "text": "bachche ko fit aa raha hai", "expected": "emergency"}
+{"id": "r027", "text": "heavy bleeding from a deep cut that won't stop", "expected": "emergency"}
+{"id": "r028", "text": "he is vomiting blood", "expected": "emergency"}
+{"id": "r029", "text": "bad head injury after falling from the stairs", "expected": "emergency"}
+{"id": "r030", "text": "I want to kill myself", "expected": "crisis"}
+{"id": "r031", "text": "I've been thinking about ending my life", "expected": "crisis"}
+{"id": "r032", "text": "I don't want to live anymore", "expected": "crisis"}
+{"id": "r033", "text": "I have no reason to live", "expected": "crisis"}
+{"id": "r034", "text": "thinking of hurting myself tonight", "expected": "crisis"}
+{"id": "r035", "text": "I keep having suicidal thoughts", "expected": "crisis"}
+{"id": "r036", "text": "I want to die", "expected": "crisis"}
+{"id": "r037", "text": "planning to take all my sleeping pills at once", "expected": "crisis"}
+{"id": "r038", "text": "I have been cutting myself again", "expected": "crisis"}
+{"id": "r039", "text": "fever and a stiff neck since this morning", "expected": "urgent"}
+{"id": "r040", "text": "high fever with confusion in my grandmother", "expected": "urgent"}
+{"id": "r041", "text": "my baby has a fever of 102", "expected": "urgent"}
+{"id": "r042", "text": "dengue patient now has bleeding gums", "expected": "urgent"}
+{"id": "r043", "text": "fever with a rash that doesn't fade when I press a glass on it", "expected": "urgent"}
+{"id": "n001", "text": "Chest day at the gym made my pecs really sore", "expected": null}
+{"id": "n002", "text": "I watched a documentary about heart attacks last night", "expected": null}
+{"id": "n003", "text": "How can I lower my risk of a heart attack?", "expected": null}
+{"id": "n004", "text": "My grandfather had a stroke five years ago and recovered well", "expected": null}
+{"id": "n005", "text": "What are the risk factors for stroke?", "expected": null}
+{"id": "n006", "text": "I can't breathe through my nose because of a cold", "expected": null}
+{"id": "n007", "text": "I'm a bit out of breath after running 5 km, is that normal?", "expected": null}
+{"id": "n008", "text": "This traffic is killing me", "expected": null}
+{"id": "n009", "text": "I'm dying to try the new keto diet", "expected": null}
+{"id": "n010", "text": "My gums bleed a little when I brush", "expected": null}
+{"id": "n011", "text": "What should I eat for better sleep?", "expected": null}
+{"id": "n012", "text": "How do I prevent a head injury while cycling?", "expected": null}
+{"id": "n013", "text": "What is a seizure and what causes it?", "expected": null}
+{"id": "n014", "text": "My lips are blue from eating jamun", "expected": null}
+{"id": "n015", "text": "I have a mild fever and a runny nose", "expected": null}
+{"id": "n016", "text": "My heart rate goes up to 160 when I sprint", "expected": null}
+{"id": "n018", "text": "I want to lose 5 kg before my wedding", "expected": null}
+{"id": "n019", "text": "My father had a heart attack in 2019, what diet should he follow now?", "expected": null}
+{"id": "n020", "text": "I feel stressed about exams", "expected": null}
+{"id": "n021", "text": "How much water should I drink in summer?", "expected": null}
+{"id": "n022", "text": "My knee swells after long walks", "expected": null}
+{"id": "n023", "text": "I hate my job and want to quit", "expected": null}
+{"id": "n024", "text": "Allergic rhinitis makes my nose itchy every morning", "expected": null}
+{"id": "n025", "text": "My child had a seizure last year, which doctor should follow up?", "expected": null}
