@@ -63,7 +63,7 @@ router.post(
     let hospitals = [];
     if (hasLocation) {
       try {
-        hospitals = (await nearby({ lat, lon, kinds: ["hospital"], radiusKm: 8, limit: 5 })).slice(0, 3);
+        hospitals = (await nearby({ lat, lon, kinds: ["hospital"], radiusKm: 8, limit: 5, timeoutMs: 12000 })).slice(0, 3);
       } catch {
         hospitals = []; // never block an SOS on the map lookup
       }

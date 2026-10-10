@@ -1,441 +1,191 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import Lenis from '@studio-freight/lenis';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useCallback, useEffect, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import AppShell from "../components/Shared/AppShell";
+import SourceBadge from "../components/Shared/SourceBadge";
+import { errorMessage } from "../services/api";
+import { getExposome, getExposomeHistory } from "../services/healthService";
+import { CHART, axisProps, tooltipStyle } from "../utils/chartTheme";
+import { getLocation } from "../utils/geo";
 
-import ExposomeHero from '../components/Exposome/ExposomeHero';
-import WeatherCard from '../components/Exposome/WeatherCard';
-import AQIPanel from '../components/Exposome/AQIPanel';
-import ExposomeRadar from '../components/Exposome/ExposomeRadar';
-import HealthAlerts from '../components/Exposome/HealthAlerts';
-import CalendarSuggestions from '../components/Exposome/CalendarSuggestions';
-import '../components/Exposome/Exposome.css';
+// CPCB's published colour for each AQI band (always shown with the band name).
+const AQI_COLORS = { Good: "#00b050", Satisfactory: "#92d050", Moderate: "#ffd400", Poor: "#ff9900", "Very Poor": "#ff0000", Severe: "#c00000" };
+const SEVERITY = { severe: "ui-alert-error", high: "ui-alert-error", moderate: "ui-alert-warn", low: "ui-alert-info" };
+const time = (iso) => (iso ? iso.slice(11, 16) : "–");
 
-import { getCurrentExposome } from '../services/healthService';
-import api from '../services/api';
-
-gsap.registerPlugin(ScrollTrigger);
-
-export default function Exposome() {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isMock, setIsMock] = useState(false);
-  const [exposomeData, setExposomeData] = useState({
-    weather: {},
-    aqi: 2,
-    aqiCategory: 'Fair',
-    uvIndex: 0,
-    sunlightIntensity: 'low',
-    pollutants: {},
-    alerts: [],
-    aiRisk: {},
-    location: {},
-  });
-  const [suggestions, setSuggestions] = useState([]);
-
-  const sectionsRef = useRef([]);
-  const lenisRef = useRef(null);
-
-  // ── Fetch Exposome Data ─────────────────────────────────
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Try to get user location
-      let lat = 12.97;
-      let lon = 77.59;
-
-      try {
-        const pos = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            timeout: 5000,
-            enableHighAccuracy: false,
-          });
-        });
-        lat = pos.coords.latitude;
-        lon = pos.coords.longitude;
-      } catch {
-        // Default to Bangalore
-      }
-
-      const response = await getCurrentExposome(lat, lon);
-      const data = response.data;
-
-      setExposomeData(data);
-      setIsMock(!!data._mock);
-    } catch (err) {
-      setError(err?.message || 'Unable to fetch live exposome data.');
-      console.warn('Failed to fetch exposome data, using defaults:', err.message);
-      // Use embedded fallback data so the UI always renders
-      setExposomeData({
-        weather: {
-          temp: 28, feelsLike: 31, humidity: 65,
-          description: 'Partly cloudy', icon: '02d',
-          windSpeed: 3.5, pressure: 1012, visibility: 8000,
-          clouds: 40,
-        },
-        aqi: 2,
-        aqiCategory: 'Fair',
-        uvIndex: 6,
-        sunlightIntensity: 'high',
-        pollutants: { pm25: 22.5, pm10: 38.4, co: 320.4, no2: 18.7, o3: 68.2 },
-        alerts: [
-          {
-            type: 'uv', severity: 'moderate',
-            title: 'Moderate UV Exposure',
-            message: 'UV index is 6 — some protection recommended.',
-            recommendations: ['Apply SPF 30+ sunscreen', 'Wear sunglasses outdoors', 'Seek shade during peak hours'],
-          },
-        ],
-        aiRisk: {
-          riskLevel: 'moderate',
-          riskScore: 0.42,
-          outdoorSafe: false,
-          suggestions: ['Limit prolonged outdoor workouts at noon.', 'Use sun protection and hydrate frequently.'],
-        },
-        location: { lat: 12.97, lon: 77.59, city: 'Bangalore', country: 'IN' },
-        _mock: true,
-      });
-      setIsMock(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ── Fetch Calendar Suggestions ──────────────────────────
-  const fetchSuggestions = async (schedule) => {
-    try {
-      let lat = exposomeData.location?.lat || 12.97;
-      let lon = exposomeData.location?.lon || 77.59;
-
-      const response = await api.post('/exposome/suggestions', {
-        schedule,
-        lat,
-        lon,
-      });
-      setSuggestions(response.data.suggestions || []);
-    } catch {
-      // Generate client-side suggestions as fallback
-      const fallback = generateFallbackSuggestions(schedule, exposomeData);
-      setSuggestions(fallback);
-    }
-  };
-
-  // ── Lenis Smooth Scrolling ──────────────────────────────
-  useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
-    lenisRef.current = lenis;
-
-    function raf(time) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-    requestAnimationFrame(raf);
-
-    // Sync Lenis with GSAP ScrollTrigger
-    lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => lenis.raf(time * 1000));
-    gsap.ticker.lagSmoothing(0);
-
-    return () => {
-      lenis.destroy();
-    };
-  }, []);
-
-  // ── GSAP Scroll Animations ─────────────────────────────
-  useEffect(() => {
-    if (loading) return;
-
-    sectionsRef.current.forEach((section) => {
-      if (!section) return;
-      gsap.fromTo(
-        section,
-        { opacity: 0, y: 40 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: section,
-            start: 'top 85%',
-            end: 'top 50%',
-            toggleActions: 'play none none none',
-          },
-        }
-      );
-    });
-
-    return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
-    };
-  }, [loading]);
-
-  // ── Loading State ───────────────────────────────────────
-  if (loading) {
-    return (
-      <div className="exposome-page">
-        <div className="exposome-content">
-          <div className="expo-loading">
-            <div className="expo-spinner" />
-            <span className="expo-loading-text">Loading environmental data...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+function HourTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const h = payload[0].payload;
   return (
-    <div className="exposome-page">
-      {/* Nav */}
-      <nav className="exposome-nav">
-        <button className="exposome-nav-back" onClick={() => navigate('/dashboard')}>
-          ← Dashboard
-        </button>
-        <span className="exposome-nav-title">Exposome Radar</span>
-        <span className="exposome-nav-location">
-          📍 {exposomeData.location?.city || 'Unknown'}, {exposomeData.location?.country || ''}
-        </span>
-      </nav>
-
-      <div className="exposome-content">
-        {error && (
-          <motion.div
-            className="expo-mock-banner"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{ marginBottom: '0.75rem', borderColor: 'rgba(248,113,113,0.45)' }}
-          >
-            Live AI data unavailable: {error}
-            <button
-              type="button"
-              onClick={fetchData}
-              style={{
-                marginLeft: '0.75rem',
-                border: '1px solid rgba(248,113,113,0.55)',
-                background: 'transparent',
-                color: '#fecaca',
-                borderRadius: '999px',
-                padding: '0.15rem 0.55rem',
-                cursor: 'pointer',
-              }}
-            >
-              Retry
-            </button>
-          </motion.div>
-        )}
-
-        {/* Mock Data Banner */}
-        {isMock && (
-          <motion.div
-            className="expo-mock-banner"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            ⚠️ Showing fallback demo data. Open-Meteo live feed is temporarily unavailable and will auto-retry.
-          </motion.div>
-        )}
-
-        {/* 1. Hero */}
-        <ExposomeHero
-          aqi={exposomeData.aqi}
-          weather={exposomeData.weather}
-          uvIndex={exposomeData.uvIndex}
-        />
-
-        {/* 2. Weather + AQI */}
-        <div
-          ref={(el) => (sectionsRef.current[0] = el)}
-          className="expo-section-header"
-        >
-          <span className="section-icon">🌤️</span>
-          <h2>Current Conditions</h2>
-        </div>
-        <p className="expo-section-subtitle">
-          Real-time weather and air quality for your location
-        </p>
-        <div className="expo-grid-2" style={{ alignItems: 'start' }}>
-          <div>
-            <WeatherCard weather={exposomeData.weather} />
-            {/* Calendar Suggestions — below weather in left column */}
-            <div style={{ marginTop: '1.5rem' }}>
-              <div className="expo-section-header" style={{ marginTop: '0' }}>
-                <span className="section-icon">📅</span>
-                <h2>Smart Health Windows</h2>
-              </div>
-              <p className="expo-section-subtitle">
-                Schedule-aware suggestions for micro health activities in your free time
-              </p>
-              <CalendarSuggestions
-                suggestions={suggestions}
-                onFetchSuggestions={fetchSuggestions}
-              />
-            </div>
-          </div>
-          <AQIPanel
-            aqi={exposomeData.aqi}
-            aqiCategory={exposomeData.aqiCategory}
-            pollutants={exposomeData.pollutants}
-          />
-        </div>
-
-        {/* 3. Radar Chart */}
-        <div
-          ref={(el) => (sectionsRef.current[1] = el)}
-        >
-          <div className="expo-section-header">
-            <span className="section-icon">📊</span>
-            <h2>Risk Overview</h2>
-          </div>
-          <p className="expo-section-subtitle">
-            Normalized environmental metrics — higher values indicate higher exposure risk
-          </p>
-          <ExposomeRadar
-            weather={exposomeData.weather}
-            pollutants={exposomeData.pollutants}
-            aqi={exposomeData.aqi}
-            uvIndex={exposomeData.uvIndex}
-          />
-
-          {exposomeData.aiRisk && (exposomeData.aiRisk.riskLevel || exposomeData.aiRisk.riskScore !== undefined) ? (
-            <div className="expo-glass-card" style={{ marginTop: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                <div>
-                  <p style={{ margin: 0, opacity: 0.75, fontSize: '0.82rem' }}>AI RISK BRIEFING</p>
-                  <h3 style={{ margin: '0.25rem 0' }}>
-                    Risk: {(exposomeData.aiRisk.riskLevel || 'unknown').toString().toUpperCase()}
-                  </h3>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ margin: 0, opacity: 0.75, fontSize: '0.82rem' }}>Risk Score</p>
-                  <h3 style={{ margin: '0.25rem 0' }}>{Math.round((Number(exposomeData.aiRisk.riskScore || 0)) * 100)}%</h3>
-                </div>
-              </div>
-
-              <p style={{ marginTop: '0.35rem', marginBottom: '0.5rem' }}>
-                Outdoor Safety: <strong>{exposomeData.aiRisk.outdoorSafe ? 'Safe with normal precautions' : 'Use caution and shorten exposure'}</strong>
-              </p>
-
-              {Array.isArray(exposomeData.aiRisk.suggestions) && exposomeData.aiRisk.suggestions.length > 0 ? (
-                <div style={{ display: 'grid', gap: '0.45rem' }}>
-                  {exposomeData.aiRisk.suggestions.slice(0, 4).map((item, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        border: '1px solid rgba(255,255,255,0.12)',
-                        borderRadius: '10px',
-                        padding: '0.55rem 0.7rem',
-                        background: 'rgba(0,0,0,0.18)',
-                      }}
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-
-        {/* 4. Health Alerts */}
-        <div
-          ref={(el) => (sectionsRef.current[2] = el)}
-        >
-          <div className="expo-section-header">
-            <span className="section-icon">🛡️</span>
-            <h2>Health Alerts & Protection</h2>
-          </div>
-          <p className="expo-section-subtitle">
-            Actionable warnings based on current environmental conditions
-          </p>
-          <HealthAlerts alerts={exposomeData.alerts} />
-        </div>
-      </div>
+    <div style={{ ...tooltipStyle.contentStyle, padding: "0.5rem 0.7rem" }}>
+      <strong>{time(h.time)}</strong> · outdoor score {h.outdoorScore}
+      <div style={{ color: CHART.text, marginTop: 2 }}>AQI {h.aqi ?? "–"} · feels {Math.round(h.feelsLike)}°C · UV {h.uv?.toFixed(1)} · rain {h.rainChance ?? 0}%</div>
     </div>
   );
 }
 
-// ── Client-side fallback suggestions ─────────────────────
-function generateFallbackSuggestions(schedule, data) {
-  const suggestions = [];
-  const weather = data.weather || {};
-  const aqi = data.aqi || 2;
-  const nice = (weather.temp >= 15 && weather.temp <= 32 && aqi <= 2);
-  const hour = new Date().getHours();
+export default function Exposome() {
+  const [loc, setLoc] = useState(null);
+  const [data, setData] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [state, setState] = useState({ loading: true, error: "" });
 
-  if (!schedule || schedule.length === 0) {
-    suggestions.push({
-      timeSlot: hour < 12 ? 'Morning' : 'Evening',
-      activity: nice ? 'Go for a walk outside' : 'Indoor stretching session',
-      reason: nice
-        ? `Weather is pleasant (${weather.temp || 28}°C) and air quality is good.`
-        : 'Indoor activity recommended given current conditions.',
-      duration: '15-20 mins',
-      icon: nice ? '🚶' : '🧘',
-    });
-    suggestions.push({
-      timeSlot: 'Anytime',
-      activity: 'Hydration reminder',
-      reason: `Temperature: ${weather.temp || 28}°C. Aim for 8 glasses of water today.`,
-      duration: '1 min',
-      icon: '💧',
-    });
-    return suggestions;
-  }
-
-  const sorted = [...schedule].sort((a, b) => a.start.localeCompare(b.start));
-
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const endMins = parseInt(sorted[i].end.split(':')[0]) * 60 + parseInt(sorted[i].end.split(':')[1]);
-    const startMins = parseInt(sorted[i + 1].start.split(':')[0]) * 60 + parseInt(sorted[i + 1].start.split(':')[1]);
-    const gap = startMins - endMins;
-
-    if (gap >= 10 && gap <= 30 && nice && /breakfast|lunch|dinner|meal/i.test(sorted[i].title)) {
-      suggestions.push({
-        timeSlot: `${sorted[i].end} – ${sorted[i + 1].start}`,
-        activity: 'Take a post-meal walk',
-        reason: `Pleasant weather (${weather.temp}°C) after ${sorted[i].title.toLowerCase()} — walking aids digestion.`,
-        duration: `${Math.min(gap, 20)} mins`,
-        icon: '🚶',
-      });
-    } else if (gap >= 15) {
-      suggestions.push({
-        timeSlot: `${sorted[i].end} – ${sorted[i + 1].start}`,
-        activity: 'Quick stretching break',
-        reason: 'Short break to stretch reduces muscle tension and boosts energy.',
-        duration: '10 mins',
-        icon: '🧘',
-      });
-    } else if (gap >= 5) {
-      suggestions.push({
-        timeSlot: `${sorted[i].end} – ${sorted[i + 1].start}`,
-        activity: 'Deep breathing exercise',
-        reason: 'Box breathing reduces stress and sharpens focus.',
-        duration: '5 mins',
-        icon: '🌬️',
-      });
+  const load = useCallback(async () => {
+    setState({ loading: true, error: "" });
+    try {
+      const position = loc || (await getLocation());
+      setLoc(position);
+      const [env, hist] = await Promise.all([getExposome(position.lat, position.lon), getExposomeHistory().catch(() => ({ data: [] }))]);
+      setData(env.data);
+      setHistory(hist.data);
+      setState({ loading: false, error: "" });
+    } catch (err) {
+      setState({ loading: false, error: errorMessage(err) });
     }
-  }
+  }, [loc]);
 
-  suggestions.push({
-    timeSlot: 'Anytime',
-    activity: 'Stay hydrated',
-    reason: `Temperature: ${weather.temp || 28}°C. Drink water regularly.`,
-    duration: '1 min',
-    icon: '💧',
-  });
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return suggestions.slice(0, 5);
+  const aq = data?.airQuality;
+  const placeName = data ? [data.location.area, data.location.city].filter(Boolean).join(", ") || "your location" : "";
+
+  // One snapshot per hour; keep the daily maximum for the 7-day chart.
+  const daily = Object.values(
+    history.reduce((acc, r) => {
+      const day = r.hour.slice(0, 10);
+      if (r.aqi != null && (!acc[day] || r.aqi > acc[day].aqi)) acc[day] = { day, label: day.slice(5), aqi: r.aqi };
+      return acc;
+    }, {})
+  );
+
+  return (
+    <AppShell
+      title="Environment"
+      subtitle="Live air quality on India's CPCB scale, weather and UV where you are, and the best time to be outside today."
+      actions={<button className="ui-btn ui-btn-sm" onClick={load} disabled={state.loading}>{state.loading ? "Updating…" : "Refresh"}</button>}
+    >
+      {loc?.isDefault && <div className="ui-alert ui-alert-info" style={{ marginBottom: "1rem" }}>Location access is off, so this shows central Bengaluru. Allow location in your browser for your own area.</div>}
+      {state.error && <div className="ui-alert ui-alert-error" role="alert" style={{ marginBottom: "1rem" }}>{state.error}</div>}
+      {state.loading && !data && <div className="ui-loading"><span className="ui-spinner" /> Fetching live conditions…</div>}
+
+      {data && (
+        <div className="ui-stack" style={{ gap: "1rem" }}>
+          <p className="ui-muted">{placeName} · updated {new Date(data.fetchedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
+
+          <div className="ui-grid ui-grid-3">
+            <div className="ui-card">
+              <div className="ui-stat-label">Air quality · India NAQI</div>
+              {aq ? (
+                <>
+                  <div className="ui-row" style={{ marginTop: "0.4rem" }}>
+                    <span className="ui-stat-value" style={{ marginTop: 0 }}>{aq.aqi}</span>
+                    <span className="ui-badge" style={{ background: AQI_COLORS[aq.name], color: ["Moderate", "Satisfactory"].includes(aq.name) ? "#1a1a1a" : "#fff", borderColor: "transparent" }}>{aq.name}</span>
+                  </div>
+                  <p className="ui-small ui-muted" style={{ marginTop: "0.5rem", lineHeight: 1.5 }}>{aq.impact}. Main pollutant: <strong>{aq.dominant}</strong>.</p>
+                  <table className="ui-table" style={{ marginTop: "0.6rem" }}>
+                    <tbody>
+                      {[["PM2.5", aq.pollutants.pm25, "µg/m³"], ["PM10", aq.pollutants.pm10, "µg/m³"], ["NO₂", aq.pollutants.no2, "µg/m³"], ["O₃", aq.pollutants.o3, "µg/m³"]].map(([k, v, u]) => (
+                        <tr key={k}><td>{k}</td><td className="num">{v ?? "–"} <span className="ui-faint">{u}</span></td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ) : (
+                <p className="ui-muted" style={{ marginTop: "0.5rem" }}>Air-quality data isn't available for this location right now.</p>
+              )}
+            </div>
+
+            <div className="ui-card">
+              <div className="ui-stat-label">Weather</div>
+              <div className="ui-stat-value">{data.current.temp}<small>°C</small></div>
+              <div className="ui-stat-sub">{data.current.description} · feels like {data.current.feelsLike}°C</div>
+              <table className="ui-table" style={{ marginTop: "0.6rem" }}>
+                <tbody>
+                  <tr><td>Humidity</td><td className="num">{data.current.humidity}%</td></tr>
+                  <tr><td>Wind</td><td className="num">{Math.round(data.current.windKmh)} km/h</td></tr>
+                  <tr><td>UV now / today's max</td><td className="num">{data.current.uvIndex?.toFixed(1)} / {data.sun.uvMax?.toFixed(1)}</td></tr>
+                  <tr><td>Sunrise / sunset</td><td className="num">{time(data.sun.sunrise)} / {time(data.sun.sunset)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="ui-card">
+              <div className="ui-stat-label">Best time to be outside</div>
+              {data.bestWindow ? (
+                <>
+                  <div className="ui-stat-value">{time(data.bestWindow.start)}<small>– {String(Number(time(data.bestWindow.end).slice(0, 2)) + 1).padStart(2, "0")}:00</small></div>
+                  <div className="ui-stat-sub">Outdoor score {data.bestWindow.score}/100, from air quality, heat, UV and rain chance</div>
+                </>
+              ) : (
+                <p className="ui-muted" style={{ marginTop: "0.5rem" }}>No suitable window left today.</p>
+              )}
+              {data.aiAdvice?.headline && (
+                <div style={{ marginTop: "0.9rem" }}>
+                  <div className="ui-row" style={{ marginBottom: "0.3rem" }}><strong className="ui-small">For you today</strong><SourceBadge source={data.aiAdvice.aiSource} /></div>
+                  <p className="ui-small" style={{ lineHeight: 1.5 }}>{data.aiAdvice.headline}</p>
+                  <ul className="ui-bullets" style={{ marginTop: "0.4rem" }}>{data.aiAdvice.tips.map((t) => <li key={t} className="ui-small">{t}</li>)}</ul>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {data.alerts.length > 0 && (
+            <div className="ui-stack">
+              {data.alerts.map((a) => (
+                <div key={a.type} className={`ui-alert ${SEVERITY[a.severity]}`}>
+                  <strong>{a.title}</strong>
+                  {a.message}
+                  <div className="ui-faint" style={{ marginTop: "0.3rem", color: "inherit", opacity: 0.85 }}>{a.recommendations.join(" · ")}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="ui-card">
+            <div className="ui-card-title">
+              <h3>Outdoor score, next 24 hours</h3>
+              <span className="ui-faint">higher is better · hover for details</span>
+            </div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={data.hourly} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke={CHART.grid} />
+                <XAxis dataKey="time" tickFormatter={time} {...axisProps} interval={2} />
+                <YAxis {...axisProps} domain={[0, 100]} width={44} />
+                <Tooltip content={<HourTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                <Bar dataKey="outdoorScore" radius={[4, 4, 0, 0]} maxBarSize={18}>
+                  {data.hourly.map((h) => (
+                    <Cell key={h.time} fill={data.bestWindow && (h.time === data.bestWindow.start || h.time === data.bestWindow.end) ? CHART.series[2] : CHART.series[0]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="ui-faint">Green bars mark the best 2-hour window. Hourly AQI uses the CAMS forecast model, so it is an estimate.</p>
+          </div>
+
+          {daily.length >= 2 && (
+            <div className="ui-card">
+              <div className="ui-card-title"><h3>Your air quality, last 7 days</h3><span className="ui-faint">daily maximum NAQI where you checked</span></div>
+              <ResponsiveContainer width="100%" height={160}>
+                <LineChart data={daily} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke={CHART.grid} />
+                  <XAxis dataKey="label" {...axisProps} />
+                  <YAxis {...axisProps} width={44} />
+                  <Tooltip {...tooltipStyle} formatter={(v) => [v, "NAQI"]} />
+                  <Line type="monotone" dataKey="aqi" stroke={CHART.series[0]} strokeWidth={2} dot={{ r: 3, fill: CHART.series[0], strokeWidth: 0 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <p className="ui-faint">
+            Data: {data.sources.map((s, i) => (
+              <span key={s.url}>{i > 0 && " · "}<a href={s.url} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>{s.name}</a></span>
+            ))}. AQI computed on the CPCB National Air Quality Index scale from 24-hour (PM, NO₂, SO₂) and 8-hour (O₃, CO) averages.
+          </p>
+        </div>
+      )}
+    </AppShell>
+  );
 }

@@ -2,12 +2,13 @@ import { useRef, useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { useNormalizedGLTF } from "./useNormalizedGLTF";
 
-export default function Eyes({ riskScore = 0.2, onClick, hovered, ...props }) {
+export default function Eyes({ riskScore = null, onClick, hovered, ...props }) {
   const groupRef = useRef();
   const modelL = useNormalizedGLTF("/models/human_eye.glb", 0.04);
   const modelR = useNormalizedGLTF("/models/human_eye.glb", 0.04);
 
   const riskColor = useMemo(() => {
+    if (riskScore == null) return new THREE.Color("#7dd3fc"); // no data yet: neutral blue, not "healthy" green
     if (riskScore > 0.7) return new THREE.Color("#ff2244");
     if (riskScore > 0.4) return new THREE.Color("#ffaa00");
     return new THREE.Color("#44ff88");

@@ -7,7 +7,7 @@ const { signToken } = require("../middleware/auth");
 const validate = require("../middleware/validate");
 const { authLimiter } = require("../middleware/rateLimit");
 const { asyncHandler, HttpError } = require("../middleware/errors");
-const { sendVerificationOtp } = require("../services/emailService");
+const { sendVerificationOtp, sendPasswordResetOtp } = require("../services/emailService");
 const { verifyGoogleCredential } = require("../services/googleAuth");
 
 const OTP_TTL_MS = 10 * 60 * 1000;
@@ -34,18 +34,40 @@ const loginSchema = z.object({ email, password: z.string().min(1, "Password is r
 const verifySchema = z.object({ email, otp: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code") });
 const resendSchema = z.object({ email });
 const googleSchema = z.object({ credential: z.string().min(20).max(4096) });
+const resetSchema = z.object({ email, otp: verifySchema.shape.otp, password });
 
 // 6-digit code from a cryptographically secure generator; only its hash is stored.
 const newOtp = () => crypto.randomInt(100000, 1000000).toString();
 const hashOtp = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 
-async function issueOtp(user) {
+async function issueOtp(user, purpose = "verify") {
   const otp = newOtp();
   user.emailOtpHash = hashOtp(otp);
   user.emailOtpExpires = new Date(Date.now() + OTP_TTL_MS);
   user.emailOtpAttempts = 0;
   await user.save();
-  return sendVerificationOtp(user.email, otp);
+  return purpose === "reset" ? sendPasswordResetOtp(user.email, otp) : sendVerificationOtp(user.email, otp);
+}
+
+// Checks a code against the stored hash; counts wrong attempts and clears the code on success.
+async function consumeOtp(mail, otp) {
+  const user = await User.findOne({ email: mail, isGuest: false }).select("+emailOtpHash +emailOtpExpires +emailOtpAttempts");
+  const invalid = new HttpError(400, "That code is invalid or has expired. Request a new one.");
+  if (!user || !user.emailOtpHash || !user.emailOtpExpires || user.emailOtpExpires < new Date()) throw invalid;
+  if (user.emailOtpAttempts >= OTP_MAX_ATTEMPTS) {
+    throw new HttpError(429, "Too many wrong codes. Request a new code.");
+  }
+  const given = Buffer.from(hashOtp(otp));
+  const stored = Buffer.from(user.emailOtpHash);
+  if (given.length !== stored.length || !crypto.timingSafeEqual(given, stored)) {
+    user.emailOtpAttempts += 1;
+    await user.save();
+    throw invalid;
+  }
+  user.emailOtpHash = null;
+  user.emailOtpExpires = null;
+  user.emailOtpAttempts = 0;
+  return user;
 }
 
 const session = (user) => ({ token: signToken(user), user: user.toPublic() });
@@ -66,7 +88,7 @@ router.post(
     Object.assign(user, { name, password: hashed, gender, dob, emailVerified: false });
     const sent = await issueOtp(user);
     res.status(201).json({
-      message: sent.ok ?"Check your email for a 6-digit verification code." : "Account created, but we could not send the code. Use 'Resend code'.",
+      message: sent.ok ? "Check your email for a 6-digit verification code." : "Account created, but we could not send the code. Use 'Resend code'.",
       requiresEmailVerification: true,
       email: mail,
     });
@@ -78,24 +100,8 @@ router.post(
   authLimiter,
   validate(verifySchema),
   asyncHandler(async (req, res) => {
-    const { email: mail, otp } = req.body;
-    const user = await User.findOne({ email: mail }).select("+emailOtpHash +emailOtpExpires +emailOtpAttempts");
-    const invalid = new HttpError(400, "That code is invalid or has expired. Request a new one.");
-    if (!user || !user.emailOtpHash || !user.emailOtpExpires || user.emailOtpExpires < new Date()) throw invalid;
-    if (user.emailOtpAttempts >= OTP_MAX_ATTEMPTS) {
-      throw new HttpError(429, "Too many wrong codes. Request a new code.");
-    }
-    const given = Buffer.from(hashOtp(otp));
-    const stored = Buffer.from(user.emailOtpHash);
-    if (given.length !== stored.length || !crypto.timingSafeEqual(given, stored)) {
-      user.emailOtpAttempts += 1;
-      await user.save();
-      throw invalid;
-    }
+    const user = await consumeOtp(req.body.email, req.body.otp);
     user.emailVerified = true;
-    user.emailOtpHash = null;
-    user.emailOtpExpires = null;
-    user.emailOtpAttempts = 0;
     await user.save();
     res.json({ message: "Email verified.", ...session(user) });
   })
@@ -148,6 +154,31 @@ router.post(
     if (g.picture && !user.avatar) user.avatar = g.picture;
     await user.save();
     res.json(session(user));
+  })
+);
+
+// Password reset by emailed code. Same response whether or not the account exists.
+router.post(
+  "/forgot-password",
+  authLimiter,
+  validate(resendSchema),
+  asyncHandler(async (req, res) => {
+    const user = await User.findOne({ email: req.body.email, isGuest: false });
+    if (user) await issueOtp(user, "reset");
+    res.json({ message: "If an account exists for that email, a reset code is on its way." });
+  })
+);
+
+router.post(
+  "/reset-password",
+  authLimiter,
+  validate(resetSchema),
+  asyncHandler(async (req, res) => {
+    const user = await consumeOtp(req.body.email, req.body.otp);
+    user.password = await bcrypt.hash(req.body.password, 12);
+    user.emailVerified = true; // receiving the code proves they own the inbox
+    await user.save();
+    res.json({ message: "Password updated.", ...session(user) });
   })
 );
 

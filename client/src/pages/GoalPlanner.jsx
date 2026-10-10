@@ -1,554 +1,285 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import "./GoalPlanner.css";
+import { useCallback, useEffect, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import AppShell from "../components/Shared/AppShell";
+import SourceBadge from "../components/Shared/SourceBadge";
+import { errorMessage } from "../services/api";
+import { checkinGoal, createGoal, deleteGoal, getGoals, planGoal, setGoalStatus } from "../services/healthService";
+import { CHART, axisProps, compactNumber, shortDay, tooltipStyle } from "../utils/chartTheme";
 
-// Sample insurance goals data - in production this would come from an API
-const initialGoals = [
-  {
-    id: 1,
-    title: "Maintain Healthy BMI",
-    description: "Keep BMI between 18.5-24.9 for 3 consecutive months",
-    category: "weight",
-    icon: "⚖️",
-    emiReduction: 150,
-    progress: 75,
-    target: 100,
-    unit: "%",
-    deadline: "2026-06-30",
-    status: "in_progress",
-    tips: ["Track weight weekly", "Maintain balanced diet", "Exercise 30 mins daily"],
-    milestones: [
-      { month: 1, target: "BMI < 25", completed: true },
-      { month: 2, target: "BMI stable", completed: true },
-      { month: 3, target: "BMI maintained", completed: false },
-    ],
-  },
-  {
-    id: 2,
-    title: "Complete Annual Health Checkup",
-    description: "Get full body checkup with all recommended tests",
-    category: "checkup",
-    icon: "🩺",
-    emiReduction: 200,
-    progress: 100,
-    target: 100,
-    unit: "%",
-    deadline: "2026-03-31",
-    status: "completed",
-    tips: ["Book appointment early", "Fast 12 hours before blood test", "Bring previous reports"],
-    milestones: [
-      { month: 1, target: "Book appointment", completed: true },
-      { month: 1, target: "Complete checkup", completed: true },
-      { month: 1, target: "Upload reports", completed: true },
-    ],
-  },
-  {
-    id: 3,
-    title: "10,000 Steps Daily Challenge",
-    description: "Achieve 10,000 steps average for 30 days",
-    category: "fitness",
-    icon: "👟",
-    emiReduction: 100,
-    progress: 18,
-    target: 30,
-    unit: "days",
-    deadline: "2026-04-15",
-    status: "in_progress",
-    tips: ["Take stairs instead of elevator", "Walk during lunch break", "Evening walks"],
-    milestones: [
-      { week: 1, target: "7 days", completed: true },
-      { week: 2, target: "14 days", completed: true },
-      { week: 3, target: "21 days", completed: false },
-      { week: 4, target: "30 days", completed: false },
-    ],
-  },
-  {
-    id: 4,
-    title: "Quit Smoking Program",
-    description: "Stay smoke-free for 6 months verified by cotinine test",
-    category: "lifestyle",
-    icon: "🚭",
-    emiReduction: 500,
-    progress: 0,
-    target: 180,
-    unit: "days",
-    deadline: "2026-09-30",
-    status: "not_started",
-    tips: ["Use nicotine patches", "Join support groups", "Avoid triggers"],
-    milestones: [
-      { month: 1, target: "30 days smoke-free", completed: false },
-      { month: 3, target: "90 days verified", completed: false },
-      { month: 6, target: "180 days certified", completed: false },
-    ],
-  },
-  {
-    id: 5,
-    title: "Blood Pressure Control",
-    description: "Maintain BP below 120/80 for 3 months",
-    category: "vitals",
-    icon: "❤️",
-    emiReduction: 175,
-    progress: 45,
-    target: 90,
-    unit: "days",
-    deadline: "2026-05-31",
-    status: "in_progress",
-    tips: ["Reduce salt intake", "Practice meditation", "Regular monitoring"],
-    milestones: [
-      { month: 1, target: "BP < 130/85", completed: true },
-      { month: 2, target: "BP < 125/82", completed: false },
-      { month: 3, target: "BP < 120/80", completed: false },
-    ],
-  },
-  {
-    id: 6,
-    title: "Sleep Quality Improvement",
-    description: "Achieve 7+ hours quality sleep for 30 nights",
-    category: "sleep",
-    icon: "😴",
-    emiReduction: 75,
-    progress: 22,
-    target: 30,
-    unit: "nights",
-    deadline: "2026-04-30",
-    status: "in_progress",
-    tips: ["Fixed sleep schedule", "No screens before bed", "Dark, cool room"],
-    milestones: [
-      { week: 1, target: "7 nights", completed: true },
-      { week: 2, target: "14 nights", completed: true },
-      { week: 3, target: "21 nights", completed: true },
-      { week: 4, target: "30 nights", completed: false },
-    ],
-  },
-];
-
-const categoryColors = {
-  weight: { bg: "rgba(34, 197, 94, 0.15)", color: "#22c55e", border: "rgba(34, 197, 94, 0.3)" },
-  checkup: { bg: "rgba(59, 130, 246, 0.15)", color: "#3b82f6", border: "rgba(59, 130, 246, 0.3)" },
-  fitness: { bg: "rgba(249, 115, 22, 0.15)", color: "#f97316", border: "rgba(249, 115, 22, 0.3)" },
-  lifestyle: { bg: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "rgba(239, 68, 68, 0.3)" },
-  vitals: { bg: "rgba(236, 72, 153, 0.15)", color: "#ec4899", border: "rgba(236, 72, 153, 0.3)" },
-  sleep: { bg: "rgba(139, 92, 246, 0.15)", color: "#8b5cf6", border: "rgba(139, 92, 246, 0.3)" },
+const METRIC_LABEL = {
+  steps: "daily steps",
+  sleepHours: "hours of sleep",
+  weightKg: "body weight",
+  systolic: "systolic BP",
+  waterLitres: "litres of water",
+  restingHeartRate: "resting heart rate",
+  habit: "daily habits",
 };
+const IDEAS = ["Walk 8,000 steps a day", "Sleep 7.5 hours on weeknights", "Lose 4 kg in 8 weeks", "Bring my BP under 130", "Drink 2.5 L of water daily"];
 
-const statusLabels = {
-  completed: { label: "Completed", color: "#22c55e" },
-  in_progress: { label: "In Progress", color: "#3b82f6" },
-  not_started: { label: "Not Started", color: "#94a3b8" },
-};
+function targetText(g) {
+  if (g.metric === "habit") return `${g.habits.length} daily habit${g.habits.length === 1 ? "" : "s"}`;
+  if (g.direction === "reach") return `${g.startValue} → ${g.targetValue} ${g.unit}`;
+  return `${g.direction === "atMost" ? "≤" : "≥"} ${g.dailyTarget?.toLocaleString("en-IN")} ${g.unit} a day`;
+}
 
-export default function GoalPlanner() {
-  const [goals, setGoals] = useState(initialGoals);
-  const [selectedGoal, setSelectedGoal] = useState(null);
-  const [filter, setFilter] = useState("all");
-  const [showConfetti, setShowConfetti] = useState(false);
+function PlanEditor({ preview, onCancel, onSaved }) {
+  const [plan, setPlan] = useState(preview.plan);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const set = (k) => (e) => setPlan((p) => ({ ...p, [k]: e.target.type === "number" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value }));
 
-  // Calculate totals
-  const currentEMI = 2500; // Base EMI
-  const totalPotentialSavings = goals.reduce((sum, g) => sum + g.emiReduction, 0);
-  const currentSavings = goals
-    .filter((g) => g.status === "completed")
-    .reduce((sum, g) => sum + g.emiReduction, 0);
-  const inProgressSavings = goals
-    .filter((g) => g.status === "in_progress")
-    .reduce((sum, g) => sum + Math.round((g.progress / g.target) * g.emiReduction), 0);
-
-  const filteredGoals = filter === "all" 
-    ? goals 
-    : goals.filter((g) => g.status === filter);
-
-  const completeGoal = (goalId) => {
-    setGoals((prev) =>
-      prev.map((g) =>
-        g.id === goalId
-          ? { ...g, status: "completed", progress: g.target }
-          : g
-      )
-    );
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 3000);
-  };
-
-  const updateProgress = (goalId, newProgress) => {
-    setGoals((prev) =>
-      prev.map((g) =>
-        g.id === goalId
-          ? { 
-              ...g, 
-              progress: Math.min(newProgress, g.target),
-              status: newProgress >= g.target ? "completed" : "in_progress"
-            }
-          : g
-      )
-    );
+  const save = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const { weeks, ...rest } = plan;
+      await createGoal({ ...rest, weeks, planSource: preview.planSource });
+      onSaved();
+    } catch (err) {
+      setError(errorMessage(err));
+      setBusy(false);
+    }
   };
 
   return (
-    <div className="emi-goals-container">
-      {/* Confetti Animation */}
-      <AnimatePresence>
-        {showConfetti && (
-          <motion.div
-            className="confetti-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {[...Array(50)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="confetti-piece"
-                initial={{ 
-                  y: -20, 
-                  x: Math.random() * window.innerWidth,
-                  rotate: 0,
-                  opacity: 1
-                }}
-                animate={{ 
-                  y: window.innerHeight + 20,
-                  rotate: Math.random() * 720 - 360,
-                  opacity: 0
-                }}
-                transition={{ 
-                  duration: 2 + Math.random() * 2,
-                  ease: "easeOut"
-                }}
-                style={{
-                  background: ["#22c55e", "#3b82f6", "#f97316", "#ec4899", "#8b5cf6"][Math.floor(Math.random() * 5)],
-                }}
-              />
-            ))}
-          </motion.div>
+    <div className="ui-card ui-stack">
+      <div className="ui-row">
+        <h2 style={{ margin: 0 }}>Your plan</h2>
+        <SourceBadge source={preview.planSource} />
+      </div>
+      {preview.safetyNotes?.map((n) => <div key={n} className="ui-alert ui-alert-warn">{n}</div>)}
+      <div className="ui-form-grid">
+        <label className="ui-field" style={{ gridColumn: "1 / -1" }}><span>Title</span><input className="ui-input" value={plan.title} onChange={set("title")} maxLength={120} /></label>
+        <label className="ui-field"><span>Tracked by</span><input className="ui-input" value={METRIC_LABEL[plan.metric]} readOnly /></label>
+        {plan.metric !== "habit" && plan.direction !== "reach" && (
+          <label className="ui-field"><span>Daily target ({plan.unit})</span><input className="ui-input" type="number" value={plan.dailyTarget ?? ""} onChange={set("dailyTarget")} /></label>
         )}
-      </AnimatePresence>
+        {plan.direction === "reach" && (
+          <>
+            <label className="ui-field"><span>Start ({plan.unit})</span><input className="ui-input" type="number" step="0.1" value={plan.startValue ?? ""} onChange={set("startValue")} /></label>
+            <label className="ui-field"><span>Target ({plan.unit})</span><input className="ui-input" type="number" step="0.1" value={plan.targetValue ?? ""} onChange={set("targetValue")} /></label>
+          </>
+        )}
+        <label className="ui-field"><span>Weeks</span><input className="ui-input" type="number" min="1" max="26" value={plan.weeks} onChange={set("weeks")} /></label>
+      </div>
+      {plan.description && <p className="ui-muted ui-small">{plan.description}</p>}
+      {plan.habits.length > 0 && (
+        <div>
+          <strong className="ui-small">Daily habits</strong>
+          <ul className="ui-bullets" style={{ marginTop: "0.3rem" }}>{plan.habits.map((h) => <li key={h.title}>{h.title}{h.timeOfDay && h.timeOfDay !== "any" ? ` (${h.timeOfDay})` : ""}</li>)}</ul>
+        </div>
+      )}
+      {plan.milestones.length > 0 && (
+        <div>
+          <strong className="ui-small">Weekly milestones</strong>
+          <ul className="ui-bullets" style={{ marginTop: "0.3rem" }}>{plan.milestones.map((m) => <li key={m.week}>Week {m.week}: {m.title}{m.target ? ` (${m.target})` : ""}</li>)}</ul>
+        </div>
+      )}
+      {error && <div className="ui-alert ui-alert-error">{error}</div>}
+      <div className="ui-row">
+        <div className="ui-spacer" />
+        <button className="ui-btn ui-btn-ghost" onClick={onCancel}>Discard</button>
+        <button className="ui-btn ui-btn-primary" onClick={save} disabled={busy}>{busy ? "Saving…" : "Start this goal"}</button>
+      </div>
+    </div>
+  );
+}
 
-      {/* Hero Section */}
-      <section className="emi-hero">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <span className="emi-badge">💰 Insurance Rewards</span>
-          <h1 className="emi-title">
-            Reduce Your Health Insurance EMI
-          </h1>
-          <p className="emi-subtitle">
-            Complete health goals to unlock discounts on your monthly premium. 
-            The healthier you are, the less you pay!
-          </p>
-        </motion.div>
+function GoalCard({ goal, onChange }) {
+  const pr = goal.progress;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const week = Math.max(1, Math.min(Math.floor((pr.elapsedDays - 1) / 7) + 1, Math.ceil(pr.totalDays / 7)));
 
-        {/* EMI Summary Cards */}
-        <motion.div 
-          className="emi-summary-grid"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <div className="emi-summary-card emi-card-current">
-            <div className="emi-card-icon">📋</div>
-            <div className="emi-card-content">
-              <span className="emi-card-label">Current EMI</span>
-              <span className="emi-card-value">₹{currentEMI.toLocaleString()}</span>
-              <span className="emi-card-sub">/month</span>
-            </div>
-          </div>
+  const act = async (fn) => {
+    setBusy(true);
+    setError("");
+    try {
+      await fn();
+      await onChange();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
 
-          <div className="emi-summary-card emi-card-saved">
-            <div className="emi-card-icon">✅</div>
-            <div className="emi-card-content">
-              <span className="emi-card-label">Already Saved</span>
-              <span className="emi-card-value">₹{currentSavings.toLocaleString()}</span>
-              <span className="emi-card-sub">/month</span>
-            </div>
-          </div>
+  const toggleHabit = (id) => {
+    const done = pr.todayHabits.includes(id) ? pr.todayHabits.filter((h) => h !== id) : [...pr.todayHabits, id];
+    act(() => checkinGoal(goal._id, done));
+  };
 
-          <div className="emi-summary-card emi-card-progress">
-            <div className="emi-card-icon">⏳</div>
-            <div className="emi-card-content">
-              <span className="emi-card-label">In Progress</span>
-              <span className="emi-card-value">₹{inProgressSavings.toLocaleString()}</span>
-              <span className="emi-card-sub">potential</span>
-            </div>
-          </div>
+  const chartData = pr.series.map((p) => ({ ...p, label: shortDay(p.day) }));
 
-          <div className="emi-summary-card emi-card-potential">
-            <div className="emi-card-icon">🎯</div>
-            <div className="emi-card-content">
-              <span className="emi-card-label">Total Potential</span>
-              <span className="emi-card-value">₹{totalPotentialSavings.toLocaleString()}</span>
-              <span className="emi-card-sub">/month savings</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* New EMI Preview */}
-        <motion.div 
-          className="emi-new-preview"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <div className="emi-preview-content">
-            <span className="emi-preview-label">Your New EMI (after all goals)</span>
-            <div className="emi-preview-values">
-              <span className="emi-old">₹{currentEMI.toLocaleString()}</span>
-              <span className="emi-arrow">→</span>
-              <span className="emi-new">₹{(currentEMI - totalPotentialSavings).toLocaleString()}</span>
-            </div>
-            <div className="emi-savings-percent">
-              Save {Math.round((totalPotentialSavings / currentEMI) * 100)}% on your premium!
-            </div>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* Filter Tabs */}
-      <div className="emi-filters">
-        {[
-          { key: "all", label: "All Goals", count: goals.length },
-          { key: "in_progress", label: "In Progress", count: goals.filter((g) => g.status === "in_progress").length },
-          { key: "completed", label: "Completed", count: goals.filter((g) => g.status === "completed").length },
-          { key: "not_started", label: "Not Started", count: goals.filter((g) => g.status === "not_started").length },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            className={`emi-filter-btn ${filter === tab.key ? "active" : ""}`}
-            onClick={() => setFilter(tab.key)}
-          >
-            {tab.label}
-            <span className="filter-count">{tab.count}</span>
-          </button>
-        ))}
+  return (
+    <div className="ui-card ui-stack">
+      <div className="ui-row" style={{ alignItems: "flex-start" }}>
+        <div style={{ flex: 1 }}>
+          <h3 style={{ margin: 0 }}>{goal.title}</h3>
+          <div className="ui-faint">{targetText(goal)} · {goal.category}</div>
+        </div>
+        <span className={`ui-badge ${goal.status === "completed" ? "ui-badge-good" : "ui-badge-info"}`}>{goal.status === "completed" ? "Completed" : `Week ${week}`}</span>
       </div>
 
-      {/* Goals Grid */}
-      <motion.div 
-        className="emi-goals-grid"
-        layout
-      >
-        <AnimatePresence mode="popLayout">
-          {filteredGoals.map((goal, index) => (
-            <motion.div
-              key={goal.id}
-              className="emi-goal-card"
-              layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              onClick={() => setSelectedGoal(goal)}
-              style={{
-                borderColor: categoryColors[goal.category]?.border,
-              }}
-            >
-              <div className="goal-card-header">
-                <span 
-                  className="goal-category-badge"
-                  style={{ 
-                    background: categoryColors[goal.category]?.bg,
-                    color: categoryColors[goal.category]?.color,
-                  }}
-                >
-                  {goal.icon} {goal.category}
-                </span>
-                <span 
-                  className="goal-status-badge"
-                  style={{ color: statusLabels[goal.status]?.color }}
-                >
-                  {statusLabels[goal.status]?.label}
-                </span>
-              </div>
+      <div>
+        <div className="ui-row ui-small" style={{ marginBottom: "0.35rem" }}>
+          <span>{pr.percent}% complete</span>
+          <div className="ui-spacer" />
+          <span className="ui-faint">
+            {goal.metric === "habit" ? "" : goal.direction === "reach" ? `Latest ${pr.latestValue ?? "–"} ${goal.unit}` : `${pr.daysMet} of ${pr.totalDays} days on target`}
+            {" · "}{pr.daysLeft} days left
+          </span>
+        </div>
+        <div className="ui-progress" role="progressbar" aria-valuenow={pr.percent} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${Math.max(2, pr.percent)}%` }} /></div>
+      </div>
 
-              <h3 className="goal-title">{goal.title}</h3>
-              <p className="goal-description">{goal.description}</p>
+      {goal.metric !== "habit" && chartData.length > 0 && (
+        <ResponsiveContainer width="100%" height={120}>
+          <BarChart data={chartData} margin={{ top: 6, right: 6, left: -16, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke={CHART.grid} />
+            <XAxis dataKey="label" {...axisProps} interval="preserveStartEnd" />
+            <YAxis {...axisProps} width={46} tickFormatter={compactNumber} domain={goal.direction === "reach" ? ["auto", "auto"] : [0, (max) => Math.max(max, goal.dailyTarget || 0) * 1.1]} />
+            <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.04)" }} formatter={(v) => [`${v} ${goal.unit}`, METRIC_LABEL[goal.metric]]} />
+            {goal.dailyTarget != null && goal.direction !== "reach" && <ReferenceLine y={goal.dailyTarget} stroke={CHART.text} strokeDasharray="4 4" label={{ value: "target", fill: CHART.text, fontSize: 10, position: "insideTopRight" }} />}
+            {goal.direction === "reach" && goal.targetValue != null && <ReferenceLine y={goal.targetValue} stroke={CHART.text} strokeDasharray="4 4" label={{ value: "target", fill: CHART.text, fontSize: 10, position: "insideTopRight" }} />}
+            <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={18}>
+              {chartData.map((d) => <Cell key={d.day} fill={d.met === false ? CHART.axis : CHART.series[0]} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+      {goal.metric !== "habit" && chartData.length === 0 && (
+        <p className="ui-faint">No {METRIC_LABEL[goal.metric]} logged since this goal started. Log it on the dashboard or connect a device on the Vitals page.</p>
+      )}
 
-              <div className="goal-progress-section">
-                <div className="goal-progress-header">
-                  <span>Progress</span>
-                  <span className="goal-progress-text">
-                    {goal.progress}/{goal.target} {goal.unit}
-                  </span>
-                </div>
-                <div className="goal-progress-bar">
-                  <motion.div 
-                    className="goal-progress-fill"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(goal.progress / goal.target) * 100}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    style={{ 
-                      background: categoryColors[goal.category]?.color 
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="goal-emi-section">
-                <div className="goal-emi-icon">💰</div>
-                <div className="goal-emi-info">
-                  <span className="goal-emi-label">EMI Reduction</span>
-                  <span className="goal-emi-value">₹{goal.emiReduction}/month</span>
-                </div>
-                {goal.status === "completed" && (
-                  <span className="goal-emi-unlocked">✓ Unlocked</span>
-                )}
-              </div>
-
-              <div className="goal-deadline">
-                <span>🗓️ Deadline: {new Date(goal.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* Goal Detail Modal */}
-      <AnimatePresence>
-        {selectedGoal && (
-          <motion.div
-            className="goal-modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedGoal(null)}
-          >
-            <motion.div
-              className="goal-modal"
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button className="modal-close" onClick={() => setSelectedGoal(null)}>
-                ✕
-              </button>
-
-              <div className="modal-header">
-                <span 
-                  className="modal-icon"
-                  style={{ background: categoryColors[selectedGoal.category]?.bg }}
-                >
-                  {selectedGoal.icon}
-                </span>
-                <div>
-                  <h2>{selectedGoal.title}</h2>
-                  <p>{selectedGoal.description}</p>
-                </div>
-              </div>
-
-              <div className="modal-emi-highlight">
-                <div className="modal-emi-box">
-                  <span className="modal-emi-label">Complete this goal to save</span>
-                  <span className="modal-emi-amount">₹{selectedGoal.emiReduction}</span>
-                  <span className="modal-emi-period">per month on your EMI</span>
-                </div>
-              </div>
-
-              <div className="modal-progress">
-                <h4>Your Progress</h4>
-                <div className="modal-progress-bar">
-                  <div 
-                    className="modal-progress-fill"
-                    style={{ 
-                      width: `${(selectedGoal.progress / selectedGoal.target) * 100}%`,
-                      background: categoryColors[selectedGoal.category]?.color 
-                    }}
-                  />
-                </div>
-                <div className="modal-progress-stats">
-                  <span>{selectedGoal.progress} / {selectedGoal.target} {selectedGoal.unit}</span>
-                  <span>{Math.round((selectedGoal.progress / selectedGoal.target) * 100)}% complete</span>
-                </div>
-              </div>
-
-              <div className="modal-milestones">
-                <h4>Milestones</h4>
-                <div className="milestones-list">
-                  {selectedGoal.milestones.map((m, i) => (
-                    <div 
-                      key={i} 
-                      className={`milestone-item ${m.completed ? "completed" : ""}`}
-                    >
-                      <span className="milestone-check">
-                        {m.completed ? "✓" : (i + 1)}
-                      </span>
-                      <span className="milestone-text">{m.target}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="modal-tips">
-                <h4>💡 Tips to Complete</h4>
-                <ul>
-                  {selectedGoal.tips.map((tip, i) => (
-                    <li key={i}>{tip}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {selectedGoal.status !== "completed" && (
-                <div className="modal-actions">
-                  <button 
-                    className="modal-btn-progress"
-                    onClick={() => {
-                      const newProgress = selectedGoal.progress + Math.ceil(selectedGoal.target * 0.1);
-                      updateProgress(selectedGoal.id, newProgress);
-                      setSelectedGoal({ ...selectedGoal, progress: Math.min(newProgress, selectedGoal.target) });
-                    }}
-                  >
-                    Log Progress (+10%)
-                  </button>
-                  <button 
-                    className="modal-btn-complete"
-                    onClick={() => {
-                      completeGoal(selectedGoal.id);
-                      setSelectedGoal(null);
-                    }}
-                  >
-                    Mark as Complete
-                  </button>
-                </div>
-              )}
-
-              {selectedGoal.status === "completed" && (
-                <div className="modal-completed-badge">
-                  <span>🎉</span>
-                  <span>Goal Completed! You're saving ₹{selectedGoal.emiReduction}/month</span>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* How It Works Section */}
-      <section className="emi-how-it-works">
-        <h2>How EMI Reduction Works</h2>
-        <div className="how-it-works-grid">
-          <div className="how-step">
-            <div className="step-number">1</div>
-            <h3>Choose Goals</h3>
-            <p>Select health goals that match your lifestyle and health priorities</p>
+      {goal.habits.length > 0 && goal.status === "active" && (
+        <div>
+          <div className="ui-row ui-small" style={{ marginBottom: "0.35rem" }}>
+            <strong>Today</strong>
+            {pr.streak > 0 && <span className="ui-badge ui-badge-good">{pr.streak}-day streak</span>}
+            {pr.habitPercent != null && <span className="ui-faint">{pr.habitPercent}% of habits done overall</span>}
           </div>
-          <div className="how-step">
-            <div className="step-number">2</div>
-            <h3>Track Progress</h3>
-            <p>Log your activities and sync with wearables for automatic tracking</p>
-          </div>
-          <div className="how-step">
-            <div className="step-number">3</div>
-            <h3>Get Verified</h3>
-            <p>Complete verification through health reports or connected devices</p>
-          </div>
-          <div className="how-step">
-            <div className="step-number">4</div>
-            <h3>Save Money</h3>
-            <p>Enjoy reduced EMI starting from the next billing cycle</p>
+          <div className="ui-stack" style={{ gap: "0.4rem" }}>
+            {goal.habits.map((h) => (
+              <label key={h.id} className="ui-check">
+                <input type="checkbox" checked={pr.todayHabits.includes(h.id)} disabled={busy} onChange={() => toggleHabit(h.id)} />
+                {h.title}
+              </label>
+            ))}
           </div>
         </div>
-      </section>
+      )}
+
+      {goal.tips?.length > 0 && (
+        <details>
+          <summary className="ui-small ui-muted" style={{ cursor: "pointer" }}>Plan details</summary>
+          <ul className="ui-bullets" style={{ marginTop: "0.4rem" }}>
+            {goal.milestones.map((m) => <li key={`m${m.week}`} style={{ fontWeight: m.week === week ? 700 : 400 }}>Week {m.week}: {m.title}{m.target ? ` (${m.target})` : ""}</li>)}
+            {goal.tips.map((t) => <li key={t}>{t}</li>)}
+          </ul>
+        </details>
+      )}
+
+      {error && <div className="ui-alert ui-alert-error">{error}</div>}
+      <div className="ui-row">
+        <div className="ui-spacer" />
+        {goal.status === "active" && <button className="ui-btn ui-btn-ghost ui-btn-sm" disabled={busy} onClick={() => act(() => setGoalStatus(goal._id, "completed"))}>Mark done</button>}
+        <button className="ui-btn ui-btn-ghost ui-btn-sm" disabled={busy} onClick={() => window.confirm(`Delete "${goal.title}"?`) && act(() => deleteGoal(goal._id))}>Delete</button>
+      </div>
     </div>
+  );
+}
+
+export default function GoalPlanner() {
+  const [goals, setGoals] = useState(null);
+  const [description, setDescription] = useState("");
+  const [weeks, setWeeks] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [state, setState] = useState({ busy: false, error: "" });
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await getGoals();
+      setGoals(data);
+    } catch (err) {
+      setState({ busy: false, error: errorMessage(err) });
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const plan = async (e) => {
+    e.preventDefault();
+    setState({ busy: true, error: "" });
+    setPreview(null);
+    try {
+      const { data } = await planGoal(description.trim(), weeks ? Number(weeks) : undefined);
+      setPreview(data);
+      setState({ busy: false, error: "" });
+    } catch (err) {
+      setState({ busy: false, error: errorMessage(err, "Couldn't create a plan.") });
+    }
+  };
+
+  const active = (goals || []).filter((g) => g.status === "active");
+  const done = (goals || []).filter((g) => g.status === "completed");
+
+  return (
+    <AppShell title="Goals" subtitle="Say what you want to change. AI drafts a safe, measurable plan, and progress is measured from what you actually log, not from button presses.">
+      <div className="ui-grid ui-grid-2" style={{ alignItems: "start", marginBottom: "1.25rem" }}>
+        <form className="ui-card ui-stack" onSubmit={plan}>
+          <h2>New goal</h2>
+          <label className="ui-field">
+            <span>What do you want to achieve?</span>
+            <textarea className="ui-textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. I want to walk more and get to 8,000 steps a day" maxLength={400} required minLength={3} />
+          </label>
+          <div className="ui-row">
+            {IDEAS.map((i) => <button type="button" key={i} className="ui-btn ui-btn-sm" onClick={() => setDescription(i)}>{i}</button>)}
+          </div>
+          <div className="ui-row">
+            <label className="ui-field" style={{ width: 160 }}>
+              <span>Duration (optional)</span>
+              <select className="ui-select" value={weeks} onChange={(e) => setWeeks(e.target.value)}>
+                <option value="">Let AI suggest</option>
+                {[2, 4, 6, 8, 12].map((w) => <option key={w} value={w}>{w} weeks</option>)}
+              </select>
+            </label>
+            <div className="ui-spacer" />
+            <button className="ui-btn ui-btn-primary" style={{ alignSelf: "flex-end" }} disabled={state.busy || description.trim().length < 3}>{state.busy ? "Planning…" : "Plan it with AI"}</button>
+          </div>
+          {state.error && <div className="ui-alert ui-alert-error">{state.error}</div>}
+        </form>
+        {preview ? (
+          <PlanEditor key={preview.plan.title} preview={preview} onCancel={() => setPreview(null)} onSaved={() => { setPreview(null); setDescription(""); load(); }} />
+        ) : (
+          <div className="ui-card ui-empty" style={{ alignSelf: "stretch", display: "grid", placeItems: "center" }}>
+            <div>
+              <strong>How progress works</strong>
+              Steps, sleep, weight, blood pressure and water goals update automatically from your daily log. Habit goals use the daily checklist. Weight-loss targets are capped at 1 kg a week.
+            </div>
+          </div>
+        )}
+      </div>
+
+      {goals === null ? (
+        <div className="ui-loading"><span className="ui-spinner" /> Loading goals…</div>
+      ) : (
+        <>
+          <h2 style={{ fontSize: "1.15rem", marginBottom: "0.75rem" }}>Active goals ({active.length})</h2>
+          {active.length === 0 ? <div className="ui-empty">No active goals yet. Plan one above.</div> : (
+            <div className="ui-grid ui-grid-2">{active.map((g) => <GoalCard key={g._id} goal={g} onChange={load} />)}</div>
+          )}
+          {done.length > 0 && (
+            <>
+              <h2 style={{ fontSize: "1.15rem", margin: "1.5rem 0 0.75rem" }}>Completed ({done.length})</h2>
+              <div className="ui-grid ui-grid-2">{done.map((g) => <GoalCard key={g._id} goal={g} onChange={load} />)}</div>
+            </>
+          )}
+        </>
+      )}
+    </AppShell>
   );
 }

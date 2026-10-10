@@ -1,251 +1,73 @@
-import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import api from "../services/api";
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import AuthCard from "../components/Shared/AuthCard";
+import { useAuth } from "../context/AuthContext";
+import api, { errorMessage } from "../services/api";
 
 export default function VerifyEmail() {
-  const [searchParams] = useSearchParams();
+  const [params] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState("idle"); // idle, verifying, success, error
-  const [message, setMessage] = useState("Enter the OTP sent to your email.");
-  const [email, setEmail] = useState("");
+  const { acceptSession } = useAuth();
+  const [email, setEmail] = useState(params.get("email") || "");
   const [otp, setOtp] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [state, setState] = useState({ busy: false, error: "", info: "" });
 
-  useEffect(() => {
-    const queryEmail = searchParams.get("email");
-    if (queryEmail) {
-      setEmail(queryEmail);
-    }
-
-    const token = searchParams.get("token");
-    if (!token) {
-      return;
-    }
-
-    const verifyLegacyToken = async () => {
-      setStatus("verifying");
-      setMessage("Verifying your email...");
-      try {
-        const response = await api.post("/auth/verify-email", { token });
-        setStatus("success");
-        setMessage("Email verified successfully! Redirecting to dashboard...");
-        localStorage.setItem("token", response.data.token);
-        setTimeout(() => navigate("/dashboard"), 1500);
-      } catch (error) {
-        setStatus("error");
-        setMessage(error.response?.data?.message || "Verification failed. Please try OTP verification.");
-      }
-    };
-
-    verifyLegacyToken();
-  }, [searchParams, navigate]);
-
-  const handleVerifyOtp = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
-    setStatus("verifying");
-    setMessage("Verifying OTP...");
-
+    setState({ busy: true, error: "", info: "" });
     try {
-      const response = await api.post("/auth/verify-email", {
-        email: email.trim(),
-        otp: otp.trim(),
-      });
-
-      setStatus("success");
-      setMessage("Email verified successfully! Redirecting to dashboard...");
-      localStorage.setItem("token", response.data.token);
-      setTimeout(() => navigate("/dashboard"), 1500);
-    } catch (error) {
-      setStatus("error");
-      setMessage(error.response?.data?.message || "Verification failed. Please check the OTP and try again.");
-    } finally {
-      setSubmitting(false);
+      const { data } = await api.post("/auth/verify-email", { email: email.trim(), otp: otp.trim() });
+      acceptSession(data);
+      navigate("/profile?welcome=1", { replace: true });
+    } catch (err) {
+      setState({ busy: false, error: errorMessage(err, "Verification failed"), info: "" });
     }
   };
 
-  const handleResend = async () => {
-    if (!email.trim()) {
-      setStatus("error");
-      setMessage("Please enter your email to resend OTP.");
-      return;
-    }
-
+  const resend = async () => {
+    setState({ busy: true, error: "", info: "" });
     try {
-      await api.post("/auth/resend-verification", { email: email.trim() });
-      setStatus("idle");
-      setMessage("A new OTP has been sent to your email.");
-    } catch (error) {
-      setStatus("error");
-      setMessage(error.response?.data?.message || "Failed to resend OTP.");
+      const { data } = await api.post("/auth/resend-verification", { email: email.trim() });
+      setState({ busy: false, error: "", info: data.message });
+    } catch (err) {
+      setState({ busy: false, error: errorMessage(err), info: "" });
     }
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.box}>
-        <h1>Email Verification</h1>
-        <p style={styles.hint}>Enter the 6-digit OTP sent to your inbox.</p>
-
-        {status === "verifying" && (
-          <div style={styles.verifying}>
-            <div style={styles.spinner}></div>
-            <p>{message}</p>
-          </div>
-        )}
-
-        {status === "success" && (
-          <div style={styles.success}>
-            <div style={styles.checkmark}>✓</div>
-            <p>{message}</p>
-          </div>
-        )}
-
-        {status === "error" && (
-          <div style={styles.error}>
-            <div style={styles.errorIcon}>✕</div>
-            <p>{message}</p>
-          </div>
-        )}
-
-        <form style={styles.form} onSubmit={handleVerifyOtp}>
+    <AuthCard
+      title="Verify your email"
+      subtitle="We sent a 6-digit code to your inbox. It expires in 10 minutes."
+      footer={<Link to="/login" style={{ textDecoration: "underline" }}>Back to sign in</Link>}
+    >
+      <form className="ui-stack" onSubmit={submit}>
+        <label className="ui-field">
+          <span>Email</span>
+          <input className="ui-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
+        </label>
+        <label className="ui-field">
+          <span>6-digit code</span>
           <input
-            style={styles.input}
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            style={styles.input}
-            type="text"
-            placeholder="6-digit OTP"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            required
+            className="ui-input"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="\d{6}"
             maxLength={6}
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+            required
+            style={{ letterSpacing: "0.4em", fontSize: "1.3rem", textAlign: "center" }}
           />
-          <button style={styles.button} type="submit" disabled={submitting}>
-            {submitting ? "Verifying..." : "Verify OTP"}
-          </button>
-        </form>
-
-        <button style={styles.linkButton} type="button" onClick={handleResend}>
-          Resend OTP
+        </label>
+        {state.error && <div className="ui-alert ui-alert-error" role="alert">{state.error}</div>}
+        {state.info && <div className="ui-alert ui-alert-info">{state.info}</div>}
+        <button className="ui-btn ui-btn-primary ui-btn-lg" disabled={state.busy || otp.length !== 6}>
+          {state.busy ? "Checking…" : "Verify and continue"}
         </button>
-        <button style={styles.secondaryButton} type="button" onClick={() => navigate("/register")}>
-          Back to Register
+        <button type="button" className="ui-btn ui-btn-ghost" onClick={resend} disabled={state.busy || !email}>
+          Didn't get it? Send a new code
         </button>
-      </div>
-    </div>
+      </form>
+    </AuthCard>
   );
 }
-
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "100vh",
-    backgroundColor: "#f5f5f5",
-  },
-  box: {
-    backgroundColor: "white",
-    padding: "40px",
-    borderRadius: "10px",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-    textAlign: "center",
-    maxWidth: "400px",
-  },
-  hint: {
-    color: "#555",
-    marginBottom: "18px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    marginTop: "18px",
-  },
-  input: {
-    padding: "12px",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-    fontSize: "15px",
-  },
-  verifying: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "20px",
-  },
-  spinner: {
-    width: "40px",
-    height: "40px",
-    border: "4px solid #f3f3f3",
-    borderTop: "4px solid #4CAF50",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-  },
-  success: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "20px",
-    color: "#4CAF50",
-  },
-  checkmark: {
-    width: "60px",
-    height: "60px",
-    borderRadius: "50%",
-    backgroundColor: "#4CAF50",
-    color: "white",
-    fontSize: "32px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  error: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "20px",
-    color: "#f44336",
-  },
-  errorIcon: {
-    width: "60px",
-    height: "60px",
-    borderRadius: "50%",
-    backgroundColor: "#f44336",
-    color: "white",
-    fontSize: "32px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  button: {
-    padding: "10px 20px",
-    backgroundColor: "#4CAF50",
-    color: "white",
-    border: "none",
-    borderRadius: "5px",
-    cursor: "pointer",
-    fontSize: "16px",
-  },
-  linkButton: {
-    marginTop: "10px",
-    background: "none",
-    border: "none",
-    color: "#0f766e",
-    cursor: "pointer",
-    fontWeight: 600,
-  },
-  secondaryButton: {
-    marginTop: "8px",
-    background: "none",
-    border: "none",
-    color: "#666",
-    cursor: "pointer",
-  },
-};

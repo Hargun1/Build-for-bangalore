@@ -1,103 +1,20 @@
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, Stars } from "@react-three/drei";
 import { ReactLenis } from "@studio-freight/react-lenis";
-import { analyzeHealth, getPredictions, getRecommendations, compareBaseline } from "../services/healthService";
+import HealthOverview from "../components/Dashboard/HealthOverview";
 import "./Dashboard.css";
 
-gsap.registerPlugin(ScrollTrigger);
-
-// ─── Mock health data ───────────────────────────────────────────────
-const STATS = [
-  {
-    label: "Heart Rate",
-    value: 72,
-    unit: "bpm",
-    trend: "+2%",
-    trendUp: true,
-    icon: "❤️",
-    color: "#ef4444",
-    progress: 72,
-  },
-  {
-    label: "Daily Steps",
-    value: 8420,
-    unit: "steps",
-    trend: "+14%",
-    trendUp: true,
-    icon: "👟",
-    color: "#3b82f6",
-    progress: 84,
-  },
-  {
-    label: "Sleep",
-    value: 7.2,
-    unit: "hrs",
-    trend: "-5%",
-    trendUp: false,
-    icon: "🌙",
-    color: "#8b5cf6",
-    progress: 90,
-  },
-  {
-    label: "Calories",
-    value: 1840,
-    unit: "kcal",
-    trend: "+8%",
-    trendUp: true,
-    icon: "🔥",
-    color: "#f59e0b",
-    progress: 76,
-  },
-];
-
-function buildRiskStats(riskScores) {
-  if (!riskScores) return STATS;
-
-  const rows = [
-    { key: "diabetes", label: "Diabetes Risk", icon: "🩸", color: "#ef4444" },
-    { key: "cardiac", label: "Cardiac Risk", icon: "🫀", color: "#f59e0b" },
-    { key: "obesity", label: "Obesity Risk", icon: "⚖️", color: "#8b5cf6" },
-    { key: "stress", label: "Stress Risk", icon: "🧠", color: "#3b82f6" },
-  ];
-
-  return rows.map((row) => {
-    const raw = Number(riskScores[row.key] || 0);
-    const percent = Math.min(100, Math.max(0, Math.round(raw)));
-    return {
-      label: row.label,
-      value: percent,
-      unit: "%",
-      trend: percent >= 60 ? "high" : percent >= 35 ? "moderate" : "low",
-      trendUp: percent >= 60,
-      icon: row.icon,
-      color: row.color,
-      progress: Math.max(6, percent),
-    };
-  });
-}
-
-function computeWellnessScore(riskScores) {
-  if (!riskScores) return 50;
-  const values = Object.values(riskScores)
-    .map((v) => Number(v))
-    .filter((v) => Number.isFinite(v));
-  if (!values.length) return 50;
-  const avgRisk = values.reduce((a, b) => a + b, 0) / values.length;
-  return Math.max(0, Math.min(100, Math.round(100 - avgRisk)));
-}
 
 const FEATURE_CARDS = [
   {
     to: "/glass-body",
     label: "Digital Twin",
     tagline: "Your body, visualized",
-    desc: "Interact with a responsive 3D model of your body and visually spot stress zones before they become issues. Powered by real-time biometric data.",
+    desc: "Explore 3D models of your organs. Each organ shows your own related score, such as heart risk on the heart and air quality on the lungs.",
     icon: "🫀",
     img: "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=1200&q=80",
     accent: "#0891b2",
@@ -106,7 +23,7 @@ const FEATURE_CARDS = [
     to: "/exposome",
     label: "Exposome Radar",
     tagline: "Know your environment",
-    desc: "Track air quality, UV index, pollen counts, and city-level exposure so your routines adapt to the world around you in real time.",
+    desc: "Live air quality on India's CPCB scale, heat, UV and rain where you are, plus the best 2-hour window to exercise outdoors today.",
     icon: "🌍",
     img: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80",
     accent: "#059669",
@@ -114,8 +31,8 @@ const FEATURE_CARDS = [
   {
     to: "/appointments",
     label: "Appointments",
-    tagline: "Healthcare, simplified",
-    desc: "Plan and manage in-person and virtual visits with all of your metrics, lab work, and reports already attached and ready to share.",
+    tagline: "The right doctor, nearby",
+    desc: "Describe your symptoms, get an AI triage of which specialist to see and how soon, then pick a real clinic near you and add it to your calendar.",
     icon: "🏥",
     img: "https://images.unsplash.com/photo-1666214280557-f1b5022eb634?w=1200&q=80",
     accent: "#4f46e5",
@@ -124,7 +41,7 @@ const FEATURE_CARDS = [
     to: "/grocery",
     label: "Grocery Scanner",
     tagline: "Scan. Learn. Eat better.",
-    desc: "Point at any product and instantly see ingredient grades, glycemic impact, allergen flags, and healthier alternatives nearby.",
+    desc: "Photograph a meal for calories and macros, scan a barcode for its Nutri-Score and allergens, or snap a grocery bill for a basket health score.",
     icon: "🥗",
     img: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&q=80",
     accent: "#d97706",
@@ -133,16 +50,16 @@ const FEATURE_CARDS = [
     to: "/goals",
     label: "Goal Planner",
     tagline: "Micro-habits, macro results",
-    desc: "Design micro-habits around sleep, movement and nutrition that intelligently adjust based on your real-world progress data.",
+    desc: "Describe a goal in your own words. AI turns it into a weekly plan, and progress is measured from the numbers you actually log.",
     icon: "🎯",
     img: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=1200&q=80",
     accent: "#db2777",
   },
   {
     to: "/wearable",
-    label: "Wearables Hub",
-    tagline: "All devices, one view",
-    desc: "Pull continuous data streams from your watch, ring, or band to keep this dashboard alive with real-time health insights.",
+    label: "Live Vitals",
+    tagline: "Your heart, in real time",
+    desc: "Connect a Bluetooth heart-rate strap or watch for live heart rate and HRV, or enter readings by hand. A clearly labelled simulator is there for demos.",
     icon: "⌚",
     img: "https://images.unsplash.com/photo-1617043786394-f977fa12eddf?w=1200&q=80",
     accent: "#7c3aed",
@@ -151,7 +68,7 @@ const FEATURE_CARDS = [
     to: "/emergency",
     label: "Life Saver",
     tagline: "When seconds matter",
-    desc: "Trigger an intelligent SOS that shares only what first responders need — vitals, location, medical history — in the moments that matter most.",
+    desc: "One button emails your emergency contacts your live location and nearest hospitals, and prepares WhatsApp messages and 112/108 calls.",
     icon: "🚨",
     img: "https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?w=1200&q=80",
     accent: "#dc2626",
@@ -160,32 +77,12 @@ const FEATURE_CARDS = [
     to: "/chat",
     label: "Health Chat",
     tagline: "Your AI health companion",
-    desc: "Ask anything about symptoms, medications, sleep patterns, or nutrition and get instant, medically-informed guidance from an AI trained on clinical knowledge.",
+    desc: "Ask about symptoms, sleep or food. Answers use your profile and recent logs, and emergency warning signs are caught by fixed safety rules first.",
     icon: "💬",
     img: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&q=80",
     accent: "#06b6d4",
   },
 ];
-
-function AnimatedNumber({ value }) {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    let start = 0;
-    const end = Number(value);
-    if (start === end) return;
-    const dur = 1800;
-    const step = Math.ceil(dur / (end - start));
-    const timer = setInterval(() => {
-      start += Math.ceil(end / 80);
-      if (start >= end) {
-        setDisplay(end);
-        clearInterval(timer);
-      } else setDisplay(start);
-    }, step);
-    return () => clearInterval(timer);
-  }, [value]);
-  return <span>{display.toLocaleString()}</span>;
-}
 
 // ─── Orbiting Dot ───────────────────────────────────────────────────
 function OrbitingDot({ radius, speed, color, offset, tilt }) {
@@ -365,26 +262,21 @@ function FeatureRow({ card, index }) {
 
 // ─── Dashboard Component ─────────────────────────────────────────────
 export default function Dashboard() {
-  const { user, logout } = useAuth();
-  const statsRef = useRef(null);
+  const { user } = useAuth();
   const heroRef = useRef(null);
-  const [theme, setTheme] = useState("light");
-  const [displayStats, setDisplayStats] = useState(STATS);
-  const [riskScores, setRiskScores] = useState(null);
-  const [recommendations, setRecommendations] = useState([
-    { condition: "Diabetes", priority: "high", action: "Reduce refined sugar intake. Aim for under 25g daily and increase fiber-rich foods." },
-    { condition: "Cardiac", priority: "medium", action: "Maintain 150 min of moderate cardio weekly. Monitor resting heart rate trends." },
-    { condition: "Stress", priority: "high", action: "Practice 10-min daily breathing exercises. Sleep 7-8 hrs consistently." },
-    { condition: "Obesity", priority: "low", action: "Current BMI is on track. Maintain balanced caloric intake and stay active." },
-  ]);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [analysisError, setAnalysisError] = useState("");
-  const [baselineData, setBaselineData] = useState({
-    improvementPercent: 12,
-    creditsEarned: 85,
-    totalCredits: 340,
-    adaptiveGoal: "Walk 10,000 steps daily this week to unlock 50 bonus credits.",
-  });
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 20 }, () => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        animationDelay: `${Math.random() * 6}s`,
+        animationDuration: `${4 + Math.random() * 6}s`,
+        width: `${2 + Math.random() * 3}px`,
+        height: `${2 + Math.random() * 3}px`,
+        opacity: 0.15 + Math.random() * 0.25,
+      })),
+    []
+  );
 
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -395,30 +287,6 @@ export default function Dashboard() {
   const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "40%"]);
   const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.9]);
 
-  useEffect(() => {
-    const cards = gsap.utils.toArray(".stat-card");
-    gsap.fromTo(
-      cards,
-      { y: 80, opacity: 0, scale: 0.95 },
-      {
-        y: 0,
-        opacity: 1,
-        scale: 1,
-        duration: 0.7,
-        stagger: 0.12,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: ".stats-section",
-          start: "top 80%",
-        },
-      }
-    );
-
-    return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
-    };
-  }, []);
-
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 12) return "Good Morning";
@@ -426,90 +294,9 @@ export default function Dashboard() {
     return "Good Evening";
   };
 
-  const fetchRecommendations = async (scores) => {
-    try {
-      const recRes = await getRecommendations({
-        userId: user?._id || "demo-user",
-        riskScores: scores,
-        metrics: {},
-      });
-      setRecommendations(recRes?.data?.recommendations || []);
-    } catch {
-      setRecommendations([]);
-    }
-  };
-
-  const loadLatestPrediction = async () => {
-    try {
-      const response = await getPredictions();
-      const predictionList = Array.isArray(response?.data) ? response.data : [];
-      const latest = predictionList[0] || null;
-      const scores = latest?.riskScores;
-      if (scores) {
-        setRiskScores(scores);
-        setDisplayStats(buildRiskStats(scores));
-        await fetchRecommendations(scores);
-
-        const previous = predictionList[1]?.riskScores;
-        if (previous) {
-          try {
-            const baselineRes = await compareBaseline({
-              userId: user?._id || "demo-user",
-              previousScore: computeWellnessScore(previous),
-              currentScore: computeWellnessScore(scores),
-              previousCredits: baselineData?.totalCredits || 0,
-            });
-            setBaselineData(baselineRes?.data || null);
-          } catch {
-            setBaselineData(null);
-          }
-        }
-      }
-    } catch {
-      // Keep visual fallback stats if prediction history is unavailable.
-    }
-  };
-
-  const runAiAnalysis = async () => {
-    setAnalysisLoading(true);
-    setAnalysisError("");
-    try {
-      const response = await analyzeHealth();
-      const scores = response?.data?.riskScores || response?.data?.prediction?.riskScores;
-      if (!scores) {
-        throw new Error("No risk scores returned");
-      }
-      setRiskScores(scores);
-      setDisplayStats(buildRiskStats(scores));
-      await fetchRecommendations(scores);
-
-      if (scores) {
-        try {
-          const baselineRes = await compareBaseline({
-            userId: user?._id || "demo-user",
-            previousScore: computeWellnessScore(riskScores),
-            currentScore: computeWellnessScore(scores),
-            previousCredits: baselineData?.totalCredits || 0,
-          });
-          setBaselineData(baselineRes?.data || null);
-        } catch {
-          setBaselineData(null);
-        }
-      }
-    } catch (err) {
-      setAnalysisError(err?.response?.data?.message || "Unable to run AI analysis right now.");
-    } finally {
-      setAnalysisLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadLatestPrediction();
-  }, []);
-
   return (
     <ReactLenis root options={{ lerp: 0.07, smoothWheel: true }}>
-      <div className={`dashboard-container ${theme}`}>
+      <div className="dashboard-container dark">
         {/* ── Sticky Nav ── */}
         <nav className="nav-header">
           <div className="nav-inner">
@@ -523,22 +310,8 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="nav-actions">
-              <button
-                type="button"
-                className="theme-toggle"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                aria-label="Toggle theme"
-              >
-                <span className="theme-toggle-icon">
-                  {theme === "dark" ? "☀️" : "🌙"}
-                </span>
-                <span className="theme-toggle-label">
-                  {theme === "dark" ? "Light" : "Dark"}
-                </span>
-              </button>
-              <button onClick={logout} className="logout-btn">
-                Sign Out
-              </button>
+              <Link to="/chat" className="logout-btn">Health chat</Link>
+              <Link to="/profile" className="logout-btn">{user?.isGuest ? "Guest · Profile" : "Profile"}</Link>
             </div>
           </div>
         </nav>
@@ -569,19 +342,11 @@ export default function Dashboard() {
 
           {/* Floating particles (CSS) */}
           <div className="hero-particles">
-            {[...Array(20)].map((_, i) => (
+            {particles.map((style, i) => (
               <div
                 key={i}
                 className="hero-particle"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 6}s`,
-                  animationDuration: `${4 + Math.random() * 6}s`,
-                  width: `${2 + Math.random() * 3}px`,
-                  height: `${2 + Math.random() * 3}px`,
-                  opacity: 0.15 + Math.random() * 0.25,
-                }}
+                style={style}
               />
             ))}
           </div>
@@ -662,8 +427,8 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.95 }}
             >
-              <a href="#features" className="hero-cta-primary">
-                Explore Features
+              <a href="#overview" className="hero-cta-primary">
+                See my health
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12l7 7 7-7" />
                 </svg>
@@ -680,248 +445,11 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* ── Stats Overview ── */}
-        <section className="stats-section" ref={statsRef}>
-          <div className="stats-header">
-            <h2 className="section-title">Vitals Pulse</h2>
-            <p className="section-subtitle">
-              AI-backed risk view from your latest health history.
-            </p>
-            <button
-              type="button"
-              onClick={runAiAnalysis}
-              disabled={analysisLoading}
-              style={{
-                border: "none",
-                borderRadius: "999px",
-                padding: "0.55rem 0.95rem",
-                background: analysisLoading ? "#374151" : "#0ea5e9",
-                color: "#fff",
-                fontWeight: 700,
-                cursor: analysisLoading ? "not-allowed" : "pointer",
-                marginTop: "0.5rem",
-              }}
-            >
-              {analysisLoading ? "Analyzing..." : "Run AI Analysis"}
-            </button>
+        {/* ── Real data: today, risk scores, trends ── */}
+        <section className="stats-section" id="overview" style={{ background: "#080a0f", padding: "3rem 0 4rem" }}>
+          <div className="ui-container" style={{ paddingTop: "1rem" }}>
+            <HealthOverview />
           </div>
-          {analysisLoading && !riskScores ? (
-            <div style={{ color: "#93c5fd", marginBottom: "0.75rem" }}>
-              Fetching your latest AI predictions...
-            </div>
-          ) : null}
-          {analysisError ? (
-            <div
-              style={{
-                color: "#fecaca",
-                background: "rgba(127, 29, 29, 0.35)",
-                border: "1px solid rgba(248, 113, 113, 0.35)",
-                borderRadius: "10px",
-                padding: "0.6rem 0.75rem",
-                marginBottom: "0.75rem",
-              }}
-            >
-              {analysisError}
-              <button
-                type="button"
-                onClick={runAiAnalysis}
-                style={{
-                  marginLeft: "0.75rem",
-                  border: "1px solid rgba(248,113,113,0.55)",
-                  background: "transparent",
-                  color: "#fecaca",
-                  borderRadius: "999px",
-                  padding: "0.2rem 0.55rem",
-                  cursor: "pointer",
-                }}
-              >
-                Retry
-              </button>
-            </div>
-          ) : null}
-          <div className="stats-grid">
-            {displayStats.map((s) => (
-              <motion.div
-                key={s.label}
-                className="stat-card"
-                style={{ "--stat-color": s.color }}
-                whileHover={{ y: -6, scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              >
-                <div className="stat-card-glow" style={{ background: s.color }} />
-                <div className="stat-card-inner">
-                  <div className="stat-card-top">
-                    <span className="stat-label">{s.label}</span>
-                    <div
-                      className="stat-icon-pill"
-                      style={{
-                        backgroundColor: `${s.color}18`,
-                        color: s.color,
-                      }}
-                    >
-                      {s.icon}
-                    </div>
-                  </div>
-                  <div className="stat-value">
-                    <AnimatedNumber value={s.value} />
-                    <span className="stat-unit">{s.unit}</span>
-                  </div>
-                  <div className="stat-progress-track">
-                    <motion.div
-                      className="stat-progress-bar"
-                      style={{ backgroundColor: s.color }}
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${s.progress}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 1.2, delay: 0.3, ease: "easeOut" }}
-                    />
-                  </div>
-                  <div
-                    className={`stat-trend ${s.trendUp ? "trend-up" : "trend-down"}`}
-                  >
-                    <span className="trend-arrow">{s.trendUp ? "↑" : "↓"}</span>
-                    {riskScores ? `${s.trend} risk level` : `${s.trend} from yesterday`}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {riskScores ? (
-            <div
-              style={{
-                marginTop: "1rem",
-                border: "1px solid rgba(148, 163, 184, 0.22)",
-                borderRadius: "14px",
-                padding: "1.25rem",
-                background: "rgba(15, 23, 42, 0.45)",
-              }}
-            >
-              <h3 style={{ margin: 0, marginBottom: "1rem", fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #6366f1, #8b5cf6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>AI</span>
-                Recommendations
-              </h3>
-              {recommendations.length > 0 ? (
-                <div style={{ display: "grid", gap: "0.6rem" }}>
-                  {recommendations.slice(0, 5).map((rec, idx) => {
-                    const priorityColors = { high: "#ef4444", medium: "#f59e0b", low: "#22c55e" };
-                    const pColor = priorityColors[(rec.priority || "medium").toLowerCase()] || "#f59e0b";
-                    return (
-                      <div
-                        key={`${rec.condition || "condition"}-${idx}`}
-                        style={{
-                          border: "1px solid rgba(148, 163, 184, 0.12)",
-                          borderLeft: `3px solid ${pColor}`,
-                          borderRadius: "10px",
-                          padding: "0.75rem 1rem",
-                          background: "rgba(2, 6, 23, 0.4)",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "0.35rem",
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontWeight: 600, fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.03em" }}>{rec.condition || "General"}</span>
-                          <span style={{
-                            fontSize: "0.7rem",
-                            fontWeight: 600,
-                            padding: "0.2rem 0.5rem",
-                            borderRadius: "4px",
-                            background: `${pColor}22`,
-                            color: pColor,
-                            textTransform: "uppercase",
-                          }}>{rec.priority || "medium"}</span>
-                        </div>
-                        <div style={{ fontSize: "0.9rem", opacity: 0.85, lineHeight: 1.4 }}>{rec.action || "Maintain healthy routines."}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  padding: "2rem 1rem",
-                  borderRadius: "10px",
-                  background: "rgba(2, 6, 23, 0.3)",
-                  border: "1px dashed rgba(148, 163, 184, 0.15)",
-                }}>
-                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(99, 102, 241, 0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.25rem" }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                  </div>
-                  <p style={{ margin: 0, opacity: 0.6, fontSize: "0.9rem", textAlign: "center" }}>Run AI analysis above to get personalized health recommendations</p>
-                </div>
-              )}
-            </div>
-          ) : null}
-
-          {baselineData ? (
-            <div
-              style={{
-                marginTop: "1rem",
-                border: "1px solid rgba(74, 222, 128, 0.2)",
-                borderRadius: "14px",
-                padding: "1.25rem",
-                background: "rgba(20, 83, 45, 0.12)",
-              }}
-            >
-              <h3 style={{ margin: 0, marginBottom: "1rem", fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #22c55e, #16a34a)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.85rem" }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                </span>
-                Baseline Progress
-              </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", marginBottom: "1rem" }}>
-                <div style={{
-                  background: "rgba(2, 6, 23, 0.35)",
-                  border: "1px solid rgba(148, 163, 184, 0.1)",
-                  borderRadius: "10px",
-                  padding: "0.875rem",
-                  textAlign: "center",
-                }}>
-                  <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#22c55e" }}>{baselineData.improvementPercent ?? 0}%</div>
-                  <div style={{ fontSize: "0.75rem", opacity: 0.5, marginTop: "0.25rem" }}>Improvement</div>
-                </div>
-                <div style={{
-                  background: "rgba(2, 6, 23, 0.35)",
-                  border: "1px solid rgba(148, 163, 184, 0.1)",
-                  borderRadius: "10px",
-                  padding: "0.875rem",
-                  textAlign: "center",
-                }}>
-                  <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#f59e0b" }}>{baselineData.creditsEarned ?? 0}</div>
-                  <div style={{ fontSize: "0.75rem", opacity: 0.5, marginTop: "0.25rem" }}>Credits Earned</div>
-                </div>
-                <div style={{
-                  background: "rgba(2, 6, 23, 0.35)",
-                  border: "1px solid rgba(148, 163, 184, 0.1)",
-                  borderRadius: "10px",
-                  padding: "0.875rem",
-                  textAlign: "center",
-                }}>
-                  <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#3b82f6" }}>{baselineData.totalCredits ?? 0}</div>
-                  <div style={{ fontSize: "0.75rem", opacity: 0.5, marginTop: "0.25rem" }}>Total Credits</div>
-                </div>
-              </div>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.75rem",
-                padding: "0.75rem 1rem",
-                borderRadius: "10px",
-                background: "rgba(2, 6, 23, 0.3)",
-                border: "1px solid rgba(74, 222, 128, 0.12)",
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                <div>
-                  <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em", opacity: 0.5, marginBottom: "0.15rem" }}>Next Goal</div>
-                  <div style={{ fontSize: "0.9rem", opacity: 0.9 }}>{baselineData.adaptiveGoal || "Keep consistency and review weekly."}</div>
-                </div>
-              </div>
-            </div>
-          ) : null}
         </section>
 
         {/* ── Feature Showcase ── */}
@@ -943,8 +471,8 @@ export default function Dashboard() {
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: 0.15 }}
             >
-              Seven powerful modules, seamlessly connected. Each one focuses on a
-              different dimension of your health story.
+              Eight modules that share one profile and one daily log, each built on
+              free, open data or a published method.
             </motion.p>
           </div>
 
@@ -972,12 +500,12 @@ export default function Dashboard() {
             <p className="footer-sub">
               All interconnected. All intelligent. All available at a single tap.
             </p>
-            <button className="footer-btn">
-              <span>Run Complete Diagnostics</span>
+            <a href="#overview" className="footer-btn">
+              <span>Back to my numbers</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
-            </button>
+            </a>
           </motion.div>
         </section>
       </div>

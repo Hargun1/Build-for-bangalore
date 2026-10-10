@@ -119,18 +119,6 @@ function SpineGlow() {
 }
 
 // Default risk scores — connect to your backend API later
-const DEFAULT_RISKS = {
-  heart: 0.65,
-  lungs: 0.25,
-  liver: 0.55,
-  kidneyL: 0.2,
-  kidneyR: 0.3,
-  stomach: 0.15,
-  digestive: 0.2,
-  brain: 0.45,
-  eyes: 0.35,
-};
-
 /*
  * ORGAN POSITIONS — calibrated to the normalized skeleton:
  * Skeleton normalized to 1.8 tall, centered at origin (Y: -0.9 to +0.9)
@@ -275,7 +263,7 @@ function HumanBodyScene({ activeLayers, selectedOrgan, onSelectOrgan, hoveredOrg
   );
 }
 
-export default function GlassBodyViewer() {
+export default function GlassBodyViewer({ insights }) {
   const [activeLayers, setActiveLayers] = useState({
     skeleton: true,
     muscles: false,
@@ -283,7 +271,7 @@ export default function GlassBodyViewer() {
   });
   const [selectedOrgan, setSelectedOrgan] = useState(null);
   const [hoveredOrgan, setHoveredOrgan] = useState(null);
-  const [riskScores] = useState(DEFAULT_RISKS);
+  const riskScores = insights?.riskScores || {};
 
   const toggleLayer = useCallback((key) => {
     setActiveLayers((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -317,7 +305,7 @@ export default function GlassBodyViewer() {
       <OrganInfoPanel
         selectedOrgan={selectedOrgan}
         onClose={() => setSelectedOrgan(null)}
-        riskScores={riskScores}
+        insights={insights}
       />
 
       {/* Title overlay */}

@@ -1,649 +1,319 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import api from "../../services/api";
-import "./AppointmentBooking.css";
+import { useCallback, useEffect, useState } from "react";
+import SourceBadge from "../Shared/SourceBadge";
+import { errorMessage } from "../../services/api";
+import {
+  createAppointment,
+  deleteAppointment,
+  downloadAppointmentIcs,
+  getAppointments,
+  getNearbyPlaces,
+  setAppointmentStatus,
+  triageSymptoms,
+} from "../../services/healthService";
+import { getLocation } from "../../utils/geo";
 
-const FALLBACK_DOCTORS = [
-  {
-    _id: "f1",
-    name: "Dr. Rhea Sharma",
-    specialty: "Cardiologist",
-    experience: "14 Years",
-    fees: "INR 1200",
-    image: "https://i.pravatar.cc/300?img=47",
-    availableTimes: ["09:30 AM", "11:00 AM", "02:00 PM", "05:00 PM"],
-    city: "Bengaluru",
-    hospital: "Manipal Hospital",
-    languages: ["English", "Hindi", "Kannada"],
-    consultationMode: ["Clinic", "Video"],
-    rating: 4.8,
-  },
-  {
-    _id: "f2",
-    name: "Dr. Arjun Menon",
-    specialty: "Neurologist",
-    experience: "17 Years",
-    fees: "INR 1500",
-    image: "https://i.pravatar.cc/300?img=59",
-    availableTimes: ["10:00 AM", "12:30 PM", "03:30 PM", "06:00 PM"],
-    city: "Mumbai",
-    hospital: "Kokilaben Hospital",
-    languages: ["English", "Hindi", "Malayalam"],
-    consultationMode: ["Clinic", "Video"],
-    rating: 4.7,
-  },
-  {
-    _id: "f3",
-    name: "Dr. Neha Reddy",
-    specialty: "Dermatologist",
-    experience: "9 Years",
-    fees: "INR 900",
-    image: "https://i.pravatar.cc/300?img=45",
-    availableTimes: ["09:00 AM", "11:30 AM", "01:30 PM", "04:30 PM"],
-    city: "Hyderabad",
-    hospital: "Apollo Hospitals",
-    languages: ["English", "Hindi", "Telugu"],
-    consultationMode: ["Clinic", "Video"],
-    rating: 4.6,
-  },
-  {
-    _id: "f4",
-    name: "Dr. Aisha Khan",
-    specialty: "Pediatrician",
-    experience: "10 Years",
-    fees: "INR 850",
-    image: "https://i.pravatar.cc/300?img=44",
-    availableTimes: ["09:30 AM", "11:00 AM", "02:30 PM", "05:30 PM"],
-    city: "Delhi",
-    hospital: "Max Hospital",
-    languages: ["English", "Hindi", "Urdu"],
-    consultationMode: ["Clinic", "Video"],
-    rating: 4.8,
-  },
-  {
-    _id: "f5",
-    name: "Dr. Kavita Iyer",
-    specialty: "General Physician",
-    experience: "12 Years",
-    fees: "INR 700",
-    image: "https://i.pravatar.cc/300?img=32",
-    availableTimes: ["08:30 AM", "10:30 AM", "01:00 PM", "07:00 PM"],
-    city: "Chennai",
-    hospital: "Fortis Malar",
-    languages: ["English", "Tamil", "Hindi"],
-    consultationMode: ["Clinic", "Video", "Home Visit"],
-    rating: 4.7,
-  },
-  {
-    _id: "f6",
-    name: "Dr. Sandeep Kulkarni",
-    specialty: "Orthopedic",
-    experience: "11 Years",
-    fees: "INR 1100",
-    image: "https://i.pravatar.cc/300?img=13",
-    availableTimes: ["09:00 AM", "12:00 PM", "04:00 PM", "06:30 PM"],
-    city: "Pune",
-    hospital: "Ruby Hall Clinic",
-    languages: ["English", "Hindi", "Marathi"],
-    consultationMode: ["Clinic", "Video"],
-    rating: 4.5,
-  },
-  {
-    _id: "f7",
-    name: "Dr. Meera Banerjee",
-    specialty: "Gynecologist",
-    experience: "16 Years",
-    fees: "INR 1400",
-    image: "https://i.pravatar.cc/300?img=25",
-    availableTimes: ["09:00 AM", "11:30 AM", "02:00 PM", "05:00 PM"],
-    city: "Kolkata",
-    hospital: "AMRI Hospital",
-    languages: ["English", "Hindi", "Bengali"],
-    consultationMode: ["Clinic", "Video"],
-    rating: 4.9,
-  },
-  {
-    _id: "f8",
-    name: "Dr. Harpreet Singh",
-    specialty: "Pulmonologist",
-    experience: "15 Years",
-    fees: "INR 1250",
-    image: "https://i.pravatar.cc/300?img=68",
-    availableTimes: ["08:30 AM", "10:30 AM", "01:30 PM", "04:30 PM"],
-    city: "Chandigarh",
-    hospital: "Fortis Mohali",
-    languages: ["English", "Hindi", "Punjabi"],
-    consultationMode: ["Clinic", "Video", "Home Visit"],
-    rating: 4.6,
-  },
-];
+// Values match OpenStreetMap's healthcare:speciality tag, so search can filter on them.
+const SPECIALTIES = {
+  general: "General physician",
+  cardiology: "Cardiologist (heart)",
+  dermatology: "Dermatologist (skin)",
+  otolaryngology: "ENT (ear, nose, throat)",
+  gastroenterology: "Gastroenterologist (stomach)",
+  gynaecology: "Gynaecologist",
+  neurology: "Neurologist",
+  ophthalmology: "Eye specialist",
+  orthopaedics: "Orthopaedic (bones, joints)",
+  paediatrics: "Paediatrician (children)",
+  psychiatry: "Psychiatrist",
+  pulmonology: "Pulmonologist (lungs)",
+  urology: "Urologist",
+  dentistry: "Dentist",
+  endocrinology: "Endocrinologist (diabetes, thyroid)",
+  nephrology: "Nephrologist (kidneys)",
+};
+const URGENCY = {
+  emergency: ["ui-alert-emergency", "Go to an emergency department now"],
+  urgent: ["ui-alert-error", "See a doctor within 24 hours"],
+  soon: ["ui-alert-warn", "See a doctor this week"],
+  routine: ["ui-alert-info", "A routine appointment is fine"],
+};
 
-const DEFAULT_TIMES = ["09:00 AM", "11:00 AM", "02:00 PM", "04:00 PM"];
-const STEP_LABELS = ["Discover", "Schedule", "Review", "Done"];
-
-function getTomorrowDate() {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split("T")[0];
+function defaultSlot() {
+  const d = new Date(Date.now() + 24 * 3600 * 1000);
+  d.setHours(10, 0, 0, 0);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T10:00`;
 }
 
-function readStatus(value) {
-  const map = {
-    pending: "Pending",
-    confirmed: "Confirmed",
-    completed: "Completed",
-    cancelled: "Cancelled",
-  };
-  return map[value] || "Confirmed";
-}
+function Triage({ onResult }) {
+  const [symptoms, setSymptoms] = useState("");
+  const [state, setState] = useState({ busy: false, error: "", result: null });
 
-export default function AppointmentBooking() {
-  const [stage, setStage] = useState("discover");
-  const [doctors, setDoctors] = useState([]);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
-  const [notes, setNotes] = useState("");
-  const [loadingDoctors, setLoadingDoctors] = useState(true);
-  const [savingAppointment, setSavingAppointment] = useState(false);
-  const [appointments, setAppointments] = useState([]);
-  const [loadingAppointments, setLoadingAppointments] = useState(true);
-  const [searchText, setSearchText] = useState("");
-  const [cityFilter, setCityFilter] = useState("All");
-  const [specialtyFilter, setSpecialtyFilter] = useState("All");
-  const [modeFilter, setModeFilter] = useState("All");
-  const [errorText, setErrorText] = useState("");
-
-  const hasAuthToken = Boolean(localStorage.getItem("token"));
-
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      setLoadingDoctors(true);
-      try {
-        const response = await api.get("/doctors", { timeout: 5000 });
-        const payload = Array.isArray(response.data) ? response.data : [];
-        setDoctors(payload.length ? payload : FALLBACK_DOCTORS);
-      } catch {
-        setDoctors(FALLBACK_DOCTORS);
-      } finally {
-        setLoadingDoctors(false);
-      }
-    };
-
-    fetchDoctors();
-  }, []);
-
-  useEffect(() => {
-    const fetchAppointments = async () => {
-      if (!hasAuthToken) {
-        setLoadingAppointments(false);
-        return;
-      }
-
-      try {
-        const response = await api.get("/appointments", { timeout: 5000 });
-        const payload = Array.isArray(response.data) ? response.data : [];
-        setAppointments(payload);
-      } catch {
-        setAppointments([]);
-      } finally {
-        setLoadingAppointments(false);
-      }
-    };
-
-    fetchAppointments();
-  }, [hasAuthToken]);
-
-  const cityOptions = useMemo(() => {
-    const cities = doctors.map((doctor) => doctor.city).filter(Boolean);
-    return ["All", ...Array.from(new Set(cities)).sort()];
-  }, [doctors]);
-
-  const specialtyOptions = useMemo(() => {
-    const specialties = doctors.map((doctor) => doctor.specialty).filter(Boolean);
-    return ["All", ...Array.from(new Set(specialties)).sort()];
-  }, [doctors]);
-
-  const modeOptions = useMemo(() => {
-    const allModes = doctors.flatMap((doctor) => doctor.consultationMode || []);
-    return ["All", ...Array.from(new Set(allModes)).sort()];
-  }, [doctors]);
-
-  const filteredDoctors = useMemo(() => {
-    const normalizedSearch = searchText.trim().toLowerCase();
-
-    return doctors.filter((doctor) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        doctor.name?.toLowerCase().includes(normalizedSearch) ||
-        doctor.specialty?.toLowerCase().includes(normalizedSearch) ||
-        doctor.hospital?.toLowerCase().includes(normalizedSearch);
-
-      const matchesCity = cityFilter === "All" || doctor.city === cityFilter;
-      const matchesSpecialty =
-        specialtyFilter === "All" || doctor.specialty === specialtyFilter;
-      const matchesMode =
-        modeFilter === "All" ||
-        (doctor.consultationMode || []).includes(modeFilter);
-
-      return matchesSearch && matchesCity && matchesSpecialty && matchesMode;
-    });
-  }, [doctors, searchText, cityFilter, specialtyFilter, modeFilter]);
-
-  const selectedDoctorSlots =
-    selectedDoctor?.availableTimes?.length > 0
-      ? selectedDoctor.availableTimes
-      : DEFAULT_TIMES;
-
-  const currentStep =
-    stage === "discover" ? 0 : stage === "schedule" ? 1 : stage === "review" ? 2 : 3;
-
-  const handleSelectDoctor = (doctor) => {
-    setSelectedDoctor(doctor);
-    setSelectedDate("");
-    setSelectedTime("");
-    setNotes("");
-    setErrorText("");
-    setStage("schedule");
-  };
-
-  const goToReview = () => {
-    if (!selectedDate || !selectedTime) {
-      setErrorText("Please choose date and slot before continuing.");
-      return;
-    }
-    setErrorText("");
-    setStage("review");
-  };
-
-  const createLocalAppointment = () => ({
-    _id: `local-${Date.now()}`,
-    doctorId: selectedDoctor?._id,
-    doctorName: selectedDoctor?.name,
-    specialty: selectedDoctor?.specialty,
-    date: new Date(`${selectedDate} ${selectedTime}`).toISOString(),
-    status: "confirmed",
-    notes,
-    doctorSnapshot: selectedDoctor,
-  });
-
-  const handleBookAppointment = async () => {
-    if (!selectedDoctor) return;
-
-    setSavingAppointment(true);
-    setErrorText("");
-
-    const payload = {
-      doctorId: selectedDoctor._id,
-      doctorName: selectedDoctor.name,
-      specialty: selectedDoctor.specialty,
-      date: new Date(`${selectedDate} ${selectedTime}`),
-      status: "confirmed",
-      notes,
-    };
-
-    if (!hasAuthToken) {
-      setAppointments((prev) => [createLocalAppointment(), ...prev]);
-      setSavingAppointment(false);
-      setStage("done");
-      return;
-    }
-
+  const run = async (e) => {
+    e.preventDefault();
+    setState({ busy: true, error: "", result: null });
     try {
-      const response = await api.post("/appointments", payload);
-      if (response.data) {
-        setAppointments((prev) => [response.data, ...prev]);
-      }
-      setStage("done");
-    } catch {
-      setAppointments((prev) => [createLocalAppointment(), ...prev]);
-      setStage("done");
-    } finally {
-      setSavingAppointment(false);
+      const { data } = await triageSymptoms(symptoms.trim());
+      setState({ busy: false, error: "", result: data });
+      onResult({ ...data, symptoms: symptoms.trim() });
+    } catch (err) {
+      setState({ busy: false, error: errorMessage(err), result: null });
     }
   };
 
-  const resetBooking = () => {
-    setSelectedDoctor(null);
-    setSelectedDate("");
-    setSelectedTime("");
-    setNotes("");
-    setErrorText("");
-    setStage("discover");
-  };
+  const t = state.result;
+  return (
+    <div className="ui-card ui-stack">
+      <h2>1. What's wrong?</h2>
+      <form className="ui-stack" onSubmit={run}>
+        <textarea className="ui-textarea" value={symptoms} onChange={(e) => setSymptoms(e.target.value)} placeholder="e.g. Itchy red patches on both elbows for 3 weeks, worse at night" maxLength={1500} minLength={3} required />
+        <div className="ui-row">
+          <button className="ui-btn ui-btn-primary" disabled={state.busy || symptoms.trim().length < 3}>{state.busy ? "Thinking…" : "Which doctor should I see?"}</button>
+          <span className="ui-faint">or pick a specialty below</span>
+        </div>
+      </form>
+      {state.error && <div className="ui-alert ui-alert-error">{state.error}</div>}
+      {t && (
+        <div className={`ui-alert ${URGENCY[t.urgency][0]}`}>
+          <div className="ui-row" style={{ marginBottom: "0.3rem" }}>
+            <strong style={{ margin: 0 }}>{SPECIALTIES[t.specialty]} · {URGENCY[t.urgency][1]}</strong>
+            <div className="ui-spacer" />
+            <SourceBadge source={t.aiSource} />
+          </div>
+          <p>{t.summary}</p>
+          {t.urgency === "emergency" && (
+            <div className="ui-row" style={{ marginTop: "0.5rem" }}>
+              <a className="ui-btn ui-btn-danger ui-btn-sm" href="tel:112">Call 112</a>
+              <a className="ui-btn ui-btn-danger ui-btn-sm" href="tel:108">Call 108</a>
+            </div>
+          )}
+          {t.selfCare?.length > 0 && <><strong className="ui-small" style={{ marginTop: "0.5rem" }}>Meanwhile</strong><ul className="ui-bullets">{t.selfCare.map((x) => <li key={x}>{x}</li>)}</ul></>}
+          {t.seeDoctorIf?.length > 0 && <><strong className="ui-small" style={{ marginTop: "0.5rem" }}>Go sooner if</strong><ul className="ui-bullets">{t.seeDoctorIf.map((x) => <li key={x}>{x}</li>)}</ul></>}
+          {t.questionsForDoctor?.length > 0 && <><strong className="ui-small" style={{ marginTop: "0.5rem" }}>Questions to ask</strong><ul className="ui-bullets">{t.questionsForDoctor.map((x) => <li key={x}>{x}</li>)}</ul></>}
+          <p className="ui-faint" style={{ marginTop: "0.5rem", color: "inherit", opacity: 0.75 }}>Triage guidance, not a diagnosis.</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
-  const renderStars = (rating = 4.5) => {
-    const full = Math.round(rating);
-    return "*".repeat(full).padEnd(5, "-");
+function ClinicFinder({ specialty, onSpecialty, onPick }) {
+  const [state, setState] = useState({ loading: false, error: "", places: null, loc: null });
+  const [radius, setRadius] = useState(5);
+
+  const search = useCallback(async () => {
+    setState((s) => ({ ...s, loading: true, error: "" }));
+    const loc = state.loc || (await getLocation());
+    try {
+      const { data } = await getNearbyPlaces({
+        lat: loc.lat,
+        lon: loc.lon,
+        kinds: specialty === "dentistry" ? "dentist" : "hospital,clinic",
+        radiusKm: radius,
+        ...(specialty && specialty !== "general" && specialty !== "dentistry" ? { specialty } : {}),
+      });
+      setState({ loading: false, error: "", places: data.places, loc });
+    } catch (err) {
+      setState({ loading: false, error: errorMessage(err), places: null, loc });
+    }
+  }, [specialty, radius, state.loc]);
+
+  useEffect(() => {
+    if (specialty) search();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specialty, radius]);
+
+  return (
+    <div className="ui-card ui-stack">
+      <h2>2. Pick a clinic near you</h2>
+      <div className="ui-row">
+        <select className="ui-select" style={{ flex: 1, minWidth: 200 }} value={specialty} onChange={(e) => onSpecialty(e.target.value)} aria-label="Specialty">
+          <option value="">Choose a specialty…</option>
+          {Object.entries(SPECIALTIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <select className="ui-select" style={{ width: "auto" }} value={radius} onChange={(e) => setRadius(Number(e.target.value))} aria-label="Search radius">
+          {[2, 5, 10, 15].map((r) => <option key={r} value={r}>within {r} km</option>)}
+        </select>
+      </div>
+      {state.loc?.isDefault && <p className="ui-faint">Location is off, so this searches around central Bengaluru.</p>}
+      {state.loading && <div className="ui-loading"><span className="ui-spinner" /> Searching OpenStreetMap…</div>}
+      {state.error && (
+        <div className="ui-alert ui-alert-warn ui-row">
+          <span>{state.error}</span>
+          <div className="ui-spacer" />
+          <button className="ui-btn ui-btn-sm" onClick={search}>Try again</button>
+        </div>
+      )}
+      {state.places && !state.loading && (
+        state.places.length === 0 ? (
+          <div className="ui-empty">Nothing found. Try a bigger radius, or add the clinic by hand below.</div>
+        ) : (
+          <ul className="ui-list" style={{ maxHeight: 420, overflowY: "auto" }}>
+            {state.places.map((p) => (
+              <li key={p.osmId}>
+                <div className="ui-row">
+                  <strong>{p.name}</strong>
+                  <span className="ui-badge">{p.kind}</span>
+                  {p.matchesSpecialty && <span className="ui-badge ui-badge-good">lists {SPECIALTIES[specialty]?.split(" (")[0]}</span>}
+                  <div className="ui-spacer" />
+                  <span className="ui-faint">{p.distanceKm} km</span>
+                </div>
+                <div className="ui-faint" style={{ marginTop: "0.2rem" }}>{[p.address, p.phone, p.openingHours].filter(Boolean).join(" · ") || "No address or phone listed"}</div>
+                <div className="ui-row" style={{ marginTop: "0.4rem" }}>
+                  <button className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => onPick(p)}>Choose</button>
+                  <a className="ui-btn ui-btn-sm" href={p.mapsUrl} target="_blank" rel="noreferrer">Map</a>
+                  {p.phone && <a className="ui-btn ui-btn-sm" href={`tel:${p.phone.replace(/\s/g, "")}`}>Call</a>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )
+      )}
+      <button className="ui-btn ui-btn-ghost ui-btn-sm" style={{ alignSelf: "flex-start" }} onClick={() => onPick({ name: "", address: "", phone: "", manual: true })}>
+        + My clinic isn't listed
+      </button>
+      <p className="ui-faint">Clinic data © OpenStreetMap contributors. Many clinics don't list their specialties, so clinics without a tag are shown too.</p>
+    </div>
+  );
+}
+
+function BookForm({ place, specialty, triage, onDone, onCancel }) {
+  const [form, setForm] = useState({ name: place.name, address: place.address || "", phone: place.phone || "", startsAt: defaultSlot(), reason: triage?.symptoms || "" });
+  const [state, setState] = useState({ busy: false, error: "" });
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setState({ busy: true, error: "" });
+    try {
+      const { data } = await createAppointment({
+        place: { osmId: place.osmId, name: form.name, kind: place.kind, address: form.address, phone: form.phone, website: place.website || "", ...(place.lat != null && { lat: place.lat, lon: place.lon }) },
+        specialty: specialty ? SPECIALTIES[specialty] : "",
+        reason: form.reason,
+        ...(triage && { triage: { specialty: triage.specialty, urgency: triage.urgency, summary: triage.summary } }),
+        startsAt: new Date(form.startsAt).toISOString(),
+      });
+      onDone(data);
+    } catch (err) {
+      setState({ busy: false, error: errorMessage(err) });
+    }
   };
 
   return (
-    <section className="appointments-shell">
-      <div className="appointments-bg-glow appointments-bg-glow-a" />
-      <div className="appointments-bg-glow appointments-bg-glow-b" />
-
-      <div className="appointments-wrap">
-        <motion.header
-          className="appointments-header"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-        >
-          <p className="appointments-kicker">PranexusAI Care Network</p>
-          <h1>Book verified doctors across India</h1>
-          <p>
-            Filter by city, specialty and consultation mode. Choose your slot, confirm in seconds,
-            and track all upcoming bookings.
-          </p>
-        </motion.header>
-
-        <div className="appointments-progress">
-          {STEP_LABELS.map((label, index) => (
-            <div key={label} className={`appointments-step ${index <= currentStep ? "active" : ""}`}>
-              <span>{index + 1}</span>
-              <p>{label}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="appointments-actions-row">
-          <button className="secondary-btn" onClick={() => setStage("discover")}>Find Doctors</button>
-          <button className="secondary-btn" onClick={() => setStage("history")}>My Bookings</button>
-        </div>
-
-        <AnimatePresence mode="wait">
-          {stage === "discover" && (
-            <motion.div
-              key="discover"
-              className="appointments-card"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-            >
-              <div className="appointments-filter-grid">
-                <input
-                  className="appointments-input"
-                  placeholder="Search doctor, specialty or hospital"
-                  value={searchText}
-                  onChange={(event) => setSearchText(event.target.value)}
-                />
-                <select
-                  className="appointments-input"
-                  value={cityFilter}
-                  onChange={(event) => setCityFilter(event.target.value)}
-                >
-                  {cityOptions.map((city) => (
-                    <option key={city} value={city}>
-                      {city === "All" ? "All Cities" : city}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="appointments-input"
-                  value={specialtyFilter}
-                  onChange={(event) => setSpecialtyFilter(event.target.value)}
-                >
-                  {specialtyOptions.map((specialty) => (
-                    <option key={specialty} value={specialty}>
-                      {specialty === "All" ? "All Specialties" : specialty}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="appointments-input"
-                  value={modeFilter}
-                  onChange={(event) => setModeFilter(event.target.value)}
-                >
-                  {modeOptions.map((mode) => (
-                    <option key={mode} value={mode}>
-                      {mode === "All" ? "All Modes" : mode}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {loadingDoctors ? (
-                <div className="appointments-empty">Loading doctors...</div>
-              ) : filteredDoctors.length === 0 ? (
-                <div className="appointments-empty">No doctors matched your filters. Try resetting city or specialty.</div>
-              ) : (
-                <div className="appointments-doctor-grid">
-                  {filteredDoctors.map((doctor, index) => (
-                    <motion.article
-                      key={doctor._id}
-                      className="doctor-card"
-                      initial={{ opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.04 }}
-                    >
-                      <div className="doctor-top">
-                        <img src={doctor.image} alt={doctor.name} />
-                        <div>
-                          <h3>{doctor.name}</h3>
-                          <p className="doctor-specialty">{doctor.specialty}</p>
-                          <p className="doctor-rating">{renderStars(doctor.rating)} {doctor.rating || "4.5"}</p>
-                        </div>
-                      </div>
-
-                      <div className="doctor-meta">
-                        <span>{doctor.experience} exp</span>
-                        <span>{doctor.fees}</span>
-                      </div>
-                      <p className="doctor-hospital">{doctor.hospital || "Top Multispecialty Hospital"}, {doctor.city || "India"}</p>
-
-                      <div className="doctor-chip-row">
-                        {(doctor.languages || []).slice(0, 3).map((language) => (
-                          <span key={language} className="doctor-chip">{language}</span>
-                        ))}
-                      </div>
-
-                      <div className="doctor-chip-row">
-                        {(doctor.consultationMode || ["Clinic"]).map((mode) => (
-                          <span key={mode} className="doctor-chip muted">{mode}</span>
-                        ))}
-                      </div>
-
-                      <button className="primary-btn" onClick={() => handleSelectDoctor(doctor)}>
-                        Book This Doctor
-                      </button>
-                    </motion.article>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {stage === "schedule" && selectedDoctor && (
-            <motion.div
-              key="schedule"
-              className="appointments-card"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-            >
-              <div className="selected-doctor-banner">
-                <img src={selectedDoctor.image} alt={selectedDoctor.name} />
-                <div>
-                  <h3>{selectedDoctor.name}</h3>
-                  <p>{selectedDoctor.specialty} | {selectedDoctor.hospital}</p>
-                </div>
-              </div>
-
-              <div className="appointments-schedule-grid">
-                <div>
-                  <label>Select Date</label>
-                  <input
-                    className="appointments-input"
-                    type="date"
-                    min={getTomorrowDate()}
-                    value={selectedDate}
-                    onChange={(event) => {
-                      setSelectedDate(event.target.value);
-                      setSelectedTime("");
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label>Select Time Slot</label>
-                  <div className="slot-grid">
-                    {selectedDoctorSlots.map((slot) => (
-                      <button
-                        key={slot}
-                        className={`slot-btn ${selectedTime === slot ? "active" : ""}`}
-                        onClick={() => setSelectedTime(slot)}
-                      >
-                        {slot}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label>Add Notes</label>
-                <textarea
-                  className="appointments-input"
-                  rows={4}
-                  placeholder="Mention symptoms, reports, ongoing medication, or preferred consultation language"
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                />
-              </div>
-
-              {errorText && <p className="error-text">{errorText}</p>}
-
-              <div className="appointments-footer-actions">
-                <button className="secondary-btn" onClick={resetBooking}>Cancel</button>
-                <button className="primary-btn" onClick={goToReview}>Continue</button>
-              </div>
-            </motion.div>
-          )}
-
-          {stage === "review" && selectedDoctor && (
-            <motion.div
-              key="review"
-              className="appointments-card"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-            >
-              <h2>Review and confirm</h2>
-              <div className="review-grid">
-                <div>
-                  <p className="review-label">Doctor</p>
-                  <p className="review-value">{selectedDoctor.name}</p>
-                  <p className="review-sub">{selectedDoctor.specialty}</p>
-                </div>
-                <div>
-                  <p className="review-label">Hospital</p>
-                  <p className="review-value">{selectedDoctor.hospital}</p>
-                  <p className="review-sub">{selectedDoctor.city}</p>
-                </div>
-                <div>
-                  <p className="review-label">Schedule</p>
-                  <p className="review-value">{selectedDate}</p>
-                  <p className="review-sub">{selectedTime}</p>
-                </div>
-                <div>
-                  <p className="review-label">Consultation Fee</p>
-                  <p className="review-value">{selectedDoctor.fees}</p>
-                  <p className="review-sub">Estimated total</p>
-                </div>
-              </div>
-
-              {notes ? (
-                <div className="notes-box">
-                  <p className="review-label">Notes</p>
-                  <p>{notes}</p>
-                </div>
-              ) : null}
-
-              {errorText && <p className="error-text">{errorText}</p>}
-
-              <div className="appointments-footer-actions">
-                <button className="secondary-btn" onClick={() => setStage("schedule")}>Edit</button>
-                <button className="primary-btn" onClick={handleBookAppointment} disabled={savingAppointment}>
-                  {savingAppointment ? "Booking..." : "Confirm Appointment"}
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {stage === "done" && selectedDoctor && (
-            <motion.div
-              key="done"
-              className="appointments-card success-card"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <p className="success-pill">Booking Confirmed</p>
-              <h2>Your appointment is locked in</h2>
-              <p>
-                {selectedDoctor.name} on {selectedDate} at {selectedTime}. You can review all bookings from
-                the history section.
-              </p>
-
-              <div className="appointments-footer-actions center">
-                <button className="secondary-btn" onClick={() => setStage("history")}>View My Bookings</button>
-                <button className="primary-btn" onClick={resetBooking}>Book Another</button>
-              </div>
-            </motion.div>
-          )}
-
-          {stage === "history" && (
-            <motion.div
-              key="history"
-              className="appointments-card"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-            >
-              <h2>My Appointments</h2>
-              {loadingAppointments ? (
-                <div className="appointments-empty">Loading appointment history...</div>
-              ) : appointments.length === 0 ? (
-                <div className="appointments-empty">No appointments yet. Book your first doctor consultation.</div>
-              ) : (
-                <div className="history-list">
-                  {appointments.map((appointment) => {
-                    const doctorFromDirectory = doctors.find(
-                      (doctor) => doctor._id === appointment.doctorId
-                    );
-                    const doctorName = appointment.doctorName || doctorFromDirectory?.name || "Doctor";
-                    const specialty = appointment.specialty || doctorFromDirectory?.specialty || "General";
-                    const dateValue = appointment.date
-                      ? new Date(appointment.date).toLocaleString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "Upcoming";
-
-                    return (
-                      <article className="history-item" key={appointment._id}>
-                        <div>
-                          <h4>{doctorName}</h4>
-                          <p>{specialty}</p>
-                        </div>
-                        <div>
-                          <p className="history-date">{dateValue}</p>
-                          <span className={`status-tag ${String(appointment.status || "").toLowerCase()}`}>
-                            {readStatus(String(appointment.status || "confirmed").toLowerCase())}
-                          </span>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+    <form className="ui-card ui-stack" onSubmit={submit}>
+      <h2>3. When?</h2>
+      <div className="ui-form-grid">
+        <label className="ui-field"><span>Clinic</span><input className="ui-input" value={form.name} onChange={set("name")} required minLength={2} maxLength={160} /></label>
+        <label className="ui-field"><span>Date and time</span><input className="ui-input" type="datetime-local" value={form.startsAt} onChange={set("startsAt")} required /></label>
+        <label className="ui-field"><span>Address</span><input className="ui-input" value={form.address} onChange={set("address")} maxLength={300} /></label>
+        <label className="ui-field"><span>Phone</span><input className="ui-input" type="tel" value={form.phone} onChange={set("phone")} maxLength={40} /></label>
       </div>
-    </section>
+      <label className="ui-field"><span>Reason for visit</span><textarea className="ui-textarea" value={form.reason} onChange={set("reason")} maxLength={600} /></label>
+      <p className="ui-faint">PranexusAI doesn't book with the clinic. Call them to confirm the slot; we'll email you the details and a calendar reminder.</p>
+      {state.error && <div className="ui-alert ui-alert-error">{state.error}</div>}
+      <div className="ui-row">
+        <div className="ui-spacer" />
+        <button type="button" className="ui-btn ui-btn-ghost" onClick={onCancel}>Back</button>
+        <button className="ui-btn ui-btn-primary" disabled={state.busy}>{state.busy ? "Saving…" : "Save appointment"}</button>
+      </div>
+    </form>
+  );
+}
+
+function AppointmentList({ refreshKey }) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    getAppointments().then((r) => setData(r.data)).catch((err) => setError(errorMessage(err)));
+  }, []);
+  useEffect(load, [load, refreshKey]);
+
+  const act = async (fn) => {
+    try {
+      await fn();
+      load();
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
+  if (error) return <div className="ui-alert ui-alert-error">{error}</div>;
+  if (!data) return <div className="ui-loading"><span className="ui-spinner" /> Loading appointments…</div>;
+
+  const row = (a, upcoming) => (
+    <li key={a._id}>
+      <div className="ui-row">
+        <strong>{a.place.name}</strong>
+        {a.specialty && <span className="ui-faint">{a.specialty}</span>}
+        <div className="ui-spacer" />
+        <span className={`ui-badge ${a.status === "cancelled" ? "ui-badge-bad" : a.status === "completed" ? "ui-badge-good" : "ui-badge-info"}`}>{a.status}</span>
+      </div>
+      <div className="ui-small ui-muted" style={{ marginTop: "0.2rem" }}>
+        {new Date(a.startsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}{a.place.address ? ` · ${a.place.address}` : ""}
+      </div>
+      {a.reason && <div className="ui-faint" style={{ marginTop: "0.2rem" }}>{a.reason}</div>}
+      <div className="ui-row" style={{ marginTop: "0.5rem" }}>
+        {upcoming && <button className="ui-btn ui-btn-sm" onClick={() => act(() => downloadAppointmentIcs(a._id))}>Add to calendar</button>}
+        {a.place.phone && <a className="ui-btn ui-btn-sm" href={`tel:${a.place.phone.replace(/\s/g, "")}`}>Call clinic</a>}
+        {a.place.lat != null && <a className="ui-btn ui-btn-sm" href={`https://www.google.com/maps/dir/?api=1&destination=${a.place.lat},${a.place.lon}`} target="_blank" rel="noreferrer">Directions</a>}
+        <div className="ui-spacer" />
+        {upcoming && <button className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => act(() => setAppointmentStatus(a._id, "completed"))}>Mark done</button>}
+        {upcoming && <button className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => act(() => setAppointmentStatus(a._id, "cancelled"))}>Cancel</button>}
+        {!upcoming && <button className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => act(() => deleteAppointment(a._id))}>Delete</button>}
+      </div>
+    </li>
+  );
+
+  return (
+    <div className="ui-grid ui-grid-2" style={{ alignItems: "start" }}>
+      <div className="ui-card">
+        <h2>Upcoming ({data.upcoming.length})</h2>
+        {data.upcoming.length ? <ul className="ui-list">{data.upcoming.map((a) => row(a, true))}</ul> : <div className="ui-empty">No upcoming visits.</div>}
+      </div>
+      <div className="ui-card">
+        <h2>Past and cancelled</h2>
+        {data.past.length ? <ul className="ui-list">{data.past.slice(0, 10).map((a) => row(a, false))}</ul> : <div className="ui-empty">Nothing yet.</div>}
+      </div>
+    </div>
+  );
+}
+
+export default function AppointmentBooking() {
+  const [triage, setTriage] = useState(null);
+  const [specialty, setSpecialty] = useState("");
+  const [place, setPlace] = useState(null);
+  const [saved, setSaved] = useState(null);
+  const [version, setVersion] = useState(0);
+
+  return (
+    <div className="ui-stack" style={{ gap: "1rem" }}>
+      {saved && (
+        <div className="ui-alert ui-alert-info ui-row">
+          <div>
+            <strong>Saved: {saved.place.name}, {new Date(saved.startsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</strong>
+            {saved.confirmationEmailSent ? "A confirmation with a calendar reminder is in your inbox." : "Download the calendar file to get a reminder."} Remember to call the clinic to confirm.
+          </div>
+          <div className="ui-spacer" />
+          <button className="ui-btn ui-btn-sm" onClick={() => downloadAppointmentIcs(saved._id)}>Add to calendar</button>
+        </div>
+      )}
+      <div className="ui-grid ui-grid-2" style={{ alignItems: "start" }}>
+        <Triage onResult={(t) => { setTriage(t); setSpecialty(t.specialty); setPlace(null); }} />
+        {place ? (
+          <BookForm
+            key={place.osmId || "manual"}
+            place={place}
+            specialty={specialty}
+            triage={triage}
+            onCancel={() => setPlace(null)}
+            onDone={(a) => { setSaved(a); setPlace(null); setVersion((v) => v + 1); }}
+          />
+        ) : (
+          <ClinicFinder specialty={specialty} onSpecialty={setSpecialty} onPick={setPlace} />
+        )}
+      </div>
+      <AppointmentList refreshKey={version} />
+    </div>
   );
 }

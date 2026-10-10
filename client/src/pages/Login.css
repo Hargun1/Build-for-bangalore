@@ -1199,3 +1199,21 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Rebuild: text social buttons and disclaimer */
+.login-social-btn span {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.login-social-buttons .login-social-btn {
+  width: auto;
+  flex: 1;
+  padding: 0 1rem;
+}
+.login-disclaimer {
+  margin-top: 1.25rem;
+  font-size: 0.78rem;
+  text-align: center;
+  opacity: 0.6;
+  line-height: 1.5;
+}

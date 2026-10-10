@@ -3,11 +3,12 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useNormalizedGLTF } from "./useNormalizedGLTF";
 
-export default function Heart({ riskScore = 0.3, onClick, hovered, ...props }) {
+export default function Heart({ riskScore = null, onClick, hovered, ...props }) {
   const groupRef = useRef();
   const model = useNormalizedGLTF("/models/realistic_human_heart.glb", 0.12);
 
   const riskColor = useMemo(() => {
+    if (riskScore == null) return new THREE.Color("#7dd3fc"); // no data yet: neutral blue, not "healthy" green
     if (riskScore > 0.7) return new THREE.Color("#ff2244");
     if (riskScore > 0.4) return new THREE.Color("#ffaa00");
     return new THREE.Color("#44ff88");

@@ -1,9 +1,10 @@
-// EmergencyDetector — client-side rule-based anomaly classifier
-// Analyzes wearable vitals and classifies pre-emergency / emergency states
+// Rule-based vital-sign checks. Deterministic on purpose: emergency detection must not
+// depend on an AI provider being up. Thresholds follow common early-warning ranges
+// (e.g. NEWS2) and are screening flags, not diagnoses.
 
 const EMERGENCY_TYPES = {
   HEART_ATTACK: {
-    type: 'Heart Attack',
+    type: 'Possible cardiac emergency',
     icon: '💔',
     severity: 'emergency',
     color: '#ef5350',
@@ -48,11 +49,11 @@ const EMERGENCY_TYPES = {
 
 // First aid instructions for each emergency type
 export const FIRST_AID_GUIDES = {
-  'Heart Attack': [
-    { step: 1, icon: '💊', title: 'Chew Aspirin', desc: 'If not allergic, chew one regular aspirin (325mg) or four baby aspirins. Do NOT swallow whole — chewing speeds absorption.', timer: null },
+  'Possible cardiac emergency': [
+    { step: 1, icon: '📞', title: 'Call 112 / 108 now', desc: "Say \"possible heart attack\", the person's age, and where you are. Do not let them drive themselves.", timer: null },
     { step: 2, icon: '🪑', title: 'Sit Upright', desc: 'Help the person sit up in a comfortable position, leaning slightly forward. This reduces heart workload.', timer: null },
     { step: 3, icon: '👔', title: 'Loosen Clothing', desc: 'Loosen belt, tie, collar — anything tight. Ensure clear airway and easy breathing.', timer: null },
-    { step: 4, icon: '📞', title: 'Call Emergency (112)', desc: 'Call emergency services immediately. Tell them suspected heart attack, patient\'s age, and current condition.', timer: null },
+    { step: 4, icon: '💊', title: 'Aspirin only if advised', desc: 'If the 108 dispatcher or a doctor advises it and the person is not allergic, they can chew one 325 mg aspirin.', timer: null },
     { step: 5, icon: '🧘', title: 'Stay Calm & Monitor', desc: 'Keep the person calm and still. Monitor breathing and consciousness. Be ready to start CPR if they become unresponsive.', timer: null },
     { step: 6, icon: '🫀', title: 'CPR if Unresponsive', desc: 'If they stop breathing or go unconscious: 30 chest compressions, 2 rescue breaths. Push hard and fast (100-120/min).', timer: '2 min cycles' },
   ],
@@ -106,82 +107,52 @@ export const FIRST_AID_GUIDES = {
   ],
 };
 
+const has = (v) => typeof v === "number" && Number.isFinite(v);
+
 /**
- * Analyze wearable vitals and detect emergency conditions
- * @param {Object} vitals - Current vital readings
- * @returns {Object|null} - Detection result or null if safe
+ * Checks the latest vitals against fixed thresholds. Missing readings are skipped,
+ * never treated as zero. Returns null when nothing is out of range.
+ * @param {{heartRate?: number, spo2?: number, bloodPressure?: {systolic: number, diastolic: number}, temperature?: number}} vitals
  */
 export function detectEmergency(vitals) {
-  const { heartRate, spo2, bloodPressure, temperature } = vitals;
-  const sys = bloodPressure?.systolic || 120;
-  const dia = bloodPressure?.diastolic || 80;
+  const { heartRate: hr, spo2, temperature: temp } = vitals || {};
+  const sys = vitals?.bloodPressure?.systolic;
+  const dia = vitals?.bloodPressure?.diastolic;
+  const bp = has(sys) ? `${sys}/${dia ?? "?"} mmHg` : "not measured";
 
-  // Cardiac Arrest — HR extremely low or zero
-  if (heartRate <= 15) {
-    return { ...EMERGENCY_TYPES.CARDIAC_ARREST, confidence: 95, details: `Heart rate critically low: ${heartRate} bpm` };
+  if (has(hr) && hr <= 15) {
+    return { ...EMERGENCY_TYPES.CARDIAC_ARREST, rule: "heart rate at or below 15 bpm", details: `Heart rate ${hr} bpm` };
+  }
+  if (has(hr) && ((hr > 160 && has(sys) && sys > 170) || (hr > 150 && has(spo2) && spo2 < 90))) {
+    return { ...EMERGENCY_TYPES.HEART_ATTACK, rule: "heart rate over 150-160 with very high BP or low oxygen", details: `HR ${hr} bpm, BP ${bp}, SpO₂ ${spo2 ?? "?"}%` };
+  }
+  if (has(sys) && (sys < 70 || (sys < 80 && has(dia) && dia < 50))) {
+    return { ...EMERGENCY_TYPES.SEVERE_HYPOTENSION, rule: "systolic BP under 70 (or under 80 with diastolic under 50)", details: `BP ${bp}` };
+  }
+  if (has(temp) && temp > 40 && has(hr) && hr > 100) {
+    return { ...EMERGENCY_TYPES.HEAT_STROKE, rule: "temperature over 40°C with heart rate over 100", details: `Temperature ${temp.toFixed(1)}°C, HR ${hr} bpm` };
+  }
+  if (has(spo2) && spo2 < 85) {
+    return { ...EMERGENCY_TYPES.RESPIRATORY_DISTRESS, severity: "emergency", rule: "SpO₂ under 85%", details: `SpO₂ ${spo2}%` };
   }
 
-  // Heart Attack — very high HR + high BP or very low HR + chest compression signs
-  if ((heartRate > 160 && sys > 170) || (heartRate > 150 && spo2 < 90)) {
-    return { ...EMERGENCY_TYPES.HEART_ATTACK, confidence: 85, details: `HR: ${heartRate} bpm, BP: ${sys}/${dia}, SpO₂: ${spo2}%` };
+  // Warnings: worth acting on, not an automatic SOS.
+  if (has(spo2) && spo2 < 90 && has(sys) && sys < 90) {
+    return { ...EMERGENCY_TYPES.FAINTING, rule: "SpO₂ under 90% with systolic BP under 90", details: `SpO₂ ${spo2}%, BP ${bp}` };
   }
-
-  // Severe Hypotension
-  if (sys < 70 || (sys < 80 && dia < 50)) {
-    return { ...EMERGENCY_TYPES.SEVERE_HYPOTENSION, confidence: 90, details: `Blood pressure critically low: ${sys}/${dia} mmHg` };
+  if (has(hr) && hr < 40) {
+    return { ...EMERGENCY_TYPES.SEVERE_BRADYCARDIA, rule: "heart rate under 40 bpm", details: `Heart rate ${hr} bpm` };
   }
-
-  // Heat Stroke — high temp + elevated HR
-  if (temperature > 40 && heartRate > 100) {
-    return { ...EMERGENCY_TYPES.HEAT_STROKE, confidence: 88, details: `Body temp: ${temperature.toFixed(1)}°C, HR: ${heartRate} bpm` };
+  if ((has(hr) && hr > 140) || (has(sys) && sys > 180)) {
+    return { ...EMERGENCY_TYPES.HEART_ATTACK, severity: "pre-emergency", rule: "heart rate over 140 at rest or systolic BP over 180", details: `HR ${hr ?? "?"} bpm, BP ${bp}` };
   }
-
-  // Respiratory Distress — low SpO2
-  if (spo2 < 85) {
-    return { ...EMERGENCY_TYPES.RESPIRATORY_DISTRESS, severity: 'emergency', confidence: 90, details: `SpO₂ critically low: ${spo2}%` };
+  if (has(spo2) && spo2 < 92) {
+    return { ...EMERGENCY_TYPES.RESPIRATORY_DISTRESS, rule: "SpO₂ under 92%", details: `SpO₂ ${spo2}%` };
   }
-
-  // Pre-emergency checks
-  // Fainting risk — sudden SpO2 drop + low BP
-  if (spo2 < 90 && sys < 90) {
-    return { ...EMERGENCY_TYPES.FAINTING, confidence: 75, details: `SpO₂: ${spo2}%, BP: ${sys}/${dia}` };
+  if (has(temp) && temp > 38.5) {
+    return { ...EMERGENCY_TYPES.HEAT_STROKE, severity: "pre-emergency", rule: "temperature over 38.5°C", details: `Temperature ${temp.toFixed(1)}°C` };
   }
-
-  // Severe Bradycardia
-  if (heartRate < 40 && heartRate > 15) {
-    return { ...EMERGENCY_TYPES.SEVERE_BRADYCARDIA, confidence: 80, details: `Heart rate very low: ${heartRate} bpm` };
-  }
-
-  // Pre-heart attack warning
-  if (heartRate > 140 || sys > 160) {
-    return {
-      ...EMERGENCY_TYPES.HEART_ATTACK,
-      severity: 'pre-emergency',
-      confidence: 60,
-      details: `Elevated readings — HR: ${heartRate} bpm, BP: ${sys}/${dia}`,
-    };
-  }
-
-  // Mild respiratory warning
-  if (spo2 < 92) {
-    return {
-      ...EMERGENCY_TYPES.RESPIRATORY_DISTRESS,
-      confidence: 55,
-      details: `SpO₂ below normal: ${spo2}%`,
-    };
-  }
-
-  // Heat warning
-  if (temperature > 38.5) {
-    return {
-      ...EMERGENCY_TYPES.HEAT_STROKE,
-      severity: 'pre-emergency',
-      confidence: 50,
-      details: `Elevated temperature: ${temperature.toFixed(1)}°C`,
-    };
-  }
-
-  return null; // All safe
+  return null;
 }
 
 export { EMERGENCY_TYPES };

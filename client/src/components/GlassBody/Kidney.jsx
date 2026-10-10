@@ -2,10 +2,11 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { useNormalizedGLTF } from "./useNormalizedGLTF";
 
-export default function Kidney({ riskScore = 0.3, onClick, hovered, ...props }) {
+export default function Kidney({ riskScore = null, onClick, hovered, ...props }) {
   const model = useNormalizedGLTF("/models/medicine_organ_-_the_human_kidney.glb", 0.06);
 
   const riskColor = useMemo(() => {
+    if (riskScore == null) return new THREE.Color("#7dd3fc"); // no data yet: neutral blue, not "healthy" green
     if (riskScore > 0.7) return new THREE.Color("#ff2244");
     if (riskScore > 0.4) return new THREE.Color("#ffaa00");
     return new THREE.Color("#44ff88");

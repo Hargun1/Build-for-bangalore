@@ -1,5 +1,6 @@
 jest.mock("../services/emailService", () => ({
   sendVerificationOtp: jest.fn(async () => ({ ok: true })),
+  sendPasswordResetOtp: jest.fn(async () => ({ ok: true })),
   sendSosAlert: jest.fn(async () => ({ ok: true })),
   sendAppointmentConfirmation: jest.fn(async () => ({ ok: true })),
 }));
@@ -14,7 +15,7 @@ const axios = require("axios");
 const app = require("../app");
 const db = require("./db");
 const User = require("../models/User");
-const { sendVerificationOtp } = require("../services/emailService");
+const { sendVerificationOtp, sendPasswordResetOtp } = require("../services/emailService");
 
 beforeAll(db.connect);
 afterEach(async () => {
@@ -77,6 +78,29 @@ describe("email + password sign-up", () => {
     await User.create({ name: "G", email: "g@example.com", googleId: "123", emailVerified: true });
     const res = await request(app).post("/api/auth/login").send({ email: "g@example.com", password: "anything1" }).expect(401);
     expect(res.body.message).toMatch(/Google/);
+  });
+});
+
+describe("password reset", () => {
+  test("reset with the emailed code, then log in with the new password", async () => {
+    const otp = await registerAndGetOtp();
+    await request(app).post("/api/auth/verify-email").send({ email: newUser.email, otp }).expect(200);
+
+    await request(app).post("/api/auth/forgot-password").send({ email: newUser.email }).expect(200);
+    const resetCode = sendPasswordResetOtp.mock.calls.at(-1)[1];
+    await request(app).post("/api/auth/reset-password").send({ email: newUser.email, otp: resetCode, password: "weak" }).expect(400);
+    await request(app).post("/api/auth/reset-password").send({ email: newUser.email, otp: resetCode, password: "newpass2025" }).expect(200);
+    // The code is single-use.
+    await request(app).post("/api/auth/reset-password").send({ email: newUser.email, otp: resetCode, password: "another2025" }).expect(400);
+
+    await request(app).post("/api/auth/login").send({ email: newUser.email, password: newUser.password }).expect(401);
+    await request(app).post("/api/auth/login").send({ email: newUser.email, password: "newpass2025" }).expect(200);
+  });
+
+  test("unknown emails get the same answer and no email is sent", async () => {
+    const res = await request(app).post("/api/auth/forgot-password").send({ email: "ghost@example.com" }).expect(200);
+    expect(res.body.message).toMatch(/If an account exists/);
+    expect(sendPasswordResetOtp).not.toHaveBeenCalled();
   });
 });
 

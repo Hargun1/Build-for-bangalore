@@ -23,7 +23,9 @@ async function call(path, payload) {
     if (err.response) {
       const detail = err.response.data?.detail;
       const message = typeof detail === "string" ? detail : `AI service error (${err.response.status})`;
-      throw new HttpError(err.response.status >= 500 ? 502 : err.response.status, message);
+      // 503 means "AI temporarily unavailable" and is passed through; other 5xx become 502.
+      const status = err.response.status === 503 ? 503 : err.response.status >= 500 ? 502 : err.response.status;
+      throw new HttpError(status, message);
     }
     throw new HttpError(503, "The AI service is unreachable right now. Please try again in a minute.");
   }

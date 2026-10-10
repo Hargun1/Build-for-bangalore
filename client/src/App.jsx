@@ -1,45 +1,57 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-
-// Pages
-import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import VerifyEmail from "./pages/VerifyEmail";
-import Dashboard from "./pages/Dashboard";
-import GlassBody from "./pages/GlassBody";
-import Exposome from "./pages/Exposome";
-import Appointments from "./pages/Appointments";
-import Grocery from "./pages/Grocery";
-import GoalPlanner from "./pages/GoalPlanner";
-import Wearable from "./pages/Wearable";
-import Emergency from "./pages/Emergency";
-import HealthChat from "./pages/HealthChat";
-
-// Route Guard
 import ProtectedRoute from "./components/Shared/ProtectedRoute";
+import Landing from "./pages/Landing";
 
-export default function App() {
+// Each page is its own chunk: the 3D body viewer and charts only load when visited.
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
+const GlassBody = lazy(() => import("./pages/GlassBody"));
+const Exposome = lazy(() => import("./pages/Exposome"));
+const Appointments = lazy(() => import("./pages/Appointments"));
+const Grocery = lazy(() => import("./pages/Grocery"));
+const GoalPlanner = lazy(() => import("./pages/GoalPlanner"));
+const Wearable = lazy(() => import("./pages/Wearable"));
+const Emergency = lazy(() => import("./pages/Emergency"));
+const HealthChat = lazy(() => import("./pages/HealthChat"));
+
+function PageLoader() {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/verify-email" element={<VerifyEmail />} />
-
-      {/* Protected Routes */}
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/glass-body" element={<GlassBody />} />
-      <Route path="/exposome" element={<Exposome />} />
-      <Route path="/appointments" element={<Appointments />} />
-      <Route path="/grocery" element={<Grocery />} />
-      <Route path="/goals" element={<GoalPlanner />} />
-      <Route path="/wearable" element={<Wearable />} />
-      <Route path="/emergency" element={<Emergency />} />
-      <Route path="/chat" element={<HealthChat />} />
-
-      {/* Gracefully handle unknown routes */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#080a0f", color: "#9aa3b5" }}>
+      <span>Loading…</span>
+    </div>
   );
 }
 
+const guard = (el) => <ProtectedRoute>{el}</ProtectedRoute>;
+
+export default function App() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        <Route path="/dashboard" element={guard(<Dashboard />)} />
+        <Route path="/profile" element={guard(<Profile />)} />
+        <Route path="/glass-body" element={guard(<GlassBody />)} />
+        <Route path="/exposome" element={guard(<Exposome />)} />
+        <Route path="/appointments" element={guard(<Appointments />)} />
+        <Route path="/grocery" element={guard(<Grocery />)} />
+        <Route path="/goals" element={guard(<GoalPlanner />)} />
+        <Route path="/wearable" element={guard(<Wearable />)} />
+        <Route path="/emergency" element={guard(<Emergency />)} />
+        <Route path="/chat" element={guard(<HealthChat />)} />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  );
+}

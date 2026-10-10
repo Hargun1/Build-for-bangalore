@@ -13,13 +13,14 @@ import Brain from "./Brain";
 import Eyes from "./Eyes";
 import Skeleton from "./Skeleton";
 import Muscles from "./Muscles";
-import FemaleOrganInfoPanel from "./FemaleOrganInfoPanel";
+import OrganInfoPanel from "./OrganInfoPanel";
 import LayerToggle from "./LayerToggle";
 
 /* ── Uterus as simple 3D mesh ── */
-function Uterus({ riskScore = 0.1, hovered, ...props }) {
+function Uterus({ riskScore = null, hovered, ...props }) {
   const ref = useRef();
   const riskColor = useMemo(() => {
+    if (riskScore == null) return new THREE.Color("#7dd3fc"); // no data yet: neutral blue, not "healthy" green
     if (riskScore > 0.7) return new THREE.Color("#ff2244");
     if (riskScore > 0.4) return new THREE.Color("#ffaa00");
     return new THREE.Color("#e879a8");
@@ -156,21 +157,6 @@ function SpineGlow() {
     </mesh>
   );
 }
-
-const DEFAULT_RISKS = {
-  heart: 0.2,
-  lungs: 0.15,
-  liver: 0.1,
-  kidneyL: 0.1,
-  kidneyR: 0.1,
-  stomach: 0.1,
-  digestive: 0.1,
-  brain: 0.2,
-  eyes: 0.25,
-  uterus: 0.1,
-  ovaryL: 0.1,
-  ovaryR: 0.1,
-};
 
 const ORGAN_POSITIONS = {
   brain:     [0, 0.82, 0.02],
@@ -323,7 +309,7 @@ function FemaleBodyScene({ activeLayers, selectedOrgan, onSelectOrgan, hoveredOr
   );
 }
 
-export default function GlassBodyViewerFemale() {
+export default function GlassBodyViewerFemale({ insights }) {
   const [activeLayers, setActiveLayers] = useState({
     skeleton: true,
     muscles: false,
@@ -331,7 +317,7 @@ export default function GlassBodyViewerFemale() {
   });
   const [selectedOrgan, setSelectedOrgan] = useState(null);
   const [hoveredOrgan, setHoveredOrgan] = useState(null);
-  const [riskScores] = useState(DEFAULT_RISKS);
+  const riskScores = insights?.riskScores || {};
 
   const toggleLayer = useCallback((key) => {
     setActiveLayers((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -360,10 +346,10 @@ export default function GlassBodyViewerFemale() {
 
       <LayerToggle activeLayers={activeLayers} onToggle={toggleLayer} />
 
-      <FemaleOrganInfoPanel
+      <OrganInfoPanel
         selectedOrgan={selectedOrgan}
         onClose={() => setSelectedOrgan(null)}
-        riskScores={riskScores}
+        insights={insights}
       />
 
       {/* Title overlay */}

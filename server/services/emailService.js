@@ -36,23 +36,27 @@ async function send({ to, subject, html, attachments }) {
   }
 }
 
-async function sendVerificationOtp(email, otp) {
+async function sendOtp(email, otp, purpose = "verify") {
   if (!env.emailConfigured && !env.isProduction) {
     // Local development without Gmail credentials: print the code instead.
-    if (!env.isTest) console.log(`[dev] Verification code for ${email}: ${otp}`);
+    if (!env.isTest) console.log(`[dev] ${purpose} code for ${email}: ${otp}`);
     return { ok: true, devLogged: true };
   }
+  const reset = purpose === "reset";
   return send({
     to: email,
-    subject: "Your PranexusAI verification code",
+    subject: reset ? "Your PranexusAI password reset code" : "Your PranexusAI verification code",
     html: layout(
-      "Verify your email",
-      `<p>Use this one-time code to verify your email:</p>
+      reset ? "Reset your password" : "Verify your email",
+      `<p>Use this one-time code to ${reset ? "set a new password" : "verify your email"}:</p>
        <div style="font-size:32px;font-weight:700;letter-spacing:6px;margin:18px 0;">${escapeHtml(otp)}</div>
-       <p>The code expires in 10 minutes. If you didn't sign up, ignore this email.</p>`
+       <p>The code expires in 10 minutes. If you didn't ask for this, you can ignore this email.</p>`
     ),
   });
 }
+
+const sendVerificationOtp = (email, otp) => sendOtp(email, otp, "verify");
+const sendPasswordResetOtp = (email, otp) => sendOtp(email, otp, "reset");
 
 async function sendSosAlert({ to, contactName, userName, mapsUrl, detection, vitalsText, hospitals }) {
   const hospitalList = (hospitals || [])
@@ -94,4 +98,4 @@ async function sendAppointmentConfirmation({ to, userName, appointment, icsConte
   });
 }
 
-module.exports = { sendVerificationOtp, sendSosAlert, sendAppointmentConfirmation, escapeHtml };
+module.exports = { sendVerificationOtp, sendPasswordResetOtp, sendSosAlert, sendAppointmentConfirmation, escapeHtml };

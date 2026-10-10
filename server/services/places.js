@@ -2,9 +2,17 @@ const axios = require("axios");
 const env = require("../config/env");
 const { HttpError } = require("../middleware/errors");
 const { cached } = require("./environment");
+const PlaceCache = require("../models/PlaceCache");
 
-// OpenStreetMap Overpass API: free, keyless. Two public mirrors for resilience.
-const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+const FRESH_MS = 7 * 24 * 3600 * 1000;
+
+// OpenStreetMap Overpass API: free and keyless, but public servers are often busy.
+// Both mirrors are queried at once and the first good answer wins (checked 2026-10-10:
+// overpass-api.de ~10 s, maps.mail.ru ~18 s; kumi.systems and private.coffee were failing).
+const OVERPASS = (process.env.OVERPASS_URLS || "https://overpass-api.de/api/interpreter,https://maps.mail.ru/osm/tools/overpass/api/interpreter")
+  .split(",")
+  .map((u) => u.trim())
+  .filter(Boolean);
 
 const KINDS = {
   hospital: ["amenity=hospital", "healthcare=hospital"],
@@ -22,12 +30,16 @@ function haversineKm(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+// One regex filter per tag key keeps the query light; Overpass is much faster with
+// two statements than with one statement per tag value.
 function buildQuery(lat, lon, radiusM, kinds) {
-  const filters = kinds.flatMap((k) => KINDS[k]).map((f) => {
+  const byKey = {};
+  for (const f of kinds.flatMap((k) => KINDS[k])) {
     const [key, value] = f.split("=");
-    return `nwr(around:${radiusM},${lat},${lon})["${key}"="${value}"];`;
-  });
-  return `[out:json][timeout:20];(${filters.join("")});out center tags 120;`;
+    (byKey[key] = byKey[key] || []).push(value);
+  }
+  const statements = Object.entries(byKey).map(([key, values]) => `nwr(around:${radiusM},${lat},${lon})["${key}"~"^(${values.join("|")})$"];`);
+  return `[out:json][timeout:25];(${statements.join("")});out center tags 400;`;
 }
 
 function addressOf(t) {
@@ -42,20 +54,36 @@ function kindOf(t) {
   return v;
 }
 
-async function overpass(query) {
-  let lastErr;
-  for (const url of OVERPASS) {
-    try {
-      const { data } = await axios.post(url, new URLSearchParams({ data: query }).toString(), {
-        headers: { "User-Agent": env.userAgent, "Content-Type": "application/x-www-form-urlencoded" },
-        timeout: 25000,
-      });
-      return data.elements || [];
-    } catch (err) {
-      lastErr = err;
-    }
+async function overpass(query, timeoutMs = 25000) {
+  const controllers = OVERPASS.map(() => new AbortController());
+  const attempts = OVERPASS.map((url, i) =>
+    axios
+      .get(url, { params: { data: query }, headers: { "User-Agent": env.userAgent }, timeout: timeoutMs, signal: controllers[i].signal })
+      .then(({ data }) => {
+        if (!Array.isArray(data?.elements)) throw new Error("unexpected response");
+        controllers.forEach((c, j) => j !== i && c.abort()); // stop the slower mirror
+        return data.elements;
+      })
+  );
+  try {
+    return await Promise.any(attempts);
+  } catch {
+    throw new HttpError(502, "OpenStreetMap is busy right now. Please try again in a minute.");
   }
-  throw new HttpError(502, "OpenStreetMap is busy right now. Please try again in a minute.", { cause: lastErr?.message });
+}
+
+// Memory cache -> MongoDB (fresh for 7 days) -> live Overpass -> stale MongoDB copy.
+async function fetchElements(key, query, timeoutMs) {
+  const stored = await PlaceCache.findOne({ key }).lean().catch(() => null);
+  if (stored && Date.now() - new Date(stored.fetchedAt).getTime() < FRESH_MS) return stored.elements;
+  try {
+    const elements = await overpass(query, timeoutMs);
+    PlaceCache.updateOne({ key }, { $set: { elements, fetchedAt: new Date() } }, { upsert: true }).catch(() => {});
+    return elements;
+  } catch (err) {
+    if (stored) return stored.elements; // older than a week, but far better than nothing
+    throw err;
+  }
 }
 
 /**
@@ -63,10 +91,14 @@ async function overpass(query) {
  * @param {string[]} kinds subset of hospital, clinic, dentist, pharmacy
  * @param {string} [specialty] OSM healthcare:speciality value; matches are listed first
  */
-async function nearby({ lat, lon, kinds = ["hospital", "clinic"], radiusKm = 5, specialty, limit = 25 }) {
+async function nearby({ lat, lon, kinds = ["hospital", "clinic"], radiusKm = 5, specialty, limit = 25, timeoutMs }) {
   const radiusM = Math.round(Math.min(radiusKm, 15) * 1000);
-  const key = `places:${lat.toFixed(3)},${lon.toFixed(3)},${radiusM},${[...kinds].sort().join("+")}`;
-  const elements = await cached(key, 60 * 60 * 1000, () => overpass(buildQuery(lat, lon, radiusM, kinds)));
+  // Query around a ~1 km grid point (padded by 1.2 km) so nearby users share the cache,
+  // then measure distances from the user's exact position.
+  const gLat = Math.round(lat * 100) / 100;
+  const gLon = Math.round(lon * 100) / 100;
+  const key = `places:${gLat},${gLon},${radiusM},${[...kinds].sort().join("+")}`;
+  const elements = await cached(key, 6 * 60 * 60 * 1000, () => fetchElements(key, buildQuery(gLat, gLon, radiusM + 1200, kinds), timeoutMs));
 
   const seen = new Set();
   const places = [];
@@ -100,11 +132,12 @@ async function nearby({ lat, lon, kinds = ["hospital", "clinic"], radiusKm = 5, 
     });
   }
 
-  places.sort((a, b) => {
+  const within = places.filter((p) => p.distanceKm <= radiusKm);
+  within.sort((a, b) => {
     if (specialty && a.matchesSpecialty !== b.matchesSpecialty) return a.matchesSpecialty ? -1 : 1;
     return a.distanceKm - b.distanceKm;
   });
-  return places.slice(0, limit);
+  return within.slice(0, limit);
 }
 
 module.exports = { nearby, haversineKm, buildQuery };

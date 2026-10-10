@@ -1,74 +1,34 @@
 import { useState } from "react";
-import Navbar from "../components/Shared/Navbar";
+import AppShell from "../components/Shared/AppShell";
 import GlassBodyViewer from "../components/GlassBody/GlassBodyViewer";
 import GlassBodyViewerFemale from "../components/GlassBody/GlassBodyViewerFemale";
-
-const toggleContainerStyle = {
-  position: "absolute",
-  top: "80px",
-  left: "50%",
-  transform: "translateX(-50%)",
-  zIndex: 20,
-  display: "flex",
-  alignItems: "center",
-  gap: "0",
-  background: "rgba(10, 10, 20, 0.85)",
-  backdropFilter: "blur(16px)",
-  borderRadius: "12px",
-  border: "1px solid rgba(255,255,255,0.1)",
-  padding: "4px",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-};
-
-const toggleBtnStyle = (active, color) => ({
-  padding: "8px 20px",
-  border: "none",
-  borderRadius: "8px",
-  background: active ? `${color}20` : "transparent",
-  color: active ? "#fff" : "#666",
-  fontSize: "0.8rem",
-  fontWeight: 600,
-  cursor: "pointer",
-  transition: "all 0.3s ease",
-  letterSpacing: "0.5px",
-  display: "flex",
-  alignItems: "center",
-  gap: "6px",
-  position: "relative",
-  overflow: "hidden",
-  ...(active && {
-    boxShadow: `0 0 20px ${color}30`,
-    border: `1px solid ${color}40`,
-  }),
-});
+import { useOrganInsights } from "../components/GlassBody/organInsights";
+import { useAuth } from "../context/AuthContext";
 
 export default function GlassBody() {
-  const [gender, setGender] = useState("male");
+  const { user } = useAuth();
+  const [body, setBody] = useState(user?.gender === "female" ? "female" : "male");
+  const insights = useOrganInsights();
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#060612" }}>
-      <Navbar />
-      <div style={{ flex: 1, position: "relative" }}>
-        {gender === "male" ? <GlassBodyViewer /> : <GlassBodyViewerFemale />}
-
-        {/* Gender Toggle */}
-        <div style={toggleContainerStyle}>
-          <button
-            style={toggleBtnStyle(gender === "male", "#4488ff")}
-            onClick={() => setGender("male")}
-          >
-            <span style={{ fontSize: "1rem" }}>♂</span>
-            Male
-          </button>
-          <button
-            style={toggleBtnStyle(gender === "female", "#c864ff")}
-            onClick={() => setGender("female")}
-          >
-            <span style={{ fontSize: "1rem" }}>♀</span>
-            Female
-          </button>
+    <AppShell
+      title="Your body"
+      subtitle="Click an organ to see your own related numbers. Colours come from your latest risk analysis, logs and air quality."
+      actions={
+        <div className="ui-tabs" role="tablist" aria-label="Body model">
+          <button role="tab" aria-selected={body === "male"} className={body === "male" ? "active" : ""} onClick={() => setBody("male")}>Male model</button>
+          <button role="tab" aria-selected={body === "female"} className={body === "female" ? "active" : ""} onClick={() => setBody("female")}>Female model</button>
         </div>
+      }
+    >
+      {!insights.loading && !insights.analysedAt && (
+        <div className="ui-alert ui-alert-info" style={{ marginBottom: "0.75rem" }}>
+          Run the risk analysis on your dashboard to colour the organs. Until then they show blue (no data).
+        </div>
+      )}
+      <div style={{ position: "relative", height: "calc(100vh - 200px)", minHeight: 480, borderRadius: 14, overflow: "hidden", border: "1px solid var(--ui-border)" }}>
+        {body === "male" ? <GlassBodyViewer insights={insights} /> : <GlassBodyViewerFemale insights={insights} />}
       </div>
-    </div>
+    </AppShell>
   );
 }

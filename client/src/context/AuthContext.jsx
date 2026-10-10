@@ -1,86 +1,63 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import api from "../services/api";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import api, { tokenStore } from "../services/api";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem("token"));
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(tokenStore.get()));
 
-  useEffect(() => {
-    let isMounted = true;
-    if (token) {
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      api
-        .get("/users/me")
-        .then((res) => {
-          if (isMounted) setUser(res.data);
-        })
-        .catch(() => {
-          if (isMounted) {
-            localStorage.removeItem("token");
-            setToken(null);
-            setUser(null);
-            delete api.defaults.headers.common["Authorization"];
-          }
-        })
-        .finally(() => {
-          if (isMounted) setLoading(false);
-        });
-    } else {
-      delete api.defaults.headers.common["Authorization"];
-      setUser(null);
-      setLoading(false);
-    }
+  const acceptSession = useCallback(({ token, user: u }) => {
+    tokenStore.set(token);
+    setUser(u);
+    return u;
+  }, []);
 
-    return () => {
-      isMounted = false;
-    };
-  }, [token]);
-
-  const login = async (email, password) => {
-    const res = await api.post("/auth/login", { email, password });
-    const newToken = res.data.token;
-    localStorage.setItem("token", newToken);
-    api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-    setToken(newToken);
-    setUser(res.data.user);
-    return res.data;
-  };
-
-  const loginWithGoogle = async (credential) => {
-    const res = await api.post("/auth/google", { credential });
-    const newToken = res.data.token;
-    localStorage.setItem("token", newToken);
-    api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-    setToken(newToken);
-    setUser(res.data.user);
-    return res.data;
-  };
-
-  const register = async (data) => {
-    const res = await api.post("/auth/register", data);
-    return res.data;
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
+  const logout = useCallback(() => {
+    tokenStore.clear();
     setUser(null);
-    delete api.defaults.headers.common["Authorization"];
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, token, loading, login, loginWithGoogle, register, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const refreshUser = useCallback(async () => {
+    const res = await api.get("/users/me");
+    setUser(res.data);
+    return res.data;
+  }, []);
+
+  // Restore the session on first load.
+  useEffect(() => {
+    if (!tokenStore.get()) return;
+    refreshUser()
+      .catch(() => logout())
+      .finally(() => setLoading(false));
+  }, [refreshUser, logout]);
+
+  // The API client fires this when any request comes back 401.
+  useEffect(() => {
+    const onExpired = () => setUser(null);
+    window.addEventListener("auth:expired", onExpired);
+    return () => window.removeEventListener("auth:expired", onExpired);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      setUser,
+      refreshUser,
+      logout,
+      acceptSession,
+      login: async (email, password) => acceptSession((await api.post("/auth/login", { email, password })).data),
+      loginWithGoogle: async (credential) => acceptSession((await api.post("/auth/google", { credential })).data),
+      loginAsGuest: async () => acceptSession((await api.post("/auth/guest")).data),
+      register: async (data) => (await api.post("/auth/register", data)).data,
+    }),
+    [user, loading, refreshUser, logout, acceptSession]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  return useContext(AuthContext);
 }
-

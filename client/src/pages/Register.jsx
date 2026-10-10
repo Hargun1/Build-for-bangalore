@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import HealthOrb from "../components/Shared/HealthOrb";
-import api from "../services/api";
+import api, { errorMessage } from "../services/api";
 import "./Login.css";
 
 const features = [
-  { icon: "🧬", text: "DNA-Level Analysis" },
-  { icon: "🤖", text: "AI Health Insights" },
-  { icon: "📊", text: "Predictive Analytics" },
-  { icon: "🔒", text: "HIPAA Compliant" },
+  { icon: "🩸", text: "Indian diabetes risk score" },
+  { icon: "🤖", text: "AI chat, meals & goals" },
+  { icon: "🌫️", text: "Live Bengaluru air quality" },
+  { icon: "🗑️", text: "Delete your data anytime" },
 ];
 
 const steps = [
@@ -24,7 +24,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
-  const [registered, setRegistered] = useState(false);
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("theme") || "dark";
@@ -47,20 +46,17 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      await api.post("/auth/register", form);
-      setRegistered(true);
+      const { dob, ...rest } = form;
+      await api.post("/auth/register", dob ? form : rest);
+      navigate(`/verify-email?email=${encodeURIComponent(form.email.trim().toLowerCase())}`);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Registration failed");
+      setError(errorMessage(err, "Registration failed"));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResend = async () => {
-    try {
-      await api.post("/auth/resend-verification", { email: form.email });
-    } catch {}
-  };
+
 
   return (
     <div className={`login-container ${theme}`} data-theme={theme}>
@@ -224,118 +220,7 @@ export default function Register() {
             <div className="login-form-glow" />
 
             <AnimatePresence mode="wait">
-              {registered ? (
-                /* ===== Success: Check Your Email ===== */
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  style={{ textAlign: "center", padding: "1rem 0" }}
-                >
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
-                    style={{
-                      width: 72,
-                      height: 72,
-                      borderRadius: "50%",
-                      background: "linear-gradient(135deg, #00f5d4, #00bbf9)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 1.25rem",
-                      boxShadow: "0 0 40px rgba(0, 245, 212, 0.4)",
-                    }}
-                  >
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0a0f1a" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </motion.div>
-
-                  <h2
-                    style={{
-                      fontFamily: "'Syne', sans-serif",
-                      fontSize: "1.5rem",
-                      fontWeight: 700,
-                      color: "var(--login-text)",
-                      margin: "0 0 0.5rem",
-                    }}
-                  >
-                    Check Your Email
-                  </h2>
-                  <p
-                    style={{
-                      fontSize: "0.95rem",
-                      color: "var(--login-text-muted)",
-                      lineHeight: 1.6,
-                      margin: "0 0 1.5rem",
-                    }}
-                  >
-                    We sent a 6-digit OTP to<br />
-                    <strong style={{ color: "var(--login-primary)" }}>{form.email}</strong>
-                  </p>
-
-                  <div
-                    style={{
-                      background: "var(--login-primary-muted)",
-                      border: "1px solid var(--login-border)",
-                      borderRadius: "12px",
-                      padding: "1rem",
-                      marginBottom: "1.5rem",
-                      textAlign: "left",
-                    }}
-                  >
-                    <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--login-text)", marginBottom: "0.5rem" }}>
-                      What's next?
-                    </div>
-                    <div style={{ fontSize: "0.85rem", color: "var(--login-text-muted)", lineHeight: 1.5 }}>
-                      1. Open the email from PranexusAI<br />
-                      2. Copy the 6-digit OTP code<br />
-                      3. Enter it on the Verify Email screen
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => navigate(`/verify-email?email=${encodeURIComponent(form.email)}`)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      borderRadius: "12px",
-                      padding: "0.85rem 1rem",
-                      background: "linear-gradient(135deg, #00f5d4, #00bbf9)",
-                      color: "#06131e",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      marginBottom: "0.75rem",
-                    }}
-                  >
-                    Enter OTP
-                  </button>
-
-                  <button
-                    onClick={handleResend}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "var(--login-primary)",
-                      fontSize: "0.9rem",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      padding: "0.5rem",
-                    }}
-                  >
-                    Didn't receive it? Resend email
-                  </button>
-
-                  <div className="login-footer" style={{ marginTop: "1rem" }}>
-                    <p>
-                      Already verified? <Link to="/login">Sign in</Link>
-                    </p>
-                  </div>
-                </motion.div>
-              ) : (
+              {(
                 /* ===== Registration Form ===== */
                 <motion.div key="form" initial={{ opacity: 1 }} exit={{ opacity: 0, x: -30 }}>
                   <div className="login-form-header">
@@ -429,6 +314,9 @@ export default function Register() {
                         onFocus={() => setFocusedField("password")}
                         onBlur={() => setFocusedField(null)}
                         required
+                        minLength={8}
+                        pattern="(?=.*[A-Za-z])(?=.*\d).{8,}"
+                        title="At least 8 characters, with a letter and a number"
                         autoComplete="new-password"
                       />
                       <button
@@ -541,21 +429,9 @@ export default function Register() {
                     </p>
                   </div>
 
-                  <div className="login-trust-badges">
-                    <div className="login-trust-badge">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                      </svg>
-                      <span>HIPAA Compliant</span>
-                    </div>
-                    <div className="login-trust-badge">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0110 0v4" />
-                      </svg>
-                      <span>256-bit Encrypted</span>
-                    </div>
-                  </div>
+                  <p className="login-disclaimer">
+                    Your date of birth and sex are used only for the risk scores. You can delete your account and data from your profile.
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>

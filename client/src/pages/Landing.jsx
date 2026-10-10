@@ -1,12 +1,26 @@
-import { Link, Navigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
+import { errorMessage } from "../services/api";
 import "./Login.css";
 import "./Landing.css";
 
 export default function Landing() {
-  const { user } = useAuth();
+  const { user, loginAsGuest } = useAuth();
+  const navigate = useNavigate();
+  const [guestState, setGuestState] = useState({ loading: false, error: "" });
   if (user) return <Navigate to="/dashboard" replace />;
+
+  const tryAsGuest = async () => {
+    setGuestState({ loading: true, error: "" });
+    try {
+      await loginAsGuest();
+      navigate("/dashboard");
+    } catch (err) {
+      setGuestState({ loading: false, error: errorMessage(err) });
+    }
+  };
 
   return (
     <div className="landing-page">
@@ -38,13 +52,17 @@ export default function Landing() {
           <p className="landing-kicker">Preventive healthcare platform</p>
           <h1>Catch risk early. Stay in rhythm with your body.</h1>
           <p className="landing-subtitle">
-            One calm dashboard for brain, heart, lungs, and metabolic signals,
-            powered by always-on clinical AI.
+            Validated Indian diabetes and heart-risk scores, live Bengaluru air
+            quality, AI meal and grocery analysis, and an SOS that alerts your family.
           </p>
           <div className="landing-cta-group">
             <Link to="/register" className="landing-cta-primary">Create account</Link>
-            <Link to="/login" className="landing-cta-secondary">Open workspace</Link>
+            <button type="button" className="landing-cta-secondary" onClick={tryAsGuest} disabled={guestState.loading}>
+              {guestState.loading ? "Starting..." : "Try it as a guest"}
+            </button>
           </div>
+          {guestState.error && <p className="landing-error" role="alert">{guestState.error}</p>}
+          <p className="landing-note">Guest data is deleted after 24 hours. Not a substitute for medical advice.</p>
         </motion.section>
 
         <motion.section
@@ -87,16 +105,16 @@ export default function Landing() {
 
           <div className="landing-stat-grid">
             <article>
-              <strong>24/7</strong>
-              <span>Signal tracking</span>
+              <strong>IDRS</strong>
+              <span>Indian diabetes risk score</span>
             </article>
             <article>
-              <strong>5x</strong>
-              <span>Faster screening loop</span>
+              <strong>CPCB</strong>
+              <span>India air quality index</span>
             </article>
             <article>
-              <strong>1 app</strong>
-              <span>Whole-body context</span>
+              <strong>₹0</strong>
+              <span>Free and open data sources</span>
             </article>
           </div>
         </motion.section>

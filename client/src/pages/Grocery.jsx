@@ -1,100 +1,42 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import FoodPlateAnalyzer from "../components/Grocery/FoodPlateAnalyzer";
+import AppShell from "../components/Shared/AppShell";
+import MealAnalyzer from "../components/Grocery/MealAnalyzer";
+import BarcodeLookup from "../components/Grocery/BarcodeLookup";
 import GroceryScanner from "../components/Grocery/GroceryScanner";
-import HealthChat from "../components/Grocery/HealthChat";
-import "./Grocery.css";
+import MealLog from "../components/Grocery/MealLog";
+import ChatPanel from "../components/Chat/ChatPanel";
 
 const TABS = [
-  { id: "food", label: "Food Analysis", icon: "📸", description: "Scan your plate" },
-  { id: "grocery", label: "Grocery Scan", icon: "🛒", description: "Analyze your list" },
-  { id: "health", label: "Health Q&A", icon: "💬", description: "Get food advice" },
+  { id: "meal", label: "Meal photo" },
+  { id: "barcode", label: "Barcode" },
+  { id: "grocery", label: "Grocery bill" },
+  { id: "log", label: "My meals" },
+  { id: "ask", label: "Ask about food" },
 ];
 
-const tabVariants = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
-  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
-};
-
 export default function Grocery() {
-  const [activeTab, setActiveTab] = useState("food");
-  const navigate = useNavigate();
+  const [tab, setTab] = useState("meal");
+  const [logVersion, setLogVersion] = useState(0);
+  const logged = () => setLogVersion((v) => v + 1);
 
   return (
-    <div className="grocery-page">
-      {/* Hero Header */}
-      <div className="grocery-hero">
-        <button className="grocery-header-back" onClick={() => navigate("/dashboard")}>
-          ← Back
-        </button>
-        <div className="grocery-hero-content">
-          <h1 className="grocery-title">
-            <span>Nutrition</span> Hub
-          </h1>
-          <p className="grocery-subtitle">
-            Analyze food, scan groceries, and get personalized health advice powered by AI
-          </p>
-        </div>
+    <AppShell title="Nutrition" subtitle="Analyse a meal photo, check a packaged food by barcode, rate a grocery bill, and keep a food log that feeds your dashboard.">
+      <div className="ui-tabs" role="tablist" style={{ marginBottom: "1rem" }}>
+        {TABS.map((t) => (
+          <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
       </div>
-
-      {/* Main Content */}
-      <div className="grocery-main">
-        {/* Tab Navigation */}
-        <div className="grocery-tabs">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              className={`grocery-tab ${activeTab === tab.id ? "active" : ""}`}
-              data-tab={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span className="grocery-tab-icon">{tab.icon}</span>
-              <span className="grocery-tab-label">{tab.label}</span>
-            </button>
-          ))}
+      {tab === "meal" && <MealAnalyzer onLogged={logged} />}
+      {tab === "barcode" && <BarcodeLookup onLogged={logged} />}
+      {tab === "grocery" && <GroceryScanner />}
+      {tab === "log" && <MealLog refreshKey={logVersion} />}
+      {tab === "ask" && (
+        <div className="ui-card">
+          <ChatPanel mode="nutrition" height="calc(100vh - 300px)" />
         </div>
-
-        {/* Tab Content */}
-        <div className="grocery-content">
-          <AnimatePresence mode="wait">
-            {activeTab === "food" && (
-              <motion.div
-                key="food"
-                variants={tabVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-              >
-                <FoodPlateAnalyzer />
-              </motion.div>
-            )}
-            {activeTab === "grocery" && (
-              <motion.div
-                key="grocery"
-                variants={tabVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-              >
-                <GroceryScanner />
-              </motion.div>
-            )}
-            {activeTab === "health" && (
-              <motion.div
-                key="health"
-                variants={tabVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-              >
-                <HealthChat />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-    </div>
+      )}
+    </AppShell>
   );
 }

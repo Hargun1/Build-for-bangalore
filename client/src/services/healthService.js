@@ -1,50 +1,61 @@
 import api from "./api";
 
-// Health metrics
-export const logMetrics = (data) => api.post("/health/metrics", data);
-export const getMetrics = () => api.get("/health/metrics");
+// One place for every backend endpoint the UI uses.
+
+// Account and profile
+export const getMe = () => api.get("/users/me");
+export const updateAccount = (data) => api.put("/users/me", data);
+export const updateProfile = (data) => api.put("/users/me/profile", data);
+export const updateEmergencyContacts = (contacts) => api.put("/users/me/emergency-contacts", { contacts });
+export const deleteAccount = () => api.delete("/users/me");
+export const getSystemStatus = () => api.get("/system/status");
+
+// Daily metrics and risk
+export const logMetrics = (data) => api.put("/health/metrics", data);
+export const getMetrics = (days = 30) => api.get("/health/metrics", { params: { days } });
+export const getToday = () => api.get("/health/today");
 export const analyzeHealth = () => api.post("/health/analyze");
-export const getPredictions = () => api.get("/health/predictions");
+export const getPredictions = (limit = 10) => api.get("/health/predictions", { params: { limit } });
 
-// Medical reports
-export const addReport = (data) => api.post("/health/reports", data);
-export const getReports = () => api.get("/health/reports");
+// Chat
+export const sendChat = (messages, mode = "general") => api.post("/chat", { messages, mode });
 
-// AI-powered
-export const getGlycemicCurve = (data) => api.post("/health/glycemic-curve", data);
-export const getSleepDebt = (data) => api.post("/health/sleep-debt", data);
-export const getDopamineScore = (data) => api.post("/health/dopamine-score", data);
-export const getBiologicalAge = (data) => api.post("/health/biological-age", data);
-export const getRecommendations = (data) => api.post("/health/recommend", data);
-export const compareBaseline = (data) => api.post("/health/baseline-compare", data);
-export const getGoalPlan = (data) => api.post("/health/goal-plan", data);
-export const detectEmergencyAI = (data) => api.post("/health/emergency-detect", data);
+// Nutrition
+export const analyzeMealPhoto = (image) => api.post("/nutrition/meal/analyze", { image });
+export const logMeal = (meal) => api.post("/nutrition/meals", meal);
+export const getMeals = (days = 7) => api.get("/nutrition/meals", { params: { days } });
+export const deleteMeal = (id) => api.delete(`/nutrition/meals/${id}`);
+export const analyzeGroceryPhoto = (image) => api.post("/nutrition/grocery/analyze", { image });
+export const lookupBarcode = (code) => api.get(`/nutrition/product/${encodeURIComponent(code)}`);
+export const getGroceryHistory = () => api.get("/nutrition/grocery/history");
 
-// Insurance EMI Goals
-export const getInsuranceGoals = () => api.get("/insurance/goals");
-export const updateGoalProgress = (goalId, data) => api.patch(`/insurance/goals/${goalId}`, data);
-export const calculateEMIReduction = (data) => api.post("/insurance/calculate-emi", data);
+// Goals
+export const planGoal = (description, weeks) => api.post("/goals/plan", { description, ...(weeks ? { weeks } : {}) });
+export const createGoal = (goal) => api.post("/goals", goal);
+export const getGoals = () => api.get("/goals");
+export const checkinGoal = (id, habitsDone, day) => api.put(`/goals/${id}/checkin`, { habitsDone, ...(day ? { day } : {}) });
+export const setGoalStatus = (id, status) => api.patch(`/goals/${id}`, { status });
+export const deleteGoal = (id) => api.delete(`/goals/${id}`);
 
-// Appointments
+// Environment
+export const getExposome = (lat, lon) => api.get("/exposome", { params: { lat, lon } });
+export const getExposomeHistory = () => api.get("/exposome/history");
+
+// Places, emergency, appointments
+export const getNearbyPlaces = (params) => api.get("/places/nearby", { params });
+export const triggerSos = (data) => api.post("/emergency/sos", data);
+export const resolveSos = (id) => api.post(`/emergency/${id}/resolve`);
+export const triageSymptoms = (symptoms) => api.post("/appointments/triage", { symptoms });
 export const createAppointment = (data) => api.post("/appointments", data);
 export const getAppointments = () => api.get("/appointments");
-export const updateAppointment = (id, data) => api.patch(`/appointments/${id}`, data);
-
-// Grocery
-export const scanGrocery = (data) => api.post("/grocery/scan", data);
-export const getGroceryHistory = () => api.get("/grocery/history");
-
-// Food Plate Analyzer
-export const analyzeFoodPlate = (data) => api.post("/food-plate/analyze", data);
-
-// Grocery Image Analyzer
-export const analyzeGroceryImage = (data) => api.post("/grocery/scan-image", data);
-
-// Health Q&A
-export const askHealthQuestion = (data) => api.post("/health-qa/ask", data);
-
-// Exposome
-export const getCurrentExposome = (lat, lon) => api.get(`/exposome/current?lat=${lat}&lon=${lon}`);
-export const getExposomeHistory = () => api.get("/exposome/history");
-export const getCalendarSuggestions = (data) => api.post("/exposome/suggestions", data);
-
+export const setAppointmentStatus = (id, status) => api.patch(`/appointments/${id}`, { status });
+export const deleteAppointment = (id) => api.delete(`/appointments/${id}`);
+export const downloadAppointmentIcs = async (id) => {
+  const res = await api.get(`/appointments/${id}/ics`, { responseType: "blob" });
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `appointment-${id}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
