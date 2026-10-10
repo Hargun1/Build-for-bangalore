@@ -1,187 +1,149 @@
 const router = require("express").Router();
+const { z } = require("zod");
 const auth = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const { aiLimiter } = require("../middleware/rateLimit");
+const { asyncHandler, HttpError } = require("../middleware/errors");
+const User = require("../models/User");
 const HealthMetrics = require("../models/HealthMetrics");
 const Prediction = require("../models/Prediction");
-const MedicalReport = require("../models/MedicalReport");
-const aiService = require("../services/aiService");
+const FoodLog = require("../models/FoodLog");
+const ai = require("../services/aiService");
+const { dayKey, daysAgoKey, aiContext, recentAverages } = require("../services/userContext");
 
-// POST /api/health/metrics — log daily health metrics
-router.post("/metrics", auth, async (req, res) => {
-  try {
-    const metrics = await HealthMetrics.create({
-      userId: req.user.id,
-      ...req.body,
-    });
-    res.status(201).json(metrics);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.use(auth);
 
-// GET /api/health/metrics — get user's health history
-router.get("/metrics", auth, async (req, res) => {
-  try {
-    const metrics = await HealthMetrics.find({ userId: req.user.id }).sort({
-      date: -1,
-    });
-    res.json(metrics);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+const num = (min, max) => z.number().min(min).max(max).nullable().optional();
+const metricsSchema = z
+  .object({
+    day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    steps: num(0, 100000),
+    sleepHours: num(0, 24),
+    restingHeartRate: num(20, 250),
+    systolic: num(50, 260),
+    diastolic: num(30, 180),
+    spo2: num(50, 100),
+    temperatureC: num(30, 45),
+    weightKg: num(10, 400),
+    waterLitres: num(0, 15),
+    stressLevel: num(0, 10),
+    screenTimeHours: num(0, 24),
+    hrvMs: num(0, 500),
+    source: z.enum(["manual", "bluetooth", "simulator"]).default("manual"),
+  })
+  .refine((m) => !m.day || m.day <= dayKey(), { message: "Cannot log a future day", path: ["day"] })
+  .refine((m) => m.systolic == null || m.diastolic == null || m.systolic > m.diastolic, {
+    message: "Systolic (top number) must be higher than diastolic",
+    path: ["systolic"],
+  });
 
-// POST /api/health/analyze — trigger AI risk prediction
-router.post("/analyze", auth, async (req, res) => {
-  try {
-    const allMetrics = await HealthMetrics.find({ userId: req.user.id })
-      .sort({ date: -1 })
-      .limit(30);
+const METRIC_FIELDS = ["steps", "sleepHours", "restingHeartRate", "systolic", "diastolic", "spo2", "temperatureC", "weightKg", "waterLitres", "stressLevel", "screenTimeHours", "hrvMs"];
 
-    // If no metrics, provide a default baseline
-    const currentMetrics = allMetrics.length > 0 ? allMetrics[0] : {
-      steps: 0, sleep: 7, heartRate: 72, bloodPressureSystolic: 120,
-      bloodPressureDiastolic: 80, weight: 70, calories: 2000, 
-      screenTime: 3, waterIntake: 2, stressLevel: 3
+// PUT /api/health/metrics: create or update one day's entry (only the fields sent change).
+router.put(
+  "/metrics",
+  validate(metricsSchema),
+  asyncHandler(async (req, res) => {
+    const { day = dayKey(), source, ...values } = req.body;
+    const set = { source };
+    const unset = {};
+    for (const key of METRIC_FIELDS) {
+      if (values[key] === null) unset[key] = "";
+      else if (values[key] !== undefined) set[key] = values[key];
+    }
+    const doc = await HealthMetrics.findOneAndUpdate(
+      { userId: req.user.id, day },
+      { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    // Keep the profile weight current so risk scores use the latest value.
+    if (typeof set.weightKg === "number" && day === dayKey()) {
+      await User.updateOne({ _id: req.user.id }, { $set: { "profile.weightKg": set.weightKg } });
+    }
+    res.json(doc);
+  })
+);
+
+// GET /api/health/metrics?days=30: one row per logged day, newest first.
+router.get(
+  "/metrics",
+  validate(z.object({ days: z.coerce.number().int().min(1).max(365).default(30) }), "query"),
+  asyncHandler(async (req, res) => {
+    const rows = await HealthMetrics.find({ userId: req.user.id, day: { $gte: daysAgoKey(req.validatedQuery.days - 1) } })
+      .sort({ day: -1 })
+      .lean();
+    res.json(rows);
+  })
+);
+
+// GET /api/health/today: today's log, food totals and 7-day averages for the dashboard.
+router.get(
+  "/today",
+  asyncHandler(async (req, res) => {
+    const today = dayKey();
+    const [metrics, meals, averages] = await Promise.all([
+      HealthMetrics.findOne({ userId: req.user.id, day: today }).lean(),
+      FoodLog.find({ userId: req.user.id, day: today }).lean(),
+      recentAverages(req.user.id, 7),
+    ]);
+    const calories = meals.reduce((sum, m) => sum + (m.totals?.calories || 0), 0);
+    res.json({ day: today, metrics: metrics || null, meals: meals.length, caloriesEaten: Math.round(calories), averages });
+  })
+);
+
+// POST /api/health/analyze: deterministic risk scores + AI explanation, saved to history.
+router.post(
+  "/analyze",
+  aiLimiter,
+  asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user.id);
+    if (!user) throw new HttpError(404, "Account not found.");
+    const avg = await recentAverages(req.user.id, 14);
+    const p = user.profile || {};
+    const inputs = {
+      age: user.age ?? undefined,
+      sex: user.gender,
+      heightCm: p.heightCm,
+      weightKg: avg.weightKg ?? p.weightKg,
+      waistCm: p.waistCm,
+      activityLevel: p.activityLevel,
+      familyHistoryDiabetes: p.familyHistoryDiabetes,
+      smoker: p.smoker,
+      hasDiabetes: p.hasDiabetes,
+      onBpMedication: p.onBpMedication,
+      systolic: avg.systolic ?? undefined,
+      diastolic: avg.diastolic ?? undefined,
+      avgSleepHours: avg.sleepHours ?? undefined,
+      avgSteps: avg.steps ?? undefined,
+      avgStress: avg.stressLevel ?? undefined,
+      restingHeartRate: avg.restingHeartRate ?? undefined,
+      daysLogged: avg.daysLogged,
     };
-    const history = allMetrics.length > 1 ? allMetrics.slice(1) : [];
+    // Drop undefined so pydantic sees missing values as missing.
+    Object.keys(inputs).forEach((k) => inputs[k] === undefined && delete inputs[k]);
 
-    const aiResponse = await aiService.predictRisk({
-      userId: req.user.id,
-      metrics: currentMetrics,
-      history: history
-    });
-
+    const result = await ai.riskAssess({ inputs, context: aiContext(user), explain: true });
     const prediction = await Prediction.create({
       userId: req.user.id,
-      ...aiResponse.data,
+      scores: result.scores,
+      wellnessScore: result.wellnessScore,
+      summary: result.summary,
+      recommendations: result.recommendations,
+      aiSource: result.aiSource,
+      inputsSnapshot: inputs,
     });
-
     res.json(prediction);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+  })
+);
 
-// GET /api/health/predictions — get user's prediction history
-router.get("/predictions", auth, async (req, res) => {
-  try {
-    const predictions = await Prediction.find({ userId: req.user.id }).sort({
-      date: -1,
-    });
-    res.json(predictions);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// --- Medical Reports ---
-
-// POST /api/health/reports
-router.post("/reports", auth, async (req, res) => {
-  try {
-    const report = await MedicalReport.create({
-      userId: req.user.id,
-      ...req.body,
-    });
-    res.status(201).json(report);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// GET /api/health/reports
-router.get("/reports", auth, async (req, res) => {
-  try {
-    const reports = await MedicalReport.find({ userId: req.user.id }).sort({
-      date: -1,
-    });
-    res.json(reports);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// --- AI-powered endpoints proxied through Node ---
-
-// POST /api/health/glycemic-curve
-router.post("/glycemic-curve", auth, async (req, res) => {
-  try {
-    const response = await aiService.glycemicCurve(req.body);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST /api/health/sleep-debt
-router.post("/sleep-debt", auth, async (req, res) => {
-  try {
-    const response = await aiService.sleepDebt(req.body);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST /api/health/dopamine-score
-router.post("/dopamine-score", auth, async (req, res) => {
-  try {
-    const response = await aiService.dopamineScore(req.body);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST /api/health/biological-age
-router.post("/biological-age", auth, async (req, res) => {
-  try {
-    const response = await aiService.biologicalAge(req.body);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST /api/health/recommend
-router.post("/recommend", auth, async (req, res) => {
-  try {
-    const response = await aiService.recommend(req.body);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST /api/health/baseline-compare
-router.post("/baseline-compare", auth, async (req, res) => {
-  try {
-    const response = await aiService.baselineCompare(req.body);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST /api/health/goal-plan
-router.post("/goal-plan", auth, async (req, res) => {
-  try {
-    const payload = { ...req.body, userId: req.user.id };
-    const response = await aiService.goalPlan(payload);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST /api/health/emergency-detect
-router.post("/emergency-detect", auth, async (req, res) => {
-  try {
-    const response = await aiService.emergencyDetect(req.body);
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// GET /api/health/predictions?limit=10
+router.get(
+  "/predictions",
+  validate(z.object({ limit: z.coerce.number().int().min(1).max(50).default(10) }), "query"),
+  asyncHandler(async (req, res) => {
+    const rows = await Prediction.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(req.validatedQuery.limit).lean();
+    res.json(rows);
+  })
+);
 
 module.exports = router;

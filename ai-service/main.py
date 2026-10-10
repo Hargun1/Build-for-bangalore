@@ -1,100 +1,68 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+"""PranexusAI health-intelligence service.
+
+Stateless FastAPI app called only by the Node backend. It owns:
+  * the shared LLM client (free providers with fallback), app/llm.py
+  * deterministic, published risk scores, app/risk.py
+  * rule-based red-flag detection that runs before any model, app/safety.py
+"""
 from dotenv import load_dotenv
-import os
-import logging
 
-# Import all routers
-from routers import predict, recommend, baseline, glycemic, sleep, dopamine, age, grocery, exposome, goals, emergency, food_plate, health_qa, doctor_match
-
-# Load environment variables
+# Must run before anything reads environment variables.
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import logging  # noqa: E402
+from contextlib import asynccontextmanager  # noqa: E402
 
-app = FastAPI(
-    title="PranexusAI — AI Microservice",
-    description="Health prediction and intelligence engine for PranexusAI",
-    version="1.0.0",
-)
+from fastapi import Depends, FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-# CORS – allow frontend origins (can be extended via env var)
-origins = [
-    "http://localhost:5000",
-    "http://localhost:3000",
-]
-if os.getenv("CORS_ORIGINS"):
-    origins.extend(os.getenv("CORS_ORIGINS").split(","))
+from app.config import get_settings  # noqa: E402
+from app.llm import get_llm  # noqa: E402
+from app.routers import chat, exposome, goals, nutrition, risk, triage, vision  # noqa: E402
+from app.security import require_internal_token  # noqa: E402
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger("pranexus")
 
-# Register all routers
-app.include_router(predict.router,   prefix="/predict",          tags=["Risk Prediction"])
-app.include_router(recommend.router, prefix="/recommend",        tags=["Recommendations"])
-app.include_router(baseline.router,  prefix="/baseline-compare", tags=["Baseline"])
-app.include_router(glycemic.router,  prefix="/glycemic-curve",   tags=["Glycemic"])
-app.include_router(sleep.router,     prefix="/sleep-debt",       tags=["Sleep"])
-app.include_router(dopamine.router,  prefix="/dopamine-score",   tags=["Dopamine"])
-app.include_router(age.router,       prefix="/age-biological",   tags=["Biological Age"])
-app.include_router(grocery.router,   prefix="/grocery-analyze",  tags=["Grocery"])
-app.include_router(exposome.router,  prefix="/exposome-risk",    tags=["Exposome"])
-app.include_router(goals.router,     prefix="/goal-plan",        tags=["Goals"])
-app.include_router(emergency.router, prefix="/emergency-detect", tags=["Emergency"])
-app.include_router(food_plate.router, prefix="/food-plate",      tags=["Food Plate"])
-app.include_router(health_qa.router,  prefix="/health-qa",       tags=["Health QA"])
-app.include_router(doctor_match.router, prefix="/doctor-match",  tags=["Doctor Match"])
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    configured = [p.name for p in get_settings().providers if p.enabled]
+    if configured:
+        logger.info("AI providers configured: %s", ", ".join(configured))
+    else:
+        logger.warning("No AI provider key set (GEMINI_API_KEY / GROQ_API_KEY / OPENROUTER_API_KEY). AI features will use rule-based fallbacks.")
+    if not get_settings().internal_token:
+        logger.warning("AI_INTERNAL_TOKEN not set: this service accepts requests from anyone. Set it in production.")
+    yield
+    await get_llm().aclose()
+
+
+app = FastAPI(title="PranexusAI health-intelligence service", version="2.0.0", lifespan=lifespan)
+
+if get_settings().cors_origins:
+    app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins, allow_methods=["POST", "GET"], allow_headers=["*"])
+
+protected = [Depends(require_internal_token)]
+app.include_router(risk.router, prefix="/risk", tags=["Risk"], dependencies=protected)
+app.include_router(chat.router, prefix="/chat", tags=["Chat"], dependencies=protected)
+app.include_router(vision.router, prefix="/vision", tags=["Vision"], dependencies=protected)
+app.include_router(nutrition.router, prefix="/nutrition", tags=["Nutrition"], dependencies=protected)
+app.include_router(goals.router, prefix="/goals", tags=["Goals"], dependencies=protected)
+app.include_router(exposome.router, prefix="/exposome", tags=["Exposome"], dependencies=protected)
+app.include_router(triage.router, prefix="/triage", tags=["Triage"], dependencies=protected)
 
 
 @app.get("/")
 def root():
+    return {"service": "PranexusAI health-intelligence service", "status": "running", "health": "/health"}
+
+
+@app.get("/health")
+def health():
+    providers = get_llm().status()
     return {
-        "service": "PranexusAI AI Service",
-        "version": "1.0.0",
-        "status": "running",
-        "endpoints": [
-            "/predict",
-            "/recommend",
-            "/baseline-compare",
-            "/glycemic-curve",
-            "/sleep-debt",
-            "/dopamine-score",
-            "/age-biological",
-            "/grocery-analyze",
-            "/exposome-risk",
-            "/goal-plan",
-            "/emergency-detect",
-            "/food-plate",
-            "/health-qa",
-            "/doctor-match",
-            "/ping"
-        ]
+        "status": "ok",
+        "aiReady": any(p["configured"] and not p["disabledReason"] for p in providers),
+        "providers": providers,
     }
-
-
-@app.get("/ping")
-def ping():
-    return {"status": "ok", "service": "PranexusAI AI Service"}
-
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Starting PranexusAI AI Microservice")
-    # Check OpenRouter API key (without revealing it)
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if api_key:
-        logger.info("OpenRouter API key is set")
-    else:
-        logger.warning("OPENROUTER_API_KEY not set – AI features may fail")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Shutting down PranexusAI AI Microservice")

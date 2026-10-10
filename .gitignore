@@ -39,3 +39,7 @@ Thumbs.db
 # Misc
 *.tmp
 *.swp
+
+# Test caches
+.pytest_cache/
+coverage/

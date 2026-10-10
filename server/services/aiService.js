@@ -1,28 +1,43 @@
 const axios = require("axios");
+const env = require("../config/env");
+const { HttpError } = require("../middleware/errors");
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
-
-const aiClient = axios.create({
-  baseURL: AI_SERVICE_URL,
-  timeout: 180000,
-  maxBodyLength: Infinity,
-  maxContentLength: Infinity,
+// The Python service sleeps on Render's free tier; the first call can take ~50 s to wake it.
+const client = axios.create({
+  baseURL: env.aiServiceUrl,
+  timeout: 90000,
   headers: { "Content-Type": "application/json" },
+  maxBodyLength: 10 * 1024 * 1024,
 });
 
+client.interceptors.request.use((config) => {
+  if (env.aiInternalToken) config.headers["X-Internal-Token"] = env.aiInternalToken;
+  return config;
+});
+
+async function call(path, payload) {
+  try {
+    const { data } = await client.post(path, payload);
+    return data;
+  } catch (err) {
+    if (err.response) {
+      const detail = err.response.data?.detail;
+      const message = typeof detail === "string" ? detail : `AI service error (${err.response.status})`;
+      throw new HttpError(err.response.status >= 500 ? 502 : err.response.status, message);
+    }
+    throw new HttpError(503, "The AI service is unreachable right now. Please try again in a minute.");
+  }
+}
+
 module.exports = {
-  predictRisk: (data) => aiClient.post("/predict/risk", data),
-  recommend: (data) => aiClient.post("/recommend", data),
-  baselineCompare: (data) => aiClient.post("/baseline-compare", data),
-  glycemicCurve: (data) => aiClient.post("/glycemic-curve", data),
-  sleepDebt: (data) => aiClient.post("/sleep-debt", data),
-  dopamineScore: (data) => aiClient.post("/dopamine-score", data),
-  biologicalAge: (data) => aiClient.post("/age-biological", data),
-  groceryAnalyze: (data) => aiClient.post("/grocery-analyze", data),
-  groceryAnalyzeImage: (data) => aiClient.post("/grocery-analyze/image", data),
-  foodPlateAnalyze: (data) => aiClient.post("/food-plate", data),
-  healthQA: (data) => aiClient.post("/health-qa", data),
-  exposomeRisk: (data) => aiClient.post("/exposome-risk", data),
-  goalPlan: (data) => aiClient.post("/goal-plan", data),
-  emergencyDetect: (data) => aiClient.post("/emergency-detect", data),
+  call,
+  health: () => client.get("/health", { timeout: 10000 }).then((r) => r.data),
+  riskAssess: (p) => call("/risk/assess", p),
+  chat: (p) => call("/chat", p),
+  analyzeMeal: (p) => call("/vision/meal", p),
+  analyzeGroceryPhoto: (p) => call("/vision/grocery", p),
+  reviewProduct: (p) => call("/nutrition/product-review", p),
+  goalPlan: (p) => call("/goals/plan", p),
+  exposomeAdvice: (p) => call("/exposome/advice", p),
+  triage: (p) => call("/triage", p),
 };
