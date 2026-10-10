@@ -84,8 +84,16 @@ async def triage(body: TriageRequest):
 
     prompt = (
         f"Patient: {describe(body.context)}\nSymptoms in their words: \"{body.symptoms}\"\n\n"
-        "Act as a triage nurse. Choose which kind of doctor they should see (specialty) and how soon "
-        "(emergency = now, urgent = within 24 h, soon = within a week, routine). Summarise in 2 sentences what the doctor "
+        "Act as a triage nurse. Choose which kind of doctor they should see (specialty) and how soon.\n"
+        "Urgency guide; be calibrated, most problems are not urgent:\n"
+        "- emergency: could be life-threatening now (go to an emergency department now).\n"
+        "- urgent (within 24 h): sudden severe pain, high fever in a baby, spreading infection, animal bite, new weakness or "
+        "numbness, sudden vision or hearing loss, symptoms getting rapidly worse.\n"
+        "- soon (within a week): new symptoms that are stable, infections without danger signs, a new lump, abnormal test results.\n"
+        "- routine: long-standing, mild or stable problems (weeks to months), check-ups, vaccines, skin, hair, acne, "
+        "irregular periods, snoring, mild chronic joint or back pain.\n"
+        "Do not choose 'urgent' just to be cautious; it sends people to doctors needlessly. A separate safety check catches emergencies.\n"
+        "Summarise in 2 sentences what the doctor "
         "will likely want to check, without diagnosing. Add up to 3 safe self-care steps, up to 3 warning signs that mean "
         "they should go sooner, and up to 3 questions to ask the doctor. " + SAFETY_RULES
     )

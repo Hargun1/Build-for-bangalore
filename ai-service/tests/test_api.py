@@ -82,3 +82,13 @@ def test_product_review_rules_without_ai(client):
 def test_vision_needs_ai(client):
     res = client.post("/vision/meal", json={"image": "a" * 200})
     assert res.status_code == 503
+
+
+@pytest.mark.parametrize("text,level", [
+    ("My heart races and skips beats, no chest pain", None),
+    ("cough for a week without any breathing difficulty", None),
+    ("chest pain but no fever", "emergency"),
+])
+def test_negated_symptoms_are_not_red_flags(text, level):
+    flag = detect_red_flag(text)
+    assert (flag.level if flag else None) == level

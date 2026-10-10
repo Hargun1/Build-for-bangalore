@@ -43,3 +43,6 @@ Thumbs.db
 # Test caches
 .pytest_cache/
 coverage/
+
+# Resumable embedding progress (large, regenerated)
+ai-service/rag/data/embeddings.partial.json

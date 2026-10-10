@@ -1,0 +1,40 @@
+{"id": "q01", "query": "my sugar is 180 after food, is that bad?", "relevant": ["Diabetes", "Blood Glucose", "Prediabetes", "Diabetes Type 2", "Hyperglycemia"]}
+{"id": "q02", "query": "what foods should a diabetic eat", "relevant": ["Diabetic Diet", "Diabetes", "Diabetes Type 2"]}
+{"id": "q03", "query": "how to stop diabetes from happening, my parents have it", "relevant": ["How to Prevent Diabetes", "Prediabetes", "Diabetes Type 2"]}
+{"id": "q04", "query": "what does HbA1c 7.2 mean", "relevant": ["A1C", "Diabetes"]}
+{"id": "q05", "query": "how to reduce high bp without tablets", "relevant": ["High Blood Pressure", "How to Prevent High Blood Pressure", "Sodium"]}
+{"id": "q06", "query": "feeling dizzy when I stand up, low bp", "relevant": ["Low Blood Pressure", "Dizziness and Vertigo", "Fainting"]}
+{"id": "q07", "query": "signs of heart attack in women", "relevant": ["Heart Attack", "Heart Disease in Women"]}
+{"id": "q08", "query": "my LDL is 160 what should I do", "relevant": ["LDL: The \"Bad\" Cholesterol", "Cholesterol", "How to Lower Cholesterol", "How to Lower Cholesterol with Diet", "Cholesterol Levels: What You Need to Know"]}
+{"id": "q09", "query": "acidity and burning in chest after spicy food", "relevant": ["Heartburn", "GERD", "Indigestion"]}
+{"id": "q10", "query": "loose motions for 2 days what to drink", "relevant": ["Diarrhea", "Dehydration"]}
+{"id": "q11", "query": "not able to pass stool properly for a week", "relevant": ["Constipation"]}
+{"id": "q12", "query": "piles bleeding home remedy", "relevant": ["Hemorrhoids", "Rectal Disorders"]}
+{"id": "q13", "query": "yellow eyes and dark urine", "relevant": ["Jaundice", "Hepatitis", "Liver Diseases", "Hepatitis A", "Hepatitis B"]}
+{"id": "q14", "query": "dengue platelet count falling", "relevant": ["Dengue", "Hemorrhagic Fevers"]}
+{"id": "q15", "query": "fever with chills every alternate day after mosquito bites", "relevant": ["Malaria", "Mosquito Bites", "Fever"]}
+{"id": "q16", "query": "cough for more than 3 weeks with weight loss, could it be TB", "relevant": ["Tuberculosis", "Cough"]}
+{"id": "q17", "query": "wheezing at night and my inhaler isn't helping", "relevant": ["Asthma", "Asthma in Children"]}
+{"id": "q18", "query": "how does air pollution in Bangalore affect my lungs", "relevant": ["Air Pollution", "Indoor Air Pollution"]}
+{"id": "q19", "query": "runny nose sneezing and sore throat", "relevant": ["Common Cold", "Sore Throat", "Flu", "Hay Fever"]}
+{"id": "q20", "query": "should I take the flu vaccine every year", "relevant": ["Flu Shot", "Flu", "Vaccines"]}
+{"id": "q21", "query": "pimples on face and back as an adult", "relevant": ["Acne"]}
+{"id": "q22", "query": "too much hair fall while combing", "relevant": ["Hair Loss", "Hair Problems"]}
+{"id": "q23", "query": "headache with nausea and light hurts my eyes", "relevant": ["Migraine", "Headache"]}
+{"id": "q24", "query": "can't sleep at night, lying awake for hours", "relevant": ["Insomnia", "Sleep Disorders", "Healthy Sleep"]}
+{"id": "q25", "query": "feeling sad and empty for weeks, no interest in anything", "relevant": ["Depression", "Teen Depression"]}
+{"id": "q26", "query": "constant worry and racing heart before meetings", "relevant": ["Anxiety", "Panic Disorder", "Stress"]}
+{"id": "q27", "query": "how to lose belly fat safely", "relevant": ["Weight Control", "Obesity", "Body Weight", "Weight Loss Surgery"]}
+{"id": "q28", "query": "how much exercise should I do in a week", "relevant": ["How Much Exercise Do I Need?", "Exercise and Physical Fitness", "Benefits of Exercise"]}
+{"id": "q29", "query": "always tired and pale, low haemoglobin", "relevant": ["Anemia"]}
+{"id": "q30", "query": "vitamin D low even though I live in India", "relevant": ["Vitamin D Deficiency", "Vitamin D"]}
+{"id": "q31", "query": "gaining weight, feeling cold, tsh high", "relevant": ["Hypothyroidism", "Thyroid Diseases", "Thyroid Tests"]}
+{"id": "q32", "query": "irregular periods, acne and facial hair", "relevant": ["Polycystic Ovary Syndrome", "Menstruation"]}
+{"id": "q33", "query": "burning while urinating and going often", "relevant": ["Urinary Tract Infections"]}
+{"id": "q34", "query": "sharp pain from back to groin, doctor said stone", "relevant": ["Kidney Stones"]}
+{"id": "q35", "query": "knee pain while climbing stairs at age 60", "relevant": ["Osteoarthritis", "Knee Injuries and Disorders", "Arthritis"]}
+{"id": "q36", "query": "lower back pain from sitting at a desk all day", "relevant": ["Back Pain", "Ergonomics"]}
+{"id": "q37", "query": "street dog bit my child, do we need injections", "relevant": ["Rabies", "Animal Bites"]}
+{"id": "q38", "query": "how to treat a burn from hot oil at home", "relevant": ["Burns", "First Aid"]}
+{"id": "q39", "query": "working outside in the summer heat and feeling faint", "relevant": ["Heat Illness", "Dehydration", "Fainting"]}
+{"id": "q40", "query": "how to quit smoking cigarettes", "relevant": ["Quitting Smoking", "Smoking"]}

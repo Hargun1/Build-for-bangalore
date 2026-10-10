@@ -1,0 +1,1636 @@
+{
+  "suite": "triage",
+  "mode": "ai",
+  "ran_at": "2026-10-10 21:48 UTC",
+  "metrics": {
+    "cases": 100,
+    "specialty_accuracy": 1.0,
+    "urgency_accuracy": 0.83,
+    "under_triage_rate": 0.0,
+    "over_triage_rate": 0.17,
+    "dangerous_under_triage": 0,
+    "emergency_recall": 1.0,
+    "latency_ms_median": 1616,
+    "latency_ms_p95": 5038,
+    "sources": {
+      "safety-rules": 14,
+      "gemini:gemini-3.7-flash": 9,
+      "gemini:gemini-3.6-flash": 5,
+      "gemini:gemini-3.5-flash": 1,
+      "gemini:gemini-3.5-flash-lite": 59,
+      "safety-ai": 12
+    },
+    "wrong_specialty": [],
+    "under_triaged": [],
+    "over_triaged": [
+      "t001",
+      "t002",
+      "t022",
+      "t023",
+      "t026",
+      "t027",
+      "t028",
+      "t033",
+      "t045",
+      "t049",
+      "t056",
+      "t058",
+      "t070",
+      "t076",
+      "t088",
+      "t097",
+      "t099"
+    ],
+    "dangerous": []
+  },
+  "rows": [
+    {
+      "id": "t001",
+      "text": "I get chest tightness when I climb stairs that goes away when I rest, for the last month",
+      "specialties": [
+        "cardiology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t002",
+      "text": "My heart races and skips beats a few times a day, no chest pain",
+      "specialties": [
+        "cardiology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t003",
+      "text": "My BP readings at home are 150/95 for two weeks, I feel fine otherwise",
+      "specialties": [
+        "cardiology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.7-flash",
+      "latency_ms": 17160
+    },
+    {
+      "id": "t004",
+      "text": "Swelling in both ankles and I get breathless when lying flat at night",
+      "specialties": [
+        "cardiology",
+        "general",
+        "pulmonology",
+        "nephrology"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "cardiology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.7-flash",
+      "latency_ms": 42914
+    },
+    {
+      "id": "t005",
+      "text": "Crushing chest pain spreading to my jaw and I am sweating a lot",
+      "specialties": [
+        "*"
+      ],
+      "urgency": [
+        "emergency",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t006",
+      "text": "Itchy red patches on my elbows and knees with silvery scales for months",
+      "specialties": [
+        "dermatology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "dermatology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.7-flash",
+      "latency_ms": 3476
+    },
+    {
+      "id": "t007",
+      "text": "Pimples on my face and back for a year that leave dark marks",
+      "specialties": [
+        "dermatology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "dermatology",
+      "predicted_urgency": "routine",
+      "source": "gemini:gemini-3.7-flash",
+      "latency_ms": 4652
+    },
+    {
+      "id": "t008",
+      "text": "A mole on my back has changed shape and colour recently and sometimes bleeds",
+      "specialties": [
+        "dermatology"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "dermatology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.7-flash",
+      "latency_ms": 8027
+    },
+    {
+      "id": "t009",
+      "text": "Circular itchy rash in my groin area for two weeks",
+      "specialties": [
+        "dermatology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "dermatology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.7-flash",
+      "latency_ms": 2712
+    },
+    {
+      "id": "t010",
+      "text": "My hair is falling out in round bald patches",
+      "specialties": [
+        "dermatology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "dermatology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.7-flash",
+      "latency_ms": 4052
+    },
+    {
+      "id": "t011",
+      "text": "Ear pain and discharge from my right ear for 3 days with mild fever",
+      "specialties": [
+        "otolaryngology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "otolaryngology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.7-flash",
+      "latency_ms": 3755
+    },
+    {
+      "id": "t012",
+      "text": "Blocked nose and pressure around my cheeks and forehead for three weeks",
+      "specialties": [
+        "otolaryngology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "otolaryngology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.6-flash",
+      "latency_ms": 3414
+    },
+    {
+      "id": "t013",
+      "text": "Sore throat with pain on swallowing for 4 days and white patches on my tonsils",
+      "specialties": [
+        "otolaryngology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "otolaryngology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.6-flash",
+      "latency_ms": 3177
+    },
+    {
+      "id": "t014",
+      "text": "Sudden hearing loss in my left ear since yesterday morning",
+      "specialties": [
+        "otolaryngology"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "otolaryngology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash",
+      "latency_ms": 4569
+    },
+    {
+      "id": "t015",
+      "text": "Constant ringing in both ears for several months",
+      "specialties": [
+        "otolaryngology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "otolaryngology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.6-flash",
+      "latency_ms": 2664
+    },
+    {
+      "id": "t016",
+      "text": "Burning in my upper stomach after meals and acidity for two months",
+      "specialties": [
+        "gastroenterology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "gastroenterology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 2509
+    },
+    {
+      "id": "t017",
+      "text": "Black tarry stools since yesterday and I feel dizzy when I stand",
+      "specialties": [
+        "gastroenterology",
+        "general",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 3077
+    },
+    {
+      "id": "t018",
+      "text": "My eyes have turned yellow and my urine is dark for a week",
+      "specialties": [
+        "gastroenterology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "gastroenterology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.7-flash",
+      "latency_ms": 3302
+    },
+    {
+      "id": "t019",
+      "text": "Loose motions 6 times today but I can still drink water and eat a little",
+      "specialties": [
+        "general",
+        "gastroenterology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "gastroenterology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.6-flash",
+      "latency_ms": 7728
+    },
+    {
+      "id": "t020",
+      "text": "Constipation alternating with diarrhoea for three weeks and I lost 4 kg without trying",
+      "specialties": [
+        "gastroenterology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "gastroenterology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.6-flash",
+      "latency_ms": 5689
+    },
+    {
+      "id": "t021",
+      "text": "Severe pain in my lower right abdomen since morning, worse when I walk, and I vomited twice",
+      "specialties": [
+        "general",
+        "gastroenterology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 5004
+    },
+    {
+      "id": "t022",
+      "text": "Irregular periods for 6 months along with acne and weight gain",
+      "specialties": [
+        "gynaecology",
+        "endocrinology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "gynaecology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 2208
+    },
+    {
+      "id": "t023",
+      "text": "Very heavy periods with clots and I feel tired all the time",
+      "specialties": [
+        "gynaecology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "gynaecology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 2081
+    },
+    {
+      "id": "t024",
+      "text": "Missed my period, home pregnancy test is positive, mild cramps",
+      "specialties": [
+        "gynaecology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "gynaecology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1316
+    },
+    {
+      "id": "t025",
+      "text": "I am 30 weeks pregnant with a severe headache, blurry vision and a swollen face",
+      "specialties": [
+        "gynaecology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 1
+    },
+    {
+      "id": "t026",
+      "text": "White vaginal discharge with itching for a week",
+      "specialties": [
+        "gynaecology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "gynaecology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1557
+    },
+    {
+      "id": "t027",
+      "text": "Throbbing headaches twice a month with sensitivity to light and nausea",
+      "specialties": [
+        "neurology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1701
+    },
+    {
+      "id": "t028",
+      "text": "Tingling and numbness in both feet for months, I have diabetes",
+      "specialties": [
+        "neurology",
+        "endocrinology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "endocrinology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1494
+    },
+    {
+      "id": "t029",
+      "text": "Worst headache of my life came on suddenly an hour ago",
+      "specialties": [
+        "*"
+      ],
+      "urgency": [
+        "emergency",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t030",
+      "text": "My hand shakes when I hold a cup and it is slowly getting worse over a year",
+      "specialties": [
+        "neurology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "neurology",
+      "predicted_urgency": "routine",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 2535
+    },
+    {
+      "id": "t031",
+      "text": "I had a seizure for the first time this morning, now awake and talking normally",
+      "specialties": [
+        "neurology",
+        "general",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t032",
+      "text": "My father's face is drooping on one side and his speech is slurred since 20 minutes",
+      "specialties": [
+        "*"
+      ],
+      "urgency": [
+        "emergency",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t033",
+      "text": "Red itchy watery eyes with sticky discharge in the morning",
+      "specialties": [
+        "ophthalmology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "ophthalmology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1842
+    },
+    {
+      "id": "t034",
+      "text": "Blurry vision while reading, I have to hold my phone far away",
+      "specialties": [
+        "ophthalmology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "ophthalmology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1585
+    },
+    {
+      "id": "t035",
+      "text": "Sudden loss of vision in one eye, like a curtain coming down",
+      "specialties": [
+        "ophthalmology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 1
+    },
+    {
+      "id": "t036",
+      "text": "A cleaning chemical splashed into my eye at work and it burns",
+      "specialties": [
+        "ophthalmology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t037",
+      "text": "Knee pain when climbing stairs for six months, I am 58",
+      "specialties": [
+        "orthopaedics",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "orthopaedics",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1620
+    },
+    {
+      "id": "t038",
+      "text": "Twisted my ankle playing football, it is swollen but I can walk on it",
+      "specialties": [
+        "orthopaedics",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "orthopaedics",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1399
+    },
+    {
+      "id": "t039",
+      "text": "Lower back pain after lifting a box three days ago, no other symptoms",
+      "specialties": [
+        "orthopaedics",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "orthopaedics",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1926
+    },
+    {
+      "id": "t040",
+      "text": "Fell from my bike, my wrist is very swollen and bent and I cannot move it",
+      "specialties": [
+        "orthopaedics",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "orthopaedics",
+      "predicted_urgency": "emergency",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1474
+    },
+    {
+      "id": "t041",
+      "text": "Neck pain and stiffness from long hours at my desk",
+      "specialties": [
+        "orthopaedics",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "orthopaedics",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1620
+    },
+    {
+      "id": "t042",
+      "text": "Back pain with numbness around my groin and I am having trouble passing urine",
+      "specialties": [
+        "orthopaedics",
+        "neurology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 3816
+    },
+    {
+      "id": "t043",
+      "text": "My 2 year old has a fever of 101 F and a runny nose but is playing normally",
+      "specialties": [
+        "paediatrics"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "paediatrics",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1503
+    },
+    {
+      "id": "t044",
+      "text": "My 6 month old baby has fever, is not feeding and is very sleepy",
+      "specialties": [
+        "paediatrics",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 1632
+    },
+    {
+      "id": "t045",
+      "text": "My child has had a cough for 3 weeks that is worse at night",
+      "specialties": [
+        "paediatrics",
+        "pulmonology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "paediatrics",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1653
+    },
+    {
+      "id": "t046",
+      "text": "My son swallowed a coin an hour ago, he is breathing fine",
+      "specialties": [
+        "paediatrics",
+        "general",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 1405
+    },
+    {
+      "id": "t047",
+      "text": "My 8 year old's teacher says he cannot focus and is very restless in class",
+      "specialties": [
+        "paediatrics",
+        "psychiatry"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "paediatrics",
+      "predicted_urgency": "routine",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1692
+    },
+    {
+      "id": "t048",
+      "text": "Feeling low and uninterested in everything for over a month, poor sleep",
+      "specialties": [
+        "psychiatry",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "psychiatry",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 2258
+    },
+    {
+      "id": "t049",
+      "text": "Panic attacks every week with a racing heart and fear of dying",
+      "specialties": [
+        "psychiatry",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "psychiatry",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1368
+    },
+    {
+      "id": "t050",
+      "text": "Cannot sleep properly for weeks because of work stress",
+      "specialties": [
+        "psychiatry",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "psychiatry",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1658
+    },
+    {
+      "id": "t051",
+      "text": "I have been thinking about ending my life",
+      "specialties": [
+        "*"
+      ],
+      "urgency": [
+        "emergency",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t052",
+      "text": "My brother has been hearing voices nobody else hears for two weeks",
+      "specialties": [
+        "psychiatry"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "psychiatry",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1488
+    },
+    {
+      "id": "t053",
+      "text": "Cough with blood-streaked phlegm for 3 weeks, weight loss and night sweats",
+      "specialties": [
+        "pulmonology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "pulmonology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1768
+    },
+    {
+      "id": "t054",
+      "text": "I have asthma and get wheezy and breathless on days when the air is polluted",
+      "specialties": [
+        "pulmonology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "pulmonology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1377
+    },
+    {
+      "id": "t055",
+      "text": "Smoker for 20 years, I cough up phlegm every morning",
+      "specialties": [
+        "pulmonology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "pulmonology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1800
+    },
+    {
+      "id": "t056",
+      "text": "I snore loudly, wake up tired and my wife says I stop breathing at night",
+      "specialties": [
+        "pulmonology",
+        "otolaryngology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "pulmonology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1722
+    },
+    {
+      "id": "t057",
+      "text": "Severe breathlessness, I cannot finish a sentence and my lips look bluish",
+      "specialties": [
+        "*"
+      ],
+      "urgency": [
+        "emergency",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t058",
+      "text": "Burning while passing urine and going very often for two days",
+      "specialties": [
+        "urology",
+        "general",
+        "gynaecology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "urology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1647
+    },
+    {
+      "id": "t059",
+      "text": "Severe pain from my back to my groin coming in waves, with blood in the urine",
+      "specialties": [
+        "urology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "urology",
+      "predicted_urgency": "emergency",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1459
+    },
+    {
+      "id": "t060",
+      "text": "62 year old man with a weak urine stream, getting up three times at night to pee",
+      "specialties": [
+        "urology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "urology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1920
+    },
+    {
+      "id": "t061",
+      "text": "Painless blood in my urine twice this week",
+      "specialties": [
+        "urology",
+        "nephrology"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "urology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1774
+    },
+    {
+      "id": "t062",
+      "text": "Sharp toothache when I drink cold water",
+      "specialties": [
+        "dentistry"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "dentistry",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1623
+    },
+    {
+      "id": "t063",
+      "text": "My gums bleed every time I brush",
+      "specialties": [
+        "dentistry"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "dentistry",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1440
+    },
+    {
+      "id": "t064",
+      "text": "Swollen jaw and severe tooth pain with fever",
+      "specialties": [
+        "dentistry"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "dentistry",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 2610
+    },
+    {
+      "id": "t065",
+      "text": "Broke a front tooth in a fall yesterday",
+      "specialties": [
+        "dentistry"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "dentistry",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1430
+    },
+    {
+      "id": "t066",
+      "text": "Always thirsty, urinating a lot and losing weight for a month",
+      "specialties": [
+        "endocrinology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "endocrinology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1226
+    },
+    {
+      "id": "t067",
+      "text": "My fasting sugar was 140 on my lab report, what should I do",
+      "specialties": [
+        "endocrinology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "endocrinology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1573
+    },
+    {
+      "id": "t068",
+      "text": "Feeling cold, tired, gaining weight and my hair is thinning",
+      "specialties": [
+        "endocrinology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "endocrinology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1590
+    },
+    {
+      "id": "t069",
+      "text": "I am diabetic, my sugar reading is 450, I am vomiting and very drowsy",
+      "specialties": [
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 1770
+    },
+    {
+      "id": "t070",
+      "text": "A swelling at the front of my neck that moves when I swallow",
+      "specialties": [
+        "endocrinology",
+        "otolaryngology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "endocrinology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1313
+    },
+    {
+      "id": "t071",
+      "text": "Puffy face every morning and foamy urine for a few weeks",
+      "specialties": [
+        "nephrology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "nephrology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1409
+    },
+    {
+      "id": "t072",
+      "text": "My creatinine is 2.1 on the report, I have diabetes and high blood pressure",
+      "specialties": [
+        "nephrology",
+        "general",
+        "endocrinology"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "nephrology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1785
+    },
+    {
+      "id": "t073",
+      "text": "Mild fever of 99.5 and body ache since yesterday",
+      "specialties": [
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "routine",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1610
+    },
+    {
+      "id": "t074",
+      "text": "Feeling tired all the time for a month without any reason",
+      "specialties": [
+        "general",
+        "endocrinology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 2007
+    },
+    {
+      "id": "t075",
+      "text": "I want a full body health checkup, I have no symptoms",
+      "specialties": [
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "routine"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "routine",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1259
+    },
+    {
+      "id": "t076",
+      "text": "Which vaccines do I need before travelling abroad next month",
+      "specialties": [
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "routine"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1400
+    },
+    {
+      "id": "t077",
+      "text": "High fever of 103 for 3 days with severe body pain and pain behind my eyes",
+      "specialties": [
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1731
+    },
+    {
+      "id": "t078",
+      "text": "Diagnosed with dengue, now my gums are bleeding and I have severe stomach pain",
+      "specialties": [
+        "general",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 1980
+    },
+    {
+      "id": "t079",
+      "text": "High fever with a stiff neck and confusion since this afternoon",
+      "specialties": [
+        "general",
+        "neurology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 1319
+    },
+    {
+      "id": "t080",
+      "text": "A stray dog bit my leg an hour ago and broke the skin",
+      "specialties": [
+        "general",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1651
+    },
+    {
+      "id": "t081",
+      "text": "Small cut on my finger while cooking, the bleeding has stopped",
+      "specialties": [
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "routine"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "routine",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1437
+    },
+    {
+      "id": "t082",
+      "text": "Stung by a bee, my throat feels tight and my lips are swelling",
+      "specialties": [
+        "*"
+      ],
+      "urgency": [
+        "emergency",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 1
+    },
+    {
+      "id": "t083",
+      "text": "Burned my hand with hot oil, there are blisters the size of a coin",
+      "specialties": [
+        "general",
+        "dermatology"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1643
+    },
+    {
+      "id": "t084",
+      "text": "seene mein dard aur bahut pasina aa raha hai",
+      "specialties": [
+        "*"
+      ],
+      "urgency": [
+        "emergency",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t085",
+      "text": "pet mein jalan hoti hai khana khane ke baad",
+      "specialties": [
+        "gastroenterology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "gastroenterology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1473
+    },
+    {
+      "id": "t086",
+      "text": "bachche ko 3 din se tez bukhar hai",
+      "specialties": [
+        "paediatrics",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "paediatrics",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1444
+    },
+    {
+      "id": "t087",
+      "text": "chalne par saans phool jaati hai, pichle mahine se",
+      "specialties": [
+        "pulmonology",
+        "cardiology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "cardiology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1651
+    },
+    {
+      "id": "t088",
+      "text": "I fainted while standing in a queue, woke up within seconds and feel fine now",
+      "specialties": [
+        "general",
+        "cardiology",
+        "neurology"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 1603
+    },
+    {
+      "id": "t089",
+      "text": "Sudden severe tearing pain in my chest going through to my back",
+      "specialties": [
+        "*"
+      ],
+      "urgency": [
+        "emergency",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-rules",
+      "latency_ms": 0
+    },
+    {
+      "id": "t090",
+      "text": "My calf is swollen, red and painful after a long flight",
+      "specialties": [
+        "general",
+        "cardiology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 1885
+    },
+    {
+      "id": "t091",
+      "text": "I found a lump in my breast last week",
+      "specialties": [
+        "gynaecology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "gynaecology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1460
+    },
+    {
+      "id": "t092",
+      "text": "Severe testicular pain that started suddenly an hour ago",
+      "specialties": [
+        "urology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 1497
+    },
+    {
+      "id": "t093",
+      "text": "Itchy hives all over my body after eating prawns, no breathing problem",
+      "specialties": [
+        "dermatology",
+        "general"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "dermatology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1502
+    },
+    {
+      "id": "t094",
+      "text": "Vomiting and diarrhoea, have not passed urine since morning and feel very dizzy",
+      "specialties": [
+        "general",
+        "gastroenterology",
+        "*"
+      ],
+      "urgency": [
+        "urgent",
+        "emergency"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "emergency",
+      "source": "safety-ai",
+      "latency_ms": 1530
+    },
+    {
+      "id": "t095",
+      "text": "Headache every evening after long hours on the computer",
+      "specialties": [
+        "general",
+        "ophthalmology",
+        "neurology"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "routine",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1457
+    },
+    {
+      "id": "t096",
+      "text": "My ear feels blocked after swimming yesterday",
+      "specialties": [
+        "otolaryngology",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "otolaryngology",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1669
+    },
+    {
+      "id": "t097",
+      "text": "Painful finger joints with morning stiffness for three months",
+      "specialties": [
+        "orthopaedics",
+        "general"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "orthopaedics",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1407
+    },
+    {
+      "id": "t098",
+      "text": "Heel pain with the first steps every morning",
+      "specialties": [
+        "orthopaedics"
+      ],
+      "urgency": [
+        "routine",
+        "soon"
+      ],
+      "predicted_specialty": "orthopaedics",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1613
+    },
+    {
+      "id": "t099",
+      "text": "Bad breath even though I brush twice a day",
+      "specialties": [
+        "dentistry",
+        "general",
+        "gastroenterology"
+      ],
+      "urgency": [
+        "routine",
+        "routine"
+      ],
+      "predicted_specialty": "general",
+      "predicted_urgency": "soon",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1481
+    },
+    {
+      "id": "t100",
+      "text": "A lump on the side of my neck that has been growing for a month",
+      "specialties": [
+        "otolaryngology",
+        "general",
+        "endocrinology"
+      ],
+      "urgency": [
+        "soon",
+        "urgent"
+      ],
+      "predicted_specialty": "otolaryngology",
+      "predicted_urgency": "urgent",
+      "source": "gemini:gemini-3.5-flash-lite",
+      "latency_ms": 1412
+    }
+  ]
+}

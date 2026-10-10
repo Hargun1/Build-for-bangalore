@@ -123,3 +123,31 @@ def test_extract_json_handles_prose_and_fences():
 
 def test_to_data_uri_keeps_existing_uri():
     assert to_data_uri("data:image/jpeg;base64,abc") == "data:image/jpeg;base64,abc"
+
+
+def test_rate_limit_rests_only_that_model():
+    calls = []
+
+    def handler(request):
+        model = json.loads(request.content)["model"]
+        calls.append(model)
+        if model == "flash":
+            return httpx.Response(429, text="Quota exceeded. Please retry in 2h28m59s.")
+        return reply(f"from {model}")
+
+    c = client_with(handler, [provider("gemini", models=("flash", "lite"))])
+    assert run(c.complete([{"role": "user", "content": "hi"}])).model == "lite"
+    # Second call skips the resting model without spending a request on it.
+    assert run(c.complete([{"role": "user", "content": "hi again"}])).model == "lite"
+    assert calls == ["flash", "lite", "lite"]
+    resting = c.status()[0]["restingModels"]
+    assert 8900 < resting["flash"] <= 8939
+
+
+def test_retry_after_parsing():
+    from app.llm import retry_after_seconds
+
+    assert retry_after_seconds(httpx.Response(429, headers={"retry-after": "30"})) == 30
+    assert retry_after_seconds(httpx.Response(429, text='{"retryDelay": "41s"}')) == 41
+    assert retry_after_seconds(httpx.Response(429, text="Please retry in 1m5s")) == 65
+    assert retry_after_seconds(httpx.Response(429, text="slow down")) == 60

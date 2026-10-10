@@ -63,4 +63,23 @@ This is the honest finding of the exercise. The rules score perfectly on the cas
 
 The response was structural, not more patterns: an **AI safety classifier** (`app/safety.py`) now runs alongside the rules in chat and triage, and the more severe verdict wins. The rules stay as the fast, offline floor; the classifier adds understanding of meaning. Tests cover that the classifier can escalate but never downgrade a rule-based emergency, and that everything falls back to the rules when no AI provider is reachable.
 
-**Pending:** `--mode ai` numbers for the holdout and triage suites need an AI key; they will be added here when run.
+### Unseen phrasings with the AI safety layer (`red_flags_holdout --mode ai`)
+
+| | Rules only | Rules + AI classifier |
+| --- | --- | --- |
+| Emergencies and crises caught | 2 of 12 | **12 of 12** |
+| Urgent cases caught | 0 of 4 | **4 of 4** |
+| False alarms on safe messages | 4 of 9 | 5 of 9 |
+
+Model: Gemini (free tier), run 2026-10-11. Every emergency, crisis and urgent case received a real AI verdict. Three safe messages fell back to the rules after the free quota ran out; since the classifier can only escalate, the false-alarm figure is a lower bound. Four of the five false alarms come from the rules (e.g. "how do I give first aid to someone having a seizure?"), which the classifier is not allowed to override, by design: a missed emergency costs far more than an unnecessary "call 112" banner.
+
+### Retrieval for cited answers (`retrieval`, 40 questions)
+
+Questions are phrased the way people in India ask ("loose motions", "high bp", "sugar is 180"); each lists the MedlinePlus topics that would be correct.
+
+| Retriever | Hit in top 1 | Top 3 | Top 5 | MRR |
+| --- | --- | --- | --- | --- |
+| BM25 keyword search | 55% | 80% | 87.5% | 0.688 |
+| BM25 + Indian-term expansion and British spelling | **60%** | **85%** | **90%** | **0.732** |
+
+The remaining misses are vocabulary gaps keyword search cannot bridge ("TSH high" for hypothyroidism, "stop diabetes from happening" for prevention). Embedding search addresses them; the hybrid row will be added once the topic embeddings finish building (the free embedding quota is 1,000 a day).

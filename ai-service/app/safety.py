@@ -176,6 +176,16 @@ _HAPPENING_NOW = re.compile(
 )
 
 
+# "No chest pain" must not match the chest-pain rule. Negated symptom phrases are removed before
+# matching (found by the triage eval: "heart skips beats, no chest pain" was sent to emergency).
+_NEGATED = re.compile(
+    r"\b(no|not|without|denies|deny|never had|don'?t have|do not have|not having)\s+(any\s+)?"
+    r"(chest (pain|pressure|tightness|discomfort)|breathing (difficulty|trouble|problems?)|trouble breathing|"
+    r"shortness of breath|breathlessness|fever|bleeding|headache|vomiting|swelling)\b",
+    re.IGNORECASE,
+)
+
+
 def _not_current(text: str) -> bool:
     if _HAPPENING_NOW.search(text):
         return False
@@ -187,10 +197,12 @@ def detect_red_flag(text: str) -> Optional[RedFlag]:
     if not text:
         return None
     skip_physical = _not_current(text)
+    physical_text = _NEGATED.sub(" ", text)
     for level, title, message, patterns in _COMPILED:
         if level != "crisis" and skip_physical:
             continue
-        if any(p.search(text) for p in patterns):
+        haystack = text if level == "crisis" else physical_text
+        if any(p.search(haystack) for p in patterns):
             if level == "crisis":
                 actions = [TELE_MANAS, EMERGENCY_CALL]
             elif level == "emergency":

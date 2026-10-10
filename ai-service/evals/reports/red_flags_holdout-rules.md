@@ -1,6 +1,6 @@
 # Eval: red_flags_holdout (rules)
 
-Run 2026-10-10 21:12 UTC on 25 cases.
+Run 2026-10-10 21:49 UTC on 25 cases.
 
 | Metric | Value |
 | --- | --- |

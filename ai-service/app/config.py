@@ -22,6 +22,8 @@ class ProviderConfig:
     text_models: list[str]
     vision_models: list[str]
     extra_headers: dict = field(default_factory=dict)
+    # Extra request fields, e.g. reasoning_effort for Gemini's "thinking" models.
+    extra_body: dict = field(default_factory=dict)
 
     @property
     def enabled(self) -> bool:
@@ -45,8 +47,13 @@ def _provider_table() -> dict[str, ProviderConfig]:
             name="gemini",
             base_url="https://generativelanguage.googleapis.com/v1beta/openai",
             api_key=os.getenv("GEMINI_API_KEY", ""),
-            text_models=_csv("GEMINI_MODELS", "gemini-3.8-flash,gemini-3.5-flash-lite"),
-            vision_models=_csv("GEMINI_VISION_MODELS", "gemini-3.8-flash,gemini-3.5-flash-lite"),
+            # Free-tier quota is per model (gemini-3.8-flash: 20 requests/day on 2026-10-11), so the
+            # chain spreads load: the flash models first for quality, then the lite models for capacity.
+            text_models=_csv("GEMINI_MODELS", "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite"),
+            vision_models=_csv("GEMINI_VISION_MODELS", "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite"),
+            # Gemini 3.x "thinks" before answering and the thinking counts against max_tokens;
+            # low effort keeps short JSON answers from being cut off and cuts latency.
+            extra_body={"reasoning_effort": os.getenv("GEMINI_REASONING_EFFORT", "low")} if os.getenv("GEMINI_REASONING_EFFORT", "low") else {},
         ),
         "groq": ProviderConfig(
             name="groq",

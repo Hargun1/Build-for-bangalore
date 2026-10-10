@@ -1,0 +1,198 @@
+{
+  "suite": "red_flags_holdout",
+  "mode": "ai",
+  "ran_at": "2026-10-10 21:30 UTC",
+  "metrics": {
+    "cases": 25,
+    "immediate_recall": 1.0,
+    "urgent_recall": 1.0,
+    "false_positive_rate": 0.556,
+    "precision": 0.762,
+    "exact_level_accuracy": 0.8,
+    "missed": [],
+    "false_positives": [
+      "h017",
+      "h018",
+      "h020",
+      "h022",
+      "h025"
+    ]
+  },
+  "rows": [
+    {
+      "id": "h001",
+      "text": "there's an elephant sitting on my chest feeling and my arm is tingling",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h002",
+      "text": "My husband suddenly can't talk properly and his mouth is crooked",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "h003",
+      "text": "I'm gasping for air and can't speak more than two words",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h004",
+      "text": "my son fell and hit his head, now he keeps vomiting and is very sleepy",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h005",
+      "text": "she ate cashews and now her face is puffing up and she's wheezing",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h006",
+      "text": "my dad is not waking up and breathing strangely",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h007",
+      "text": "sharp pain in my chest that gets worse when I breathe in, started suddenly",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "h008",
+      "text": "the cut on my leg is spurting blood",
+      "expected": "emergency",
+      "predicted": "emergency",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h009",
+      "text": "everything feels pointless and I've written goodbye letters",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h010",
+      "text": "I keep thinking everyone would be better off without me",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h011",
+      "text": "I bought rat poison to drink it",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h012",
+      "text": "main khud ko khatam karna chahta hoon",
+      "expected": "crisis",
+      "predicted": "crisis",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h013",
+      "text": "my 2 month old feels hot and has a temperature of 100.8",
+      "expected": "urgent",
+      "predicted": "urgent",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h014",
+      "text": "I was bitten by a stray puppy yesterday",
+      "expected": "urgent",
+      "predicted": "urgent",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h015",
+      "text": "my poop has been black like tar for two days",
+      "expected": "urgent",
+      "predicted": "urgent",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h016",
+      "text": "high fever and purple spots appearing on my legs",
+      "expected": "urgent",
+      "predicted": "urgent",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h017",
+      "text": "Is it normal to feel chest discomfort while doing bench press?",
+      "expected": null,
+      "predicted": "emergency",
+      "source": "rules+ai"
+    },
+    {
+      "id": "h018",
+      "text": "My uncle survived a heart attack a decade ago, what should he eat?",
+      "expected": null,
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "h019",
+      "text": "Which foods help prevent strokes?",
+      "expected": null,
+      "predicted": null,
+      "source": "rules+ai"
+    },
+    {
+      "id": "h020",
+      "text": "I can't breathe properly through my blocked nose at night",
+      "expected": null,
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "h021",
+      "text": "my exam results are going to kill me",
+      "expected": null,
+      "predicted": null,
+      "source": "rules+ai"
+    },
+    {
+      "id": "h022",
+      "text": "How do I give first aid to someone having a seizure?",
+      "expected": null,
+      "predicted": "emergency",
+      "source": "rules"
+    },
+    {
+      "id": "h023",
+      "text": "I have a mild cough and sore throat",
+      "expected": null,
+      "predicted": null,
+      "source": "rules (ai unavailable)"
+    },
+    {
+      "id": "h024",
+      "text": "my arm is sore after the vaccine",
+      "expected": null,
+      "predicted": null,
+      "source": "rules (ai unavailable)"
+    },
+    {
+      "id": "h025",
+      "text": "my dog bite wound from last month has healed",
+      "expected": null,
+      "predicted": "urgent",
+      "source": "rules (ai unavailable)"
+    }
+  ]
+}

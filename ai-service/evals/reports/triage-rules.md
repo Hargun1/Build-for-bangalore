@@ -1,31 +1,31 @@
 # Eval: triage (rules)
 
-Run 2026-10-10 21:12 UTC on 100 cases.
+Run 2026-10-10 21:49 UTC on 100 cases.
 
 | Metric | Value |
 | --- | --- |
 | cases | 100 |
-| specialty_accuracy | 81.0% |
-| urgency_accuracy | 94.0% |
+| specialty_accuracy | 80.0% |
+| urgency_accuracy | 95.0% |
 | under_triage_rate | 0.0% |
-| over_triage_rate | 6.0% |
+| over_triage_rate | 5.0% |
 | dangerous_under_triage | 0 |
 | emergency_recall | 100.0% |
 | latency_ms_median | 1 |
-| latency_ms_p95 | 1 |
-| answered by | safety-rules (14), keywords (86) |
+| latency_ms_p95 | 2 |
+| answered by | safety-rules (13), keywords (87) |
 
-## Over triaged (6)
+## Over triaged (5)
 
 - `t001` I get chest tightness when I climb stairs that goes away when I rest, for the last month: expected cardiology/general soon-urgent, got general emergency
-- `t002` My heart races and skips beats a few times a day, no chest pain: expected cardiology/general soon-urgent, got general emergency
 - `t075` I want a full body health checkup, I have no symptoms: expected general routine-routine, got general soon
 - `t076` Which vaccines do I need before travelling abroad next month: expected general routine-routine, got general soon
 - `t081` Small cut on my finger while cooking, the bleeding has stopped: expected general routine-routine, got general soon
 - `t099` Bad breath even though I brush twice a day: expected dentistry/general/gastroenterology routine-routine, got pulmonology soon
 
-## Wrong specialty (19)
+## Wrong specialty (20)
 
+- `t002` My heart races and skips beats a few times a day, no chest pain: expected cardiology/general soon-urgent, got otolaryngology soon
 - `t007` Pimples on my face and back for a year that leave dark marks: expected dermatology routine-soon, got otolaryngology soon
 - `t008` A mole on my back has changed shape and colour recently and sometimes bleeds: expected dermatology soon-urgent, got general soon
 - `t010` My hair is falling out in round bald patches: expected dermatology routine-soon, got general soon

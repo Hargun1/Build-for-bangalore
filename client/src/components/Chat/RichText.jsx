@@ -3,14 +3,36 @@ import { Fragment } from "react";
 // Renders the small subset of markdown models commonly use (paragraphs, "-"/"*"/"1." lists,
 // **bold**, ### headings) as React elements. No HTML is ever injected, so model output
 // cannot run scripts in the page.
-function inline(text, keyBase) {
+
+// [1] style citation markers become small links to the cited source.
+function withCitations(text, keyBase, sources) {
+  if (!sources?.length) return text;
+  const byN = Object.fromEntries(sources.map((s) => [s.n, s]));
+  return text.split(/(\[\d{1,2}\])/g).map((piece, i) => {
+    const m = piece.match(/^\[(\d{1,2})\]$/);
+    const src = m && byN[Number(m[1])];
+    return src ? (
+      <sup key={`${keyBase}-c${i}`} className="cp-cite">
+        <a href={src.url} target="_blank" rel="noreferrer" title={`${src.title} (${src.source})`}>{m[1]}</a>
+      </sup>
+    ) : (
+      <Fragment key={`${keyBase}-c${i}`}>{piece}</Fragment>
+    );
+  });
+}
+
+function inline(text, keyBase, sources) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") ? <strong key={`${keyBase}-${i}`}>{part.slice(2, -2)}</strong> : <Fragment key={`${keyBase}-${i}`}>{part}</Fragment>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={`${keyBase}-${i}`}>{withCitations(part.slice(2, -2), `${keyBase}-${i}`, sources)}</strong>
+    ) : (
+      <Fragment key={`${keyBase}-${i}`}>{withCitations(part, `${keyBase}-${i}`, sources)}</Fragment>
+    )
   );
 }
 
-export default function RichText({ text }) {
+export default function RichText({ text, sources }) {
   const blocks = [];
   let list = null;
   const flush = () => {
@@ -43,12 +65,12 @@ export default function RichText({ text }) {
       return (
         <Tag key={i} className="cp-list">
           {b.items.map((item, j) => (
-            <li key={j}>{inline(item, `${i}-${j}`)}</li>
+            <li key={j}>{inline(item, `${i}-${j}`, sources)}</li>
           ))}
         </Tag>
       );
     }
-    if (b.type === "h") return <p key={i} className="cp-heading">{inline(b.text, i)}</p>;
-    return <p key={i}>{inline(b.text, i)}</p>;
+    if (b.type === "h") return <p key={i} className="cp-heading">{inline(b.text, i, sources)}</p>;
+    return <p key={i}>{inline(b.text, i, sources)}</p>;
   });
 }

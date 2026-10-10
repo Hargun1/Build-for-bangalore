@@ -113,3 +113,23 @@
     max-width: 92%;
   }
 }
+
+.cp-cite a {
+  color: var(--ui-accent);
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 0 1px;
+}
+.cp-sources {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 2px solid rgba(34, 211, 238, 0.4);
+  font-size: 0.82rem;
+}
+.cp-sources ol {
+  padding-left: 1.2rem;
+  margin-top: 0.2rem;
+}
+.cp-sources a {
+  text-decoration: underline;
+}

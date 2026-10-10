@@ -21,7 +21,7 @@ import json
 import logging
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional, Type
 
 import httpx
@@ -58,6 +58,27 @@ class ProviderState:
     resting_until: float = 0.0
     last_ok_at: float = 0.0
     last_error: str = ""
+    # Free tiers count quota per model, so a 429 rests only that model.
+    model_resting_until: dict = field(default_factory=dict)
+
+
+_RETRY_TEXT = re.compile(r"retry in\s*(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+(?:\.\d+)?)s)?", re.IGNORECASE)
+
+
+def retry_after_seconds(resp: httpx.Response, default: float = 60.0) -> float:
+    """How long a 429 asks us to wait: Retry-After header, Google's retryDelay, or "retry in 2h28m59s"."""
+    header = resp.headers.get("retry-after")
+    if header and header.replace(".", "", 1).isdigit():
+        return min(float(header), 86400)
+    text = resp.text or ""
+    m = re.search(r'"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"', text)
+    if m:
+        return min(float(m.group(1)), 86400)
+    m = _RETRY_TEXT.search(text)
+    if m and any(m.groups()):
+        h, mins, secs = (float(g) if g else 0.0 for g in m.groups())
+        return min(h * 3600 + mins * 60 + secs, 86400)
+    return default
 
 
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE | re.MULTILINE)
@@ -120,13 +141,17 @@ class LLMClient:
         if self._http is not None:
             await self._http.aclose()
 
+    def ready_models(self, p: ProviderConfig, vision: bool = False) -> list[str]:
+        now = time.time()
+        resting = self.state[p.name].model_resting_until
+        return [m for m in (p.vision_models if vision else p.text_models) if resting.get(m, 0) <= now]
+
     def available_providers(self, vision: bool = False) -> list[ProviderConfig]:
         now = time.time()
         out = []
         for p in self.providers:
             st = self.state[p.name]
-            models = p.vision_models if vision else p.text_models
-            if p.enabled and models and not st.disabled_reason and st.resting_until <= now:
+            if p.enabled and not st.disabled_reason and st.resting_until <= now and self.ready_models(p, vision):
                 out.append(p)
         return out
 
@@ -144,6 +169,7 @@ class LLMClient:
                     "failures": st.failures,
                     "disabledReason": st.disabled_reason or None,
                     "restingForSeconds": max(0, int(st.resting_until - time.time())),
+                    "restingModels": {m: int(t - time.time()) for m, t in st.model_resting_until.items() if t > time.time()},
                     "lastError": st.last_error or None,
                     "lastOkAt": int(st.last_ok_at) or None,
                 }
@@ -176,8 +202,7 @@ class LLMClient:
 
         errors: list[str] = []
         for provider in providers:
-            models = provider.vision_models if vision else provider.text_models
-            for model in models:
+            for model in self.ready_models(provider, vision):
                 if self.state[provider.name].disabled_reason:
                     break
                 try:
@@ -218,7 +243,8 @@ class LLMClient:
 
     async def _try_model(self, provider, model, msgs, schema, temperature, max_tokens) -> LLMResult:
         st = self.state[provider.name]
-        payload = {"model": model, "messages": msgs, "temperature": temperature, "max_tokens": max_tokens}
+        payload = {"model": model, "messages": msgs, "temperature": temperature, "max_tokens": max_tokens, **provider.extra_body}
+        optional_keys = ["response_format", *provider.extra_body.keys()]
         if schema is not None:
             payload["response_format"] = {"type": "json_object"}
 
@@ -242,11 +268,14 @@ class LLMClient:
                 logger.error("Provider %s rejected the API key (%s)", provider.name, resp.status_code)
                 raise _SkipProvider(st.disabled_reason)
             if resp.status_code == 429:
-                st.resting_until = time.time() + 60
-                self._fail(st, "rate limited (429)")
-                raise _SkipProvider("rate limited")
-            if resp.status_code == 400 and "response_format" in payload and not dropped_format:
-                payload.pop("response_format")
+                wait = retry_after_seconds(resp)
+                st.model_resting_until[model] = time.time() + wait
+                self._fail(st, f"{model} rate limited (429), resting {int(wait)}s")
+                raise _TryNext(f"rate limited for {int(wait)}s")
+            if resp.status_code == 400 and not dropped_format and any(k in payload for k in optional_keys):
+                # Some models reject JSON mode or extra fields: retry once without them.
+                for k in optional_keys:
+                    payload.pop(k, None)
                 dropped_format = True
                 continue
             if resp.status_code >= 400:

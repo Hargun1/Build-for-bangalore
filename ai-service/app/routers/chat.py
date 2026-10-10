@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from ..context import SAFETY_RULES, UserContext, describe
 from ..llm import LLMUnavailable, get_llm
 from ..safety import classify_with_llm, combine, detect_red_flag
+from rag import CITE_RULES, cited, retrieve, sources_block
 
 router = APIRouter()
 
@@ -54,6 +55,14 @@ async def chat(body: ChatRequest):
     if body.metricsSummary:
         system += f"\nTheir recent logged data: {body.metricsSummary}"
 
+    # Ground the answer in trusted passages (see rag/). Retrieval failing never blocks the answer.
+    try:
+        passages, retrieval = await retrieve(last_user, k=4)
+    except Exception:
+        passages, retrieval = [], "none"
+    if passages:
+        system += f"\n\n{CITE_RULES}\n\n{sources_block(passages)}"
+
     messages = [{"role": "system", "content": system}] + [m.model_dump() for m in body.messages[-12:]]
 
     # Second safety layer runs at the same time as the answer, so it adds no waiting time.
@@ -76,8 +85,11 @@ async def chat(body: ChatRequest):
     if res is None:
         raise HTTPException(status_code=503, detail="The AI assistant is unavailable right now. Please try again in a few minutes.")
 
+    reply, sources = cited(res.text.strip(), passages)
     return {
-        "reply": res.text.strip(),
+        "reply": reply,
+        "sources": sources,
+        "retrieval": retrieval,
         "redFlag": flag.model_dump() if flag else None,
         "aiSource": res.source,
     }

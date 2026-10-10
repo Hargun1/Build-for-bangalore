@@ -1,0 +1,3 @@
+Built from C:\Users\hargu\AppData\Local\Temp/mplus/mplus.zip
+MedlinePlus health topic summaries (U.S. National Library of Medicine), public domain.
+Topics: 1016, chunks: 2972

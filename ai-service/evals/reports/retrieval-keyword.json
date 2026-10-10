@@ -1,0 +1,642 @@
+{
+  "suite": "retrieval",
+  "mode": "keyword",
+  "ran_at": "2026-10-10 21:35 UTC",
+  "metrics": {
+    "cases": 40,
+    "recall_at_1": 0.55,
+    "recall_at_3": 0.8,
+    "recall_at_5": 0.875,
+    "mrr": 0.688,
+    "misses": [
+      "q03",
+      "q05",
+      "q29",
+      "q31",
+      "q33"
+    ]
+  },
+  "rows": [
+    {
+      "id": "q01",
+      "query": "my sugar is 180 after food, is that bad?",
+      "relevant": [
+        "Diabetes",
+        "Blood Glucose",
+        "Prediabetes",
+        "Diabetes Type 2",
+        "Hyperglycemia"
+      ],
+      "retrieved": [
+        "Blood Glucose",
+        "Carbohydrates",
+        "HDL: The \"Good\" Cholesterol",
+        "Bad Breath",
+        "LDL: The \"Bad\" Cholesterol"
+      ]
+    },
+    {
+      "id": "q02",
+      "query": "what foods should a diabetic eat",
+      "relevant": [
+        "Diabetic Diet",
+        "Diabetes",
+        "Diabetes Type 2"
+      ],
+      "retrieved": [
+        "Diabetic Diet",
+        "Diabetic Eye Problems",
+        "Diabetic Heart Disease",
+        "Diabetic Kidney Problems",
+        "Diabetes Complications"
+      ]
+    },
+    {
+      "id": "q03",
+      "query": "how to stop diabetes from happening, my parents have it",
+      "relevant": [
+        "How to Prevent Diabetes",
+        "Prediabetes",
+        "Diabetes Type 2"
+      ],
+      "retrieved": [
+        "Diabetes Type 1",
+        "Teen Depression",
+        "Diabetes Medicines",
+        "Diabetes",
+        "Sudden Cardiac Arrest"
+      ]
+    },
+    {
+      "id": "q04",
+      "query": "what does HbA1c 7.2 mean",
+      "relevant": [
+        "A1C",
+        "Diabetes"
+      ],
+      "retrieved": [
+        "A1C",
+        "Cosmetics",
+        "Sexual Assault",
+        "Mammography",
+        "Obesity"
+      ]
+    },
+    {
+      "id": "q05",
+      "query": "how to reduce high bp without tablets",
+      "relevant": [
+        "High Blood Pressure",
+        "How to Prevent High Blood Pressure",
+        "Sodium"
+      ],
+      "retrieved": [
+        "Anabolic Steroids",
+        "High Cholesterol in Children and Teens",
+        "Diverticulosis and Diverticulitis",
+        "Cardiac Rehabilitation",
+        "Prescription Drug Misuse"
+      ]
+    },
+    {
+      "id": "q06",
+      "query": "feeling dizzy when I stand up, low bp",
+      "relevant": [
+        "Low Blood Pressure",
+        "Dizziness and Vertigo",
+        "Fainting"
+      ],
+      "retrieved": [
+        "Fainting",
+        "Low Blood Pressure",
+        "Myalgic Encephalomyelitis/Chronic Fatigue Syndrome",
+        "Cholesterol",
+        "Vision Impairment and Blindness"
+      ]
+    },
+    {
+      "id": "q07",
+      "query": "signs of heart attack in women",
+      "relevant": [
+        "Heart Attack",
+        "Heart Disease in Women"
+      ],
+      "retrieved": [
+        "Heart Disease in Women",
+        "Women's Health",
+        "Heart Attack",
+        "Transient Ischemic Attack",
+        "Angina"
+      ]
+    },
+    {
+      "id": "q08",
+      "query": "my LDL is 160 what should I do",
+      "relevant": [
+        "LDL: The \"Bad\" Cholesterol",
+        "Cholesterol",
+        "How to Lower Cholesterol",
+        "How to Lower Cholesterol with Diet",
+        "Cholesterol Levels: What You Need to Know"
+      ],
+      "retrieved": [
+        "LDL: The \"Bad\" Cholesterol",
+        "High Cholesterol in Children and Teens",
+        "Cholesterol Levels: What You Need to Know",
+        "How to Lower Cholesterol",
+        "Cholesterol"
+      ]
+    },
+    {
+      "id": "q09",
+      "query": "acidity and burning in chest after spicy food",
+      "relevant": [
+        "Heartburn",
+        "GERD",
+        "Indigestion"
+      ],
+      "retrieved": [
+        "Heartburn",
+        "Nausea and Vomiting",
+        "Peptic Ulcer",
+        "GERD",
+        "Esophagus Disorders"
+      ]
+    },
+    {
+      "id": "q10",
+      "query": "loose motions for 2 days what to drink",
+      "relevant": [
+        "Diarrhea",
+        "Dehydration"
+      ],
+      "retrieved": [
+        "Motion Sickness",
+        "Leg Injuries and Disorders",
+        "Hip Injuries and Disorders",
+        "Diarrhea",
+        "Deep Vein Thrombosis"
+      ]
+    },
+    {
+      "id": "q11",
+      "query": "not able to pass stool properly for a week",
+      "relevant": [
+        "Constipation"
+      ],
+      "retrieved": [
+        "Colonoscopy",
+        "Heart Valve Diseases",
+        "Bowel Incontinence",
+        "Intestinal Obstruction",
+        "Constipation"
+      ]
+    },
+    {
+      "id": "q12",
+      "query": "piles bleeding home remedy",
+      "relevant": [
+        "Hemorrhoids",
+        "Rectal Disorders"
+      ],
+      "retrieved": [
+        "Hemorrhoids",
+        "Head Lice",
+        "Hemophilia",
+        "Home Care Services",
+        "Lead Poisoning"
+      ]
+    },
+    {
+      "id": "q13",
+      "query": "yellow eyes and dark urine",
+      "relevant": [
+        "Jaundice",
+        "Hepatitis",
+        "Liver Diseases",
+        "Hepatitis A",
+        "Hepatitis B"
+      ],
+      "retrieved": [
+        "Hepatitis",
+        "Hepatitis C",
+        "Hepatitis B",
+        "Hepatitis A",
+        "Diabetic Eye Problems"
+      ]
+    },
+    {
+      "id": "q14",
+      "query": "dengue platelet count falling",
+      "relevant": [
+        "Dengue",
+        "Hemorrhagic Fevers"
+      ],
+      "retrieved": [
+        "Blood Count Tests",
+        "Platelet Disorders",
+        "Dengue",
+        "Blood Thinners",
+        "Blood"
+      ]
+    },
+    {
+      "id": "q15",
+      "query": "fever with chills every alternate day after mosquito bites",
+      "relevant": [
+        "Malaria",
+        "Mosquito Bites",
+        "Fever"
+      ],
+      "retrieved": [
+        "Mosquito Bites",
+        "Dengue",
+        "Malaria",
+        "Insect Bites and Stings",
+        "Plague"
+      ]
+    },
+    {
+      "id": "q16",
+      "query": "cough for more than 3 weeks with weight loss, could it be TB",
+      "relevant": [
+        "Tuberculosis",
+        "Cough"
+      ],
+      "retrieved": [
+        "Tuberculosis",
+        "Mycobacterial Infections",
+        "Lung Cancer",
+        "Emphysema",
+        "COPD"
+      ]
+    },
+    {
+      "id": "q17",
+      "query": "wheezing at night and my inhaler isn't helping",
+      "relevant": [
+        "Asthma",
+        "Asthma in Children"
+      ],
+      "retrieved": [
+        "Emphysema",
+        "COPD",
+        "Chronic Bronchitis",
+        "Asthma",
+        "Reflux in Infants"
+      ]
+    },
+    {
+      "id": "q18",
+      "query": "how does air pollution in Bangalore affect my lungs",
+      "relevant": [
+        "Air Pollution",
+        "Indoor Air Pollution"
+      ],
+      "retrieved": [
+        "Air Pollution",
+        "Indoor Air Pollution",
+        "Lung Cancer",
+        "Inhalation Injuries",
+        "Emphysema"
+      ]
+    },
+    {
+      "id": "q19",
+      "query": "runny nose sneezing and sore throat",
+      "relevant": [
+        "Common Cold",
+        "Sore Throat",
+        "Flu",
+        "Hay Fever"
+      ],
+      "retrieved": [
+        "Cold and Cough Medicines",
+        "Common Cold",
+        "Diphtheria",
+        "Flu",
+        "Hay Fever"
+      ]
+    },
+    {
+      "id": "q20",
+      "query": "should I take the flu vaccine every year",
+      "relevant": [
+        "Flu Shot",
+        "Flu",
+        "Vaccines"
+      ],
+      "retrieved": [
+        "Flu Shot",
+        "Flu",
+        "Bird Flu",
+        "H1N1 Flu (Swine Flu)",
+        "Vaccine Safety"
+      ]
+    },
+    {
+      "id": "q21",
+      "query": "pimples on face and back as an adult",
+      "relevant": [
+        "Acne"
+      ],
+      "retrieved": [
+        "Acne",
+        "Rosacea",
+        "Sinusitis",
+        "Mpox",
+        "Chickenpox"
+      ]
+    },
+    {
+      "id": "q22",
+      "query": "too much hair fall while combing",
+      "relevant": [
+        "Hair Loss",
+        "Hair Problems"
+      ],
+      "retrieved": [
+        "Head Lice",
+        "Hair Problems",
+        "Rheumatoid Arthritis",
+        "Infectious Diseases",
+        "Falls"
+      ]
+    },
+    {
+      "id": "q23",
+      "query": "headache with nausea and light hurts my eyes",
+      "relevant": [
+        "Migraine",
+        "Headache"
+      ],
+      "retrieved": [
+        "Glaucoma",
+        "Migraine",
+        "Meningococcal Disease",
+        "Eye Care",
+        "Traumatic Brain Injury"
+      ]
+    },
+    {
+      "id": "q24",
+      "query": "can't sleep at night, lying awake for hours",
+      "relevant": [
+        "Insomnia",
+        "Sleep Disorders",
+        "Healthy Sleep"
+      ],
+      "retrieved": [
+        "Insomnia",
+        "Sleep Disorders",
+        "How to Prevent Heart Disease",
+        "Healthy Sleep",
+        "How to Lower Cholesterol"
+      ]
+    },
+    {
+      "id": "q25",
+      "query": "feeling sad and empty for weeks, no interest in anything",
+      "relevant": [
+        "Depression",
+        "Teen Depression"
+      ],
+      "retrieved": [
+        "Bipolar Disorder",
+        "Depression",
+        "Seasonal Affective Disorder",
+        "Postpartum Depression",
+        "Caregiver Health"
+      ]
+    },
+    {
+      "id": "q26",
+      "query": "constant worry and racing heart before meetings",
+      "relevant": [
+        "Anxiety",
+        "Panic Disorder",
+        "Stress"
+      ],
+      "retrieved": [
+        "Panic Disorder",
+        "Heart Failure",
+        "Heart Attack",
+        "Sudden Cardiac Arrest",
+        "Atherosclerosis"
+      ]
+    },
+    {
+      "id": "q27",
+      "query": "how to lose belly fat safely",
+      "relevant": [
+        "Weight Control",
+        "Obesity",
+        "Body Weight",
+        "Weight Loss Surgery"
+      ],
+      "retrieved": [
+        "Obesity",
+        "Body Weight",
+        "Nutrition for Older Adults",
+        "Cholesterol Levels: What You Need to Know",
+        "How to Prevent Diabetes"
+      ]
+    },
+    {
+      "id": "q28",
+      "query": "how much exercise should I do in a week",
+      "relevant": [
+        "How Much Exercise Do I Need?",
+        "Exercise and Physical Fitness",
+        "Benefits of Exercise"
+      ],
+      "retrieved": [
+        "How Much Exercise Do I Need?",
+        "Exercise and Physical Fitness",
+        "Exercise for Older Adults",
+        "Fatigue",
+        "Paget's Disease of Bone"
+      ]
+    },
+    {
+      "id": "q29",
+      "query": "always tired and pale, low haemoglobin",
+      "relevant": [
+        "Anemia"
+      ],
+      "retrieved": [
+        "Asthma in Children",
+        "Lupus",
+        "Shock",
+        "Migraine",
+        "Oxygen Therapy"
+      ]
+    },
+    {
+      "id": "q30",
+      "query": "vitamin D low even though I live in India",
+      "relevant": [
+        "Vitamin D Deficiency",
+        "Vitamin D"
+      ],
+      "retrieved": [
+        "Cancer--Living with Cancer",
+        "Vitamin D Deficiency",
+        "Vision Impairment and Blindness",
+        "Cholesterol Medicines",
+        "Vitamins"
+      ]
+    },
+    {
+      "id": "q31",
+      "query": "gaining weight, feeling cold, tsh high",
+      "relevant": [
+        "Hypothyroidism",
+        "Thyroid Diseases",
+        "Thyroid Tests"
+      ],
+      "retrieved": [
+        "Pregnancy and Nutrition",
+        "Birth Weight",
+        "How to Prevent High Blood Pressure",
+        "Weight Control",
+        "Hyperthyroidism"
+      ]
+    },
+    {
+      "id": "q32",
+      "query": "irregular periods, acne and facial hair",
+      "relevant": [
+        "Polycystic Ovary Syndrome",
+        "Menstruation"
+      ],
+      "retrieved": [
+        "Puberty",
+        "Polycystic Ovary Syndrome",
+        "Acne",
+        "Plastic and Cosmetic Surgery",
+        "Hidradenitis Suppurativa"
+      ]
+    },
+    {
+      "id": "q33",
+      "query": "burning while urinating and going often",
+      "relevant": [
+        "Urinary Tract Infections"
+      ],
+      "retrieved": [
+        "Prostate Cancer",
+        "Chlamydia Infections",
+        "Prostate Diseases",
+        "Gonorrhea",
+        "Uterine Cancer"
+      ]
+    },
+    {
+      "id": "q34",
+      "query": "sharp pain from back to groin, doctor said stone",
+      "relevant": [
+        "Kidney Stones"
+      ],
+      "retrieved": [
+        "Kidney Stones",
+        "Back Pain",
+        "Abdominal Pain",
+        "Pain",
+        "Non-Drug Pain Management"
+      ]
+    },
+    {
+      "id": "q35",
+      "query": "knee pain while climbing stairs at age 60",
+      "relevant": [
+        "Osteoarthritis",
+        "Knee Injuries and Disorders",
+        "Arthritis"
+      ],
+      "retrieved": [
+        "Knee Replacement",
+        "Knee Injuries and Disorders",
+        "Atherosclerosis",
+        "Spinal Muscular Atrophy",
+        "Peripheral Arterial Disease"
+      ]
+    },
+    {
+      "id": "q36",
+      "query": "lower back pain from sitting at a desk all day",
+      "relevant": [
+        "Back Pain",
+        "Ergonomics"
+      ],
+      "retrieved": [
+        "Health Risks of an Inactive Lifestyle",
+        "Ergonomics",
+        "Guide to Good Posture",
+        "Ankylosing Spondylitis",
+        "Back Injuries"
+      ]
+    },
+    {
+      "id": "q37",
+      "query": "street dog bit my child, do we need injections",
+      "relevant": [
+        "Rabies",
+        "Animal Bites"
+      ],
+      "retrieved": [
+        "Animal Bites",
+        "Rabies",
+        "Child Safety",
+        "Speech and Language Problems in Children",
+        "Childhood Vaccines"
+      ]
+    },
+    {
+      "id": "q38",
+      "query": "how to treat a burn from hot oil at home",
+      "relevant": [
+        "Burns",
+        "First Aid"
+      ],
+      "retrieved": [
+        "Burns",
+        "Head Lice",
+        "Oil Spills",
+        "Scabies",
+        "Food Safety"
+      ]
+    },
+    {
+      "id": "q39",
+      "query": "working outside in the summer heat and feeling faint",
+      "relevant": [
+        "Heat Illness",
+        "Dehydration",
+        "Fainting"
+      ],
+      "retrieved": [
+        "Fainting",
+        "Heat Illness",
+        "Skin Conditions",
+        "Frostbite",
+        "Seasonal Affective Disorder"
+      ]
+    },
+    {
+      "id": "q40",
+      "query": "how to quit smoking cigarettes",
+      "relevant": [
+        "Quitting Smoking",
+        "Smoking"
+      ],
+      "retrieved": [
+        "E-Cigarettes",
+        "Quitting Smoking",
+        "Smoking",
+        "Smoking and Youth",
+        "Lung Cancer"
+      ]
+    }
+  ]
+}

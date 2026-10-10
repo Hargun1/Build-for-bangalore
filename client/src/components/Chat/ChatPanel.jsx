@@ -48,7 +48,7 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
     try {
       const history = next.slice(-12).map(({ role, content: c }) => ({ role, content: c }));
       const { data } = await sendChat(history, mode);
-      setMessages((m) => [...m, { role: "assistant", content: data.reply, redFlag: data.redFlag, source: data.aiSource }]);
+      setMessages((m) => [...m, { role: "assistant", content: data.reply, redFlag: data.redFlag, source: data.aiSource, sources: data.sources || [] }]);
     } catch (err) {
       setError(errorMessage(err, "The assistant couldn't answer right now."));
       // Put the question back so the user can retry with one click.
@@ -99,7 +99,19 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
                 </div>
               </div>
             )}
-            <div className="cp-bubble">{m.role === "assistant" ? <RichText text={m.content} /> : m.content}</div>
+            <div className="cp-bubble">{m.role === "assistant" ? <RichText text={m.content} sources={m.sources} /> : m.content}</div>
+            {m.sources?.length > 0 && (
+              <div className="cp-sources">
+                <span className="ui-faint">Sources</span>
+                <ol>
+                  {m.sources.map((s) => (
+                    <li key={s.n} value={s.n}>
+                      <a href={s.url} target="_blank" rel="noreferrer">{s.title}</a> <span className="ui-faint">· MedlinePlus (NIH)</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
             {m.role === "assistant" && m.source && (
               <div className="cp-meta">
                 <SourceBadge source={m.source} />

@@ -1,7 +1,7 @@
 {
   "suite": "red_flags",
   "mode": "rules",
-  "ran_at": "2026-10-10 21:12 UTC",
+  "ran_at": "2026-10-10 21:49 UTC",
   "metrics": {
     "cases": 67,
     "immediate_recall": 1.0,

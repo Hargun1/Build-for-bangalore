@@ -1,22 +1,23 @@
 {
   "suite": "triage",
   "mode": "rules",
-  "ran_at": "2026-10-10 21:12 UTC",
+  "ran_at": "2026-10-10 21:49 UTC",
   "metrics": {
     "cases": 100,
-    "specialty_accuracy": 0.81,
-    "urgency_accuracy": 0.94,
+    "specialty_accuracy": 0.8,
+    "urgency_accuracy": 0.95,
     "under_triage_rate": 0.0,
-    "over_triage_rate": 0.06,
+    "over_triage_rate": 0.05,
     "dangerous_under_triage": 0,
     "emergency_recall": 1.0,
     "latency_ms_median": 1,
-    "latency_ms_p95": 1,
+    "latency_ms_p95": 2,
     "sources": {
-      "safety-rules": 14,
-      "keywords": 86
+      "safety-rules": 13,
+      "keywords": 87
     },
     "wrong_specialty": [
+      "t002",
       "t007",
       "t008",
       "t010",
@@ -40,7 +41,6 @@
     "under_triaged": [],
     "over_triaged": [
       "t001",
-      "t002",
       "t075",
       "t076",
       "t081",
@@ -76,10 +76,10 @@
         "soon",
         "urgent"
       ],
-      "predicted_specialty": "general",
-      "predicted_urgency": "emergency",
-      "source": "safety-rules",
-      "latency_ms": 0
+      "predicted_specialty": "otolaryngology",
+      "predicted_urgency": "soon",
+      "source": "keywords",
+      "latency_ms": 5
     },
     {
       "id": "t003",
@@ -95,7 +95,7 @@
       "predicted_specialty": "cardiology",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 4
+      "latency_ms": 2
     },
     {
       "id": "t004",
@@ -113,7 +113,7 @@
       "predicted_specialty": "pulmonology",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 2
+      "latency_ms": 1
     },
     {
       "id": "t005",
@@ -220,7 +220,7 @@
       "predicted_specialty": "otolaryngology",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t012",
@@ -236,7 +236,7 @@
       "predicted_specialty": "otolaryngology",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t013",
@@ -252,7 +252,7 @@
       "predicted_specialty": "otolaryngology",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t014",
@@ -474,7 +474,7 @@
       "predicted_specialty": "neurology",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t028",
@@ -569,7 +569,7 @@
       "predicted_specialty": "dermatology",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t034",
@@ -680,7 +680,7 @@
       "predicted_specialty": "general",
       "predicted_urgency": "urgent",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t041",
@@ -760,7 +760,7 @@
       "predicted_specialty": "pulmonology",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t046",
@@ -1060,7 +1060,7 @@
       "predicted_specialty": "dentistry",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 2
+      "latency_ms": 1
     },
     {
       "id": "t065",
@@ -1123,7 +1123,7 @@
       "predicted_specialty": "general",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t069",
@@ -1203,7 +1203,7 @@
       "predicted_specialty": "general",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t074",
@@ -1219,7 +1219,7 @@
       "predicted_specialty": "general",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t075",
@@ -1249,7 +1249,7 @@
       "predicted_specialty": "general",
       "predicted_urgency": "soon",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t077",
@@ -1280,7 +1280,7 @@
       "predicted_specialty": "dentistry",
       "predicted_urgency": "urgent",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t079",
@@ -1440,7 +1440,7 @@
       "predicted_specialty": "general",
       "predicted_urgency": "urgent",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t089",
@@ -1472,7 +1472,7 @@
       "predicted_specialty": "general",
       "predicted_urgency": "urgent",
       "source": "keywords",
-      "latency_ms": 2
+      "latency_ms": 1
     },
     {
       "id": "t091",
@@ -1504,7 +1504,7 @@
       "predicted_specialty": "general",
       "predicted_urgency": "urgent",
       "source": "keywords",
-      "latency_ms": 1
+      "latency_ms": 2
     },
     {
       "id": "t093",

@@ -95,3 +95,26 @@ def _percentile(values: list[float], pct: float) -> float:
     f = int(k)
     c = min(f + 1, len(s) - 1)
     return s[f] + (s[c] - s[f]) * (k - f)
+
+
+# ------------------------------------------------------------------ retrieval
+
+def score_retrieval(rows: list[dict]) -> dict:
+    """rows: [{id, relevant: [titles], retrieved: [titles in rank order]}].
+    recall@k: a relevant topic appears in the top k. MRR: 1/rank of the first relevant topic."""
+    def first_hit(r):
+        for rank, title in enumerate(r["retrieved"], 1):
+            if title in r["relevant"]:
+                return rank
+        return None
+
+    hits = [first_hit(r) for r in rows]
+    n = len(rows)
+    return {
+        "cases": n,
+        "recall_at_1": _ratio(sum(1 for h in hits if h and h <= 1), n),
+        "recall_at_3": _ratio(sum(1 for h in hits if h and h <= 3), n),
+        "recall_at_5": _ratio(sum(1 for h in hits if h and h <= 5), n),
+        "mrr": round(sum(1 / h for h in hits if h) / n, 3) if n else None,
+        "misses": [r["id"] for r, h in zip(rows, hits) if not h or h > 5],
+    }

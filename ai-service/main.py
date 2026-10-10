@@ -61,8 +61,21 @@ def root():
 @app.get("/health")
 def health():
     providers = get_llm().status()
+    try:
+        from rag.retriever import Retriever
+
+        r = Retriever.load()
+        kb = {
+            "source": "MedlinePlus (U.S. National Library of Medicine)",
+            "topics": len({c["url"] for c in r.chunks}),
+            "passages": len(r.chunks),
+            "embeddedTopics": 0 if r.embeddings is None else int(r.embeddings.shape[0]),
+        }
+    except Exception as exc:  # knowledge base missing: chat still works, without citations
+        kb = {"error": str(exc)}
     return {
         "status": "ok",
         "aiReady": any(p["configured"] and not p["disabledReason"] for p in providers),
         "providers": providers,
+        "knowledgeBase": kb,
     }
