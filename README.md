@@ -1,250 +1,123 @@
 # PranexusAI
 
-PranexusAI is a full-stack health intelligence platform for prevention, monitoring, and guided action. It combines a React/Vite frontend, a Node/Express API, a MongoDB data layer, and a FastAPI AI microservice to cover personal health tracking, environmental risk, nutrition analysis, emergency support, and doctor matching.
+Preventive health for people in Bengaluru. PranexusAI turns a short health profile and a daily log into validated risk scores, reads meal photos and grocery bills with AI, shows live air quality on India's own AQI scale, and can alert your family with your location in an emergency.
 
-## Overview
+Every feature runs on real data from free sources. When an AI provider is down, features fall back to clearly labelled rules instead of pretending.
 
-The app is organized into three working layers:
-
-- Frontend: a multi-page React application for login, dashboards, health tools, and interactive wellness views.
-- Backend: an authenticated Express API for user data, metrics, appointments, reports, grocery scans, exposome data, and proxying AI requests.
-- AI service: a FastAPI microservice that powers prediction, recommendations, scoring, and matching workflows.
+> PranexusAI gives general wellness information. It is not a medical device and does not diagnose. In an emergency call **112** (or **108** for an ambulance).
 
 ## Features
 
-### Frontend Experience
+| Feature | What it does | Where the data comes from |
+| --- | --- | --- |
+| Risk assessment | Type 2 diabetes risk, 10-year heart and stroke risk with heart age, BMI on Asian cut-offs, blood-pressure category, sleep and activity bands | Indian Diabetes Risk Score (Mohan et al., 2005); Framingham BMI model (D'Agostino et al., 2008); WHO Asia-Pacific BMI; 2017 ACC/AHA BP categories. Computed in code; AI only writes the explanation |
+| Daily log and trends | One entry per day for steps, sleep, BP, heart rate, weight, water, stress, with 14-day charts | Your entries, or a Bluetooth heart-rate monitor |
+| Health chat | Answers health questions using your profile and last week's logs | Gemini / Groq / OpenRouter free tiers, after a rule-based emergency check |
+| Meal photo | Identifies each item (Indian dishes included), estimates portion and nutrients, scores the meal 0-10 with reasons, logs it | Vision model for recognition; totals and score computed in code from WHO diet guidance |
+| Barcode scan | Camera, photo or typed barcode, then Nutri-Score, NOVA group, allergens, additives, nutrients and a review for you | [Open Food Facts](https://world.openfoodfacts.org) |
+| Grocery bill | Reads a receipt, list or bag photo; rates every item and the whole basket | Vision model |
+| Goals | Turns "walk 8,000 steps a day" into a weekly plan; progress is measured from your log | AI plan with code-enforced safety limits (max 1 kg/week weight loss) |
+| Environment | Live AQI on the CPCB NAQI scale, weather, UV, alerts, and the best 2-hour window to be outside | [Open-Meteo](https://open-meteo.com) weather and CAMS air quality; [Nominatim](https://nominatim.org) place names |
+| Vitals | Live heart rate and HRV (RMSSD) from a Bluetooth chest strap or watch, manual readings, a labelled demo simulator | Web Bluetooth GATT Heart Rate service |
+| Emergency | Rule-based vital-sign alerts, hold-to-SOS that emails contacts your location and nearest hospitals and prepares WhatsApp/SMS messages, first-aid guides | Gmail SMTP; [OpenStreetMap](https://www.openstreetmap.org) via Overpass |
+| Doctors | Symptom triage (which specialist, how urgently), real clinics nearby, appointment tracking with calendar reminders | AI triage after an emergency check; OpenStreetMap clinics; `.ics` files |
+| 3D body | Organ models coloured by your own scores, with your related numbers per organ | Your risk analysis, log and air-quality history |
 
-- Authentication flows for login, registration, and email verification.
-- A main dashboard for health status and analytics.
-- A 3D-style Glass Body experience for organ and body-system exploration.
-- Exposome views for weather, air quality, and environmental health context.
-- Appointment booking and appointment history management.
-- Grocery and food analysis workflows, including scan-based nutrition review.
-- Goal planning for wellness milestones and progress tracking.
-- Wearable health panels for sleep, stress, activity, temperature, cardiovascular data, and related signals.
-- Emergency tools for SOS, vitals monitoring, first aid guidance, timelines, contacts, and alerts.
-- Health chat for question-and-answer style support.
+Guest mode creates a real, isolated account that is deleted after 24 hours, so anyone can try every feature without signing up.
 
-### Backend Capabilities
+## Architecture
 
-- JWT-based authentication.
-- Email verification with OTP and resend support.
-- User profile access and updates.
-- Emergency contacts management.
-- Daily health metric logging and retrieval.
-- AI-backed health prediction and historical prediction storage.
-- Medical report creation and retrieval.
-- Appointment CRUD for signed-in users.
-- Grocery scan history and image analysis support.
-- Food plate analysis endpoint.
-- Health Q&A endpoint.
-- Exposome capture with current conditions, calendar suggestions, and history.
-- Doctor listing and symptom-based doctor matching.
-
-### AI Microservice Capabilities
-
-The FastAPI service exposes the following intelligence routes:
-
-- `/predict/risk` - disease and risk score prediction.
-- `/recommend` - personalized health recommendations.
-- `/baseline-compare` - compare current habits against baseline behavior.
-- `/glycemic-curve` - glucose response modeling.
-- `/sleep-debt` - sleep deficit analysis.
-- `/dopamine-score` - screen-time and stimulation impact scoring.
-- `/age-biological` - biological age estimation.
-- `/grocery-analyze` - grocery cart nutrition analysis.
-- `/grocery-analyze/image` - grocery image analysis.
-- `/exposome-risk` - environmental risk scoring.
-- `/goal-plan` - milestone and goal planning.
-- `/emergency-detect` - emergency pattern detection.
-- `/food-plate` - plate and meal analysis.
-- `/health-qa` - health question answering.
-- `/doctor-match` - symptom-based doctor matching.
-
-## Tech Stack
-
-- Frontend: React, Vite, React Router, Framer Motion, GSAP, Three.js, Recharts, Swiper.
-- Backend: Node.js, Express, MongoDB, Mongoose, JWT, Nodemailer, Axios.
-- AI Service: Python, FastAPI, Pydantic, OpenRouter-backed analysis helpers.
-
-## Project Structure
-
-```text
-buildForBenglore/
-├── client/                  React frontend
-│   ├── src/
-│   │   ├── pages/           Route-level screens
-│   │   ├── components/      Feature components
-│   │   ├── context/         Auth and vitals state
-│   │   ├── hooks/           Shared React hooks
-│   │   └── services/        API client wrappers
-│   └── package.json
-├── server/                  Node/Express backend
-│   ├── routes/              API route groups
-│   ├── models/              Mongoose models
-│   ├── middleware/          Auth middleware
-│   ├── services/            External service adapters
-│   └── server.js            API entry point
-├── ai-service/              FastAPI microservice
-│   ├── routers/             AI endpoints
-│   ├── services/            Risk and scoring logic
-│   ├── utils/               Shared helpers
-│   └── main.py              AI entry point
-├── docker-compose.yml       Optional local stack
-├── package.json             Root scripts
-└── pranexusai_project_plan.md
+```mermaid
+flowchart LR
+  B["React app (Vite)"] -->|"HTTPS + JWT"| N["Node / Express API"]
+  N --> M[("MongoDB")]
+  N -->|"X-Internal-Token"| P["FastAPI health-intelligence service"]
+  P --> G["Gemini / Groq / OpenRouter"]
+  N --> OM["Open-Meteo"]
+  N --> OFF["Open Food Facts"]
+  N --> OSM["OpenStreetMap"]
+  N --> GM["Gmail SMTP"]
 ```
 
-## Getting Started
+- **Node API** owns auth, validation (zod), rate limits, MongoDB and calls to the public data APIs. It also serves the built React app in production.
+- **Python service** is stateless and private. It holds the LLM client, the risk formulas and the safety rules, so each is unit-tested in isolation.
+- **One LLM client, three free providers.** Every provider speaks the OpenAI chat format. Calls fall back automatically on rate limits, bad keys, timeouts or invalid JSON, and every answer carries the model that produced it, which the UI shows.
+- **Safety first.** Chest pain, stroke signs, breathing trouble, anaphylaxis and suicidal thoughts are caught by fixed rules before any model runs, so emergency guidance works even with every AI provider down.
 
-### Prerequisites
+## Run it locally
 
-- Node.js 18 or newer.
-- Python 3.9 or newer.
-- MongoDB connection string.
-
-### Install
+Requirements: Node 20+, Python 3.11+.
 
 ```bash
-npm install
-npm run install:all
+npm run install:all          # root, client, server and Python packages
+cp server/.env.example server/.env
+cp ai-service/.env.example ai-service/.env   # add at least one AI key
+cp client/.env.example client/.env
+npm run dev                  # API :5001, web :3000, AI :8000
 ```
 
-### Environment Variables
+Open http://localhost:3000 and choose **Try it as a guest**.
 
-Create the needed environment files and set the values below.
+With no `MONGODB_URI`, the API starts a temporary in-memory MongoDB. With no Gmail credentials, verification codes are printed in the API console. With no AI key, AI features fall back to rules and say so.
+
+Or run everything in Docker (MongoDB included): `docker compose up --build`, then open http://localhost:5001.
+
+## Keys
+
+All optional for local development; all free.
+
+| Variable | Where | Get it |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | `ai-service/.env` | [Google AI Studio](https://aistudio.google.com/apikey) (text and images) |
+| `GROQ_API_KEY` | `ai-service/.env` | [Groq console](https://console.groq.com/keys) (fast text fallback) |
+| `OPENROUTER_API_KEY` | `ai-service/.env` | [OpenRouter](https://openrouter.ai/keys) (free models, text and images) |
+| `MONGODB_URI` | `server/.env` | [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) free M0 cluster |
+| `GMAIL_USER`, `GMAIL_PASSWORD` | `server/.env` | A Gmail address and a 16-character [App Password](https://myaccount.google.com/apppasswords) |
+| `GOOGLE_CLIENT_ID` (+ `VITE_GOOGLE_CLIENT_ID`) | `server/.env`, `client/.env` | [Google Cloud credentials](https://console.cloud.google.com/apis/credentials), OAuth client for a web app |
+| `JWT_SECRET`, `AI_INTERNAL_TOKEN` | both `.env` files | Any long random strings; the token must match in both services |
+
+## Tests
 
 ```bash
-# server/.env
-MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/pranexusai
-JWT_SECRET=your_random_secret_here
-CLIENT_URL=http://localhost:3000
-
-# ai-service/.env
-MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/pranexusai
-OPENROUTER_API_KEY=your_openrouter_key_here
-CORS_ORIGINS=http://localhost:3000,http://localhost:5001
-
-# client/.env
-VITE_API_URL=http://localhost:5001/api
-VITE_API_PROXY_TARGET=http://localhost:5001
+npm test                                   # server (Jest) + AI service (pytest)
+node scripts/smoke-test.mjs http://localhost:5001/api   # live end-to-end check
 ```
 
-### Run Locally
+- **AI service, 47 tests:** risk formulas against hand calculations; LLM fallback (429, 401, 5xx, invalid JSON, image routing) with a mocked transport; red-flag rules; API fallbacks with no keys; internal-token enforcement.
+- **API, 37 tests** against an in-memory MongoDB: Google token audience checks, OTP lockout, password reset, mass-assignment protection, cross-user isolation, metric validation, goal progress, SOS links, appointment conflicts, India NAQI breakpoints.
+- **CI** runs both suites and the client build on every push (`.github/workflows/ci.yml`).
 
-The frontend runs on port `3000`, the backend defaults to `5001`, and the AI service runs on `8000`.
+## Deploy (Render, free)
 
-```bash
-# Terminal 1
-cd client
-npm run dev
+`render.yaml` defines two free web services: the Node app (API + React build) and the AI service. In Render choose **New → Blueprint**, select this repo, then fill in the variables Render asks for: `MONGODB_URI`, `AI_SERVICE_URL` (the AI service's public URL), `CLIENT_URL`, the AI keys and, optionally, Gmail and Google sign-in. `JWT_SECRET` and the shared `AI_INTERNAL_TOKEN` are generated for you.
 
-# Terminal 2
-cd server
-npm run dev
+Free instances sleep after 15 minutes idle, so the first request afterwards takes about a minute.
 
-# Terminal 3
-cd ai-service
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+## Project layout
+
+```
+client/         React + Vite app (pages/, components/, services/api.js)
+server/         Express API (routes/, services/, models/, middleware/, tests/)
+ai-service/     FastAPI service (app/llm.py, app/risk.py, app/safety.py, app/routers/, tests/)
+scripts/        live end-to-end smoke test
 ```
 
-You can also start the full stack with Docker if you have it configured.
+## Data and credits
 
-```bash
-docker-compose up
-```
+Map and clinic data © OpenStreetMap contributors (ODbL). Product data from Open Food Facts (ODbL). Weather and air-quality data from Open-Meteo (CC BY 4.0).
 
-## Main Routes
+3D models from Sketchfab, all licensed [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/):
 
-### Frontend Pages
+| Model | Author |
+| --- | --- |
+| [Digestive System, Human Anatomy](https://sketchfab.com/3d-models/digestive-system-human-anatomy-f078cef244ec481e93013982a5393ffe) | [adimed](https://sketchfab.com/adimed) |
+| [Human Brain](https://sketchfab.com/3d-models/human-brain-7a27c17fd6c0488bb31ab093236a47fb) | [3DRT STUDIOS](https://sketchfab.com/Hanako.com) |
+| [Human Eye](https://sketchfab.com/3d-models/human-eye-b68ae822b45443edb812950993ece362) | [DEGUIDER](https://sketchfab.com/DEGUIDER) |
+| [Human liver and gallbladder](https://sketchfab.com/3d-models/human-liver-and-gallbladder-6c4e9bd0d49f4828b804259330c0c6c4) | [ElliotSS](https://sketchfab.com/ElliotSS) |
+| [Male Body Muscular System](https://sketchfab.com/3d-models/male-body-muscular-system-anatomy-study-991eb96938be4d0d8fadee241a1063d3) | [Ruslan Gadzhiev](https://sketchfab.com/ruslangadzhiev) |
+| [Male Human Skeleton](https://sketchfab.com/3d-models/male-human-skeleton-zbrush-anatomy-study-665890c542be433fb18ef235cf987cef) | [Ruslan Gadzhiev](https://sketchfab.com/ruslangadzhiev) |
+| [The human kidney](https://sketchfab.com/3d-models/medicine-organ-the-human-kidney-54bd93f545064617bbef79013efd2192) | [Safiya](https://sketchfab.com/thepersonS) |
+| [Realistic Human Heart](https://sketchfab.com/3d-models/realistic-human-heart-3f8072336ce94d18b3d0d055a1ece089) | [neshallads](https://sketchfab.com/neshallads) |
+| [Realistic Human Lungs](https://sketchfab.com/3d-models/realistic-human-lungs-ce09f4099a68467880f46e61eb9a3531) | [neshallads](https://sketchfab.com/neshallads) |
 
-- `/login`
-- `/register`
-- `/verify-email`
-- `/dashboard`
-- `/glass-body`
-- `/exposome`
-- `/appointments`
-- `/grocery`
-- `/goals`
-- `/wearable`
-- `/emergency`
-- `/chat`
-
-### Backend API Groups
-
-- `/api/auth` - register, login, verify email, resend verification.
-- `/api/users` - current user profile and emergency contacts.
-- `/api/health` - metrics, predictions, reports, and AI health actions.
-- `/api/appointments` - appointment create, list, and update.
-- `/api/grocery` - scan, history, and image-based grocery analysis.
-- `/api/food-plate` - plate analysis.
-- `/api/health-qa` - AI health question answering.
-- `/api/exposome` - current environmental risk, suggestions, and history.
-- `/api/doctors` - doctor listing and AI-assisted matching.
-
-## Quick API Checks
-
-```bash
-curl http://localhost:5001/api/ping
-curl http://localhost:8000/ping
-```
-
-## Notes
-
-- The backend is configured to serve the React app in production when a frontend build is present.
-- The client Vite dev server proxies `/api` calls to the backend.
-- The AI service falls back gracefully when external providers are unavailable, so the app can still return deterministic results for many flows.
-
-## Deployment
-
-The repository includes Docker and Render-oriented deployment files. If you deploy the backend as a single service, build the client first so `client/dist` is available for static serving.
-
----
-
-## 🛠️ Troubleshooting
-
-### "MongoDB connection failed"
-- Check MONGODB_URI in `server/.env`
-- Ensure MongoDB Atlas IP whitelist includes your IP
-- Test connection: `mongosh "mongodb+srv://..."`
-
-### "Port 3000/5000/8000 already in use"
-- Kill existing process: `lsof -i :5000` / `kill -9 <PID>`
-- Or change port in `vite.config.js` / `server/.env`
-
-### "Python not found"
-- Install Python 3.9+
-- Install FastAPI: `pip install -r ai-service/requirements.txt`
-
-### "CORS error from frontend"
-- Check `AI_SERVICE_URL` in `server/.env`
-- Ensure CORS is enabled in `ai-service/main.py`
-
----
-
-## 📚 Resources
-
-- **Full Architecture:** `pranexusai_project_plan.md`
-- **React Starter:** https://vitejs.dev/guide/ssr.html
-- **FastAPI Docs:** https://fastapi.tiangolo.com/
-- **MongoDB:** https://www.mongodb.com/docs/
-- **JWT Auth:** https://jwt.io/
-
----
-
-## 🤝 Team Guidelines
-
-- **Use branches:** `dev/feature-name` per person
-- **Component organization:** Each dev owns their component folder — minimize merge conflicts
-- **API contract:** Agreed on Day 1 — don't change request/response schemas without sync
-- **Code style:** Use Prettier (client/server) + Black (Python)
-- **Logs:** Centralize logs for debugging (use `winston` / `python logging`)
-
----
-
-**Questions?** Check the full plan in `pranexusai_project_plan.md` or comment in your component's TODO sections.
-
-Happy building! 🚀
-"# Build-for-bangalore" 
+Originally built by a team at Build for Bangalore; see the repository's contributor list.

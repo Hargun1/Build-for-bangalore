@@ -29,6 +29,10 @@ export default function GlassBody() {
       <div style={{ position: "relative", height: "calc(100vh - 200px)", minHeight: 480, borderRadius: 14, overflow: "hidden", border: "1px solid var(--ui-border)" }}>
         {body === "male" ? <GlassBodyViewer insights={insights} /> : <GlassBodyViewerFemale insights={insights} />}
       </div>
+      <p className="ui-faint" style={{ marginTop: "0.6rem" }}>
+        3D models from Sketchfab under CC BY 4.0 by adimed, 3DRT STUDIOS, DEGUIDER, ElliotSS, Ruslan Gadzhiev, Safiya and neshallads.{" "}
+        <a href="https://github.com/Hargun1/Build-for-bangalore#data-and-credits" target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>Full credits</a>
+      </p>
     </AppShell>
   );
 }

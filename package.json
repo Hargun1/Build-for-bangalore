@@ -1,17 +1,22 @@
 {
   "name": "pranexusai",
-  "version": "1.0.0",
-  "description": "PranexusAI — Health prediction and prevention platform",
+  "version": "2.0.0",
+  "private": true,
+  "description": "PranexusAI: preventive health for Bengaluru with published risk scores, live air quality and AI nutrition",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:ai\"",
-    "dev:client": "cd client && npm run dev",
-    "dev:server": "cd server && npm run dev",
-    "dev:ai": "cd ai-service && uvicorn main:app --reload --port 8000",
+    "install:all": "npm install && npm --prefix client install && npm --prefix server install && python -m pip install -r ai-service/requirements-dev.txt",
+    "dev": "concurrently -n api,web,ai -c blue,green,magenta \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:ai\"",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "dev:ai": "cd ai-service && python -m uvicorn main:app --reload --port 8000",
+    "test": "npm --prefix server test && cd ai-service && python -m pytest -q",
+    "build": "npm --prefix client run build",
     "smoke:test": "node scripts/smoke-test.mjs"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "nodemon": "^3.1.14"
+    "concurrently": "^8.2.2"
   }
 }

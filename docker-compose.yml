@@ -1,48 +1,35 @@
-version: "3.9"
-
+# Whole stack locally: docker compose up --build, then open http://localhost:5001
+# Put your AI key(s) in ai-service/.env (see ai-service/.env.example).
 services:
-  client:
-    build: ./client
-    ports:
-      - "3000:3000"
-    environment:
-      - VITE_API_URL=http://localhost:5000/api
-    depends_on:
-      - server
+  mongo:
+    image: mongo:7
     volumes:
-      - ./client:/app
-      - /app/node_modules
+      - mongo_data:/data/db
 
-  server:
-    build: ./server
-    ports:
-      - "5000:5000"
-    env_file:
-      - ./server/.env
-    depends_on:
-      - ai-service
-    volumes:
-      - ./server:/app
-      - /app/node_modules
-
-  ai-service:
+  ai:
     build: ./ai-service
-    ports:
-      - "8000:8000"
     env_file:
-      - ./ai-service/.env
-    volumes:
-      - ./ai-service:/app
+      - path: ./ai-service/.env
+        required: false
+    environment:
+      AI_INTERNAL_TOKEN: local-dev-token
 
-# Note: MongoDB is assumed to be on MongoDB Atlas.
-# To run MongoDB locally instead, add a mongo service here:
-#
-#   mongo:
-#     image: mongo:7
-#     ports:
-#       - "27017:27017"
-#     volumes:
-#       - mongo_data:/data/db
-#
-# volumes:
-#   mongo_data:
+  app:
+    build: .
+    ports:
+      - "5001:5001"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/pranexusai
+      AI_SERVICE_URL: http://ai:8000
+      AI_INTERNAL_TOKEN: local-dev-token
+      JWT_SECRET: local-dev-secret-change-me-0123456789
+      CLIENT_URL: http://localhost:5001
+    env_file:
+      - path: ./server/.env
+        required: false
+    depends_on:
+      - mongo
+      - ai
+
+volumes:
+  mongo_data:
