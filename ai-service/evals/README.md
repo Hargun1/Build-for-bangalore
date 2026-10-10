@@ -63,6 +63,19 @@ This is the honest finding of the exercise. The rules score perfectly on the cas
 
 The response was structural, not more patterns: an **AI safety classifier** (`app/safety.py`) now runs alongside the rules in chat and triage, and the more severe verdict wins. The rules stay as the fast, offline floor; the classifier adds understanding of meaning. Tests cover that the classifier can escalate but never downgrade a rule-based emergency, and that everything falls back to the rules when no AI provider is reachable.
 
+### Triage with AI (`triage --mode ai`, 100 cases, Gemini free tier)
+
+| | Rules only (AI off) | AI, first run | AI, calibrated prompt |
+| --- | --- | --- | --- |
+| Right kind of doctor | 81% | **100%** | **100%** |
+| Urgency within the acceptable range | 95% | 83% | 82% |
+| Dangerous under-triage | 0 | **0** | **0** |
+| Emergencies sent to "call now" | 100% | 100% | 100% |
+| Over-triage (more urgent than needed) | 5% | 17% | 18% |
+| Median / p95 latency | <1 ms | 1.6 s / 5.0 s | 1.6 s / 4.5 s |
+
+Which model answered matters more than the prompt. In the first run, the flash models (gemini-3.5/3.6/3.7-flash) got urgency right on 15 of 15 cases, while gemini-3.5-flash-lite, the overflow model once the flash models' 20-a-day free quota ran out, got 76% and over-triaged 24%. Adding explicit urgency definitions to the prompt left flash-lite at 78%, within noise, so the prompt was not the fix. Over-triage is the safe direction (people see a doctor sooner than needed); dangerous under-triage stayed at zero in every run. The practical lever is model routing: prefer flash models for triage when quota allows.
+
 ### Unseen phrasings with the AI safety layer (`red_flags_holdout --mode ai`)
 
 | | Rules only | Rules + AI classifier |
@@ -80,6 +93,8 @@ Questions are phrased the way people in India ask ("loose motions", "high bp", "
 | Retriever | Hit in top 1 | Top 3 | Top 5 | MRR |
 | --- | --- | --- | --- | --- |
 | BM25 keyword search | 55% | 80% | 87.5% | 0.688 |
-| BM25 + Indian-term expansion and British spelling | **60%** | **85%** | **90%** | **0.732** |
+| BM25 + Indian-term expansion and British spelling | **62.5%** | **85%** | **90%** | **0.745** |
+
+A live chat test exposed a subtler problem the aggregate hid: "loose motions" also matched the broader "motions" rule, which pulled in "Bowel Movement" and "Motion Sickness", and the model then cited a C. diff page for general advice on diarrhoea. Matched phrases are now consumed (longest first), and idioms whose literal words mislead are replaced rather than appended; synonyms and abbreviations ("TB", "high bp") are still appended so the user's own words count. Per-question comparison showed replacing everything cost two questions, while replacing only idioms kept them.
 
 The remaining misses are vocabulary gaps keyword search cannot bridge ("TSH high" for hypothyroidism, "stop diabetes from happening" for prevention). Embedding search addresses them; the hybrid row will be added once the topic embeddings finish building (the free embedding quota is 1,000 a day).

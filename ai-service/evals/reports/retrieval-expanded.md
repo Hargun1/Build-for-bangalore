@@ -1,14 +1,14 @@
 # Eval: retrieval (expanded)
 
-Run 2026-10-10 21:36 UTC on 40 cases.
+Run 2026-10-10 22:03 UTC on 40 cases.
 
 | Metric | Value |
 | --- | --- |
 | cases | 40 |
-| recall_at_1 | 60.0% |
+| recall_at_1 | 62.5% |
 | recall_at_3 | 85.0% |
 | recall_at_5 | 90.0% |
-| mrr | 73.2% |
+| mrr | 74.5% |
 
 ## Misses (4)
 

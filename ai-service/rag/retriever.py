@@ -98,10 +98,26 @@ def tokenize(text: str) -> list[str]:
     return [stem(americanise(t)) for t in re.findall(r"[a-z0-9]+", text.lower()) if t not in STOPWORDS and len(t) > 1]
 
 
+# Idioms whose literal words point somewhere else ("loose motions" is diarrhea,
+# not motion sickness): these are replaced. Everything else is appended, so the
+# user's own words (e.g. "TB", "hair fall") still count.
+REPLACE = {"loose motion", "loose motions", "motions"}
+
+
 def expand_query(q: str) -> str:
-    low = f" {q.lower()} "
-    extra = [EXPANSIONS[k] for k in _EXPANSION_KEYS if f" {k} " in re.sub(r"[^a-z0-9]+", " ", low)]
-    return f"{q} {' '.join(extra)}" if extra else q
+    # Longest phrases first; a matched phrase is consumed so "loose motions"
+    # doesn't also trigger the broader "motions" expansion.
+    text = f" {re.sub(r'[^a-z0-9]+', ' ', q.lower())} "
+    extra = []
+    for k in _EXPANSION_KEYS:
+        if f" {k} " in text:
+            if k in REPLACE:
+                text = text.replace(f" {k} ", f" {EXPANSIONS[k]} | ")
+            else:
+                extra.append(EXPANSIONS[k])
+                text = text.replace(f" {k} ", f" {k} | ")
+    out = text.replace("|", " ").strip()
+    return f"{out} {' '.join(extra)}".strip() if (extra or out != q.lower()) else q
 
 
 class BM25:
