@@ -6,6 +6,7 @@ const LINKS = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/chat", label: "Health chat" },
   { to: "/labs", label: "Lab reports" },
+  { to: "/reminders", label: "Reminders" },
   { to: "/grocery", label: "Nutrition" },
   { to: "/goals", label: "Goals" },
   { to: "/exposome", label: "Environment" },

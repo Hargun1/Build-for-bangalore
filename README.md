@@ -12,7 +12,9 @@ Every feature runs on real data from free sources. When an AI provider is down, 
 | --- | --- | --- |
 | Risk assessment | Type 2 diabetes risk, 10-year heart and stroke risk with heart age, BMI on Asian cut-offs, blood-pressure category, sleep and activity bands | Indian Diabetes Risk Score (Mohan et al., 2005); Framingham BMI model (D'Agostino et al., 2008); WHO Asia-Pacific BMI; 2017 ACC/AHA BP categories. Computed in code; AI only writes the explanation |
 | Daily log and trends | One entry per day for steps, sleep, BP, heart rate, weight, water, stress, with 14-day charts | Your entries, or a Bluetooth heart-rate monitor |
-| Health chat | Answers health questions using your profile and last week's logs | Gemini / Groq / OpenRouter free tiers, after a rule-based emergency check |
+| Health chat | Answers stream in word by word, use your profile and last week's logs, and cite numbered sources | Gemini / Groq / OpenRouter free tiers; facts retrieved from 1,016 [MedlinePlus](https://medlineplus.gov) topics (BM25 + embeddings); rule-based and AI emergency checks run before any text is shown |
+| Lab reports | Upload a photo or PDF of a blood test: each value is marked in or out of range, explained with a source, and charted across reports | The AI only copies the printed table; code matches 30 common tests, converts units, rejects impossible values and judges against the lab's printed range |
+| Reminders | Medicine, water and check-up reminders as notifications, even with the app closed | Web Push (VAPID) through the browser's own push service; a scheduler that sends each slot exactly once |
 | Meal photo | Identifies each item (Indian dishes included), estimates portion and nutrients, scores the meal 0-10 with reasons, logs it | Vision model for recognition; totals and score computed in code from WHO diet guidance |
 | Barcode scan | Camera, photo or typed barcode, then Nutri-Score, NOVA group, allergens, additives, nutrients and a review for you | [Open Food Facts](https://world.openfoodfacts.org) |
 | Grocery bill | Reads a receipt, list or bag photo; rates every item and the whole basket | Vision model |
@@ -21,7 +23,7 @@ Every feature runs on real data from free sources. When an AI provider is down, 
 | Vitals | Live heart rate and HRV (RMSSD) from a Bluetooth chest strap or watch, manual readings, a labelled demo simulator | Web Bluetooth GATT Heart Rate service |
 | Emergency | Rule-based vital-sign alerts, hold-to-SOS that emails contacts your location and nearest hospitals and prepares WhatsApp/SMS messages, first-aid guides | Gmail SMTP; [OpenStreetMap](https://www.openstreetmap.org) via Overpass |
 | Doctors | Symptom triage (which specialist, how urgently), real clinics nearby, appointment tracking with calendar reminders | AI triage after an emergency check; OpenStreetMap clinics; `.ics` files |
-| 3D body | Organ models coloured by your own scores, with your related numbers per organ | Your risk analysis, log and air-quality history |
+| 3D body | Organ models coloured by your own lab results and scores, with the numbers behind each colour | Your lab reports, risk analysis, log and air-quality history |
 
 Guest mode creates a real, isolated account that is deleted after 24 hours, so anyone can try every feature without signing up.
 
@@ -75,6 +77,7 @@ All optional for local development; all free.
 | `GMAIL_USER`, `GMAIL_PASSWORD` | `server/.env` | A Gmail address and a 16-character [App Password](https://myaccount.google.com/apppasswords) |
 | `GOOGLE_CLIENT_ID` (+ `VITE_GOOGLE_CLIENT_ID`) | `server/.env`, `client/.env` | [Google Cloud credentials](https://console.cloud.google.com/apis/credentials), OAuth client for a web app |
 | `JWT_SECRET`, `AI_INTERNAL_TOKEN` | both `.env` files | Any long random strings; the token must match in both services |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `server/.env` | `npx web-push generate-vapid-keys` (reminders; temporary keys are used in development) |
 
 ## Tests
 
@@ -83,15 +86,16 @@ npm test                                   # server (Jest) + AI service (pytest)
 node scripts/smoke-test.mjs http://localhost:5001/api   # live end-to-end check
 ```
 
-- **AI service, 47 tests:** risk formulas against hand calculations; LLM fallback (429, 401, 5xx, invalid JSON, image routing) with a mocked transport; red-flag rules; API fallbacks with no keys; internal-token enforcement.
-- **API, 37 tests** against an in-memory MongoDB: Google token audience checks, OTP lockout, password reset, mass-assignment protection, cross-user isolation, metric validation, goal progress, SOS links, appointment conflicts, India NAQI breakpoints.
+- **AI service, 91 tests:** risk formulas against hand calculations; LLM fallback and streaming with a mocked transport; red-flag rules and the AI safety layer; retrieval and citations; lab-report unit conversion, range parsing and look-alike test names; internal-token enforcement.
+- **API, 51 tests** against an in-memory MongoDB: auth and OTP lockout, mass-assignment protection, cross-user isolation, streaming relay, lab reports re-checked on save, the reminder scheduler (sent once, catch-up after sleep, weekdays, dead devices removed), account deletion.
+- **AI evaluation harness** (`ai-service/evals`): red-flag recall, triage accuracy and retrieval quality on labelled datasets, with results in `ai-service/evals/README.md`.
 - **CI** runs both suites and the client build on every push (`.github/workflows/ci.yml`).
 
 ## Deploy (Render, free)
 
 `render.yaml` defines two free web services: the Node app (API + React build) and the AI service. In Render choose **New → Blueprint**, select this repo, then fill in the variables Render asks for: `MONGODB_URI`, `AI_SERVICE_URL` (the AI service's public URL), `CLIENT_URL`, the AI keys and, optionally, Gmail and Google sign-in. `JWT_SECRET` and the shared `AI_INTERNAL_TOKEN` are generated for you.
 
-Free instances sleep after 15 minutes idle, so the first request afterwards takes about a minute.
+Free instances sleep after 15 minutes idle, so the first request afterwards takes about a minute. Reminders are sent up to 30 minutes late after a sleep; a free pinger such as [cron-job.org](https://cron-job.org) hitting `/api/ping` every 10 minutes keeps them on time.
 
 ## Project layout
 

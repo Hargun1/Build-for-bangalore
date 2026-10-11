@@ -46,12 +46,15 @@ app.use("/api/emergency", require("./routes/emergency"));
 app.use("/api/places", require("./routes/places"));
 app.use("/api/appointments", require("./routes/appointments"));
 app.use("/api/labs", require("./routes/labs"));
+app.use("/api/reminders", require("./routes/reminders"));
 app.use("/api/system", require("./routes/system"));
 app.use("/api", notFound);
 
 // Single-service deploy: serve the built React app for every non-API path.
 const clientDist = path.join(__dirname, "../client/dist");
 if (env.isProduction && fs.existsSync(path.join(clientDist, "index.html"))) {
+  // The service worker must never be cached for days, or users keep running an old one.
+  app.get("/sw.js", (req, res) => res.set("Cache-Control", "no-cache").sendFile(path.join(clientDist, "sw.js")));
   app.use(express.static(clientDist, { maxAge: "7d", index: false }));
   app.get("*", (req, res) => res.sendFile(path.join(clientDist, "index.html")));
 } else {

@@ -39,6 +39,14 @@ services:
         sync: false
       - key: GMAIL_PASSWORD
         sync: false
+      # Web Push reminders: from `npx web-push generate-vapid-keys` (keep the pair together)
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      # A contact address the push services can reach, e.g. mailto:you@gmail.com
+      - key: VAPID_SUBJECT
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       # Same value as GOOGLE_CLIENT_ID; read by the React build

@@ -19,6 +19,7 @@ const Wearable = lazy(() => import("./pages/Wearable"));
 const Emergency = lazy(() => import("./pages/Emergency"));
 const HealthChat = lazy(() => import("./pages/HealthChat"));
 const Labs = lazy(() => import("./pages/Labs"));
+const Reminders = lazy(() => import("./pages/Reminders"));
 
 function PageLoader() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/emergency" element={guard(<Emergency />)} />
         <Route path="/chat" element={guard(<HealthChat />)} />
         <Route path="/labs" element={guard(<Labs />)} />
+        <Route path="/reminders" element={guard(<Reminders />)} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

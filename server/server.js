@@ -27,6 +27,7 @@ async function start() {
     process.exit(1);
   }
   app.listen(env.port, () => console.log(`PranexusAI API listening on port ${env.port}`));
+  require("./jobs/reminders").start();
 }
 
 start();

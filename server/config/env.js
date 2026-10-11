@@ -33,6 +33,10 @@ const env = {
   gmailUser: process.env.GMAIL_USER || "",
   gmailPassword: process.env.GMAIL_PASSWORD || "",
   // Open Food Facts and OpenStreetMap ask every client to identify itself.
+  // Web Push (VAPID) key pair: generate once with `npx web-push generate-vapid-keys`.
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY || "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || "",
+  vapidSubject: process.env.VAPID_SUBJECT || "mailto:pranexusai@example.com",
   userAgent: process.env.HTTP_USER_AGENT || "PranexusAI/2.0 (https://github.com/Hargun1/Build-for-bangalore)",
 };
 
