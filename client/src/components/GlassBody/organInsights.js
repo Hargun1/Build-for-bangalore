@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getExposomeHistory, getPredictions, getToday } from "../../services/healthService";
+import { getExposomeHistory, getLabReports, getPredictions, getToday } from "../../services/healthService";
 
 // 3D colour intensity per risk level; null means "no data" (shown neutral blue).
 const LEVEL_RISK = { low: 0.2, moderate: 0.55, high: 0.85 };
@@ -7,9 +7,31 @@ const worst = (...levels) => {
   const known = levels.filter((l) => LEVEL_RISK[l] != null);
   return known.length ? Math.max(...known.map((l) => LEVEL_RISK[l])) : null;
 };
+// Inverse of LEVEL_RISK so an organ's existing colour can be combined with lab levels.
+const riskLevelOf = (score) => (score == null ? null : score > 0.7 ? "high" : score > 0.4 ? "moderate" : "low");
 const aqiRisk = (aqi) => (aqi == null ? null : aqi <= 100 ? 0.2 : aqi <= 200 ? 0.55 : 0.85);
 
-const row = (label, value, level, hint) => ({ label, value, level, hint });
+const row = (label, value, level, hint, extra) => ({ label, value, level, hint, ...extra });
+
+const LAB_LEVEL = { normal: "low", high: "moderate", low: "moderate" };
+const shortDate = (d) => new Date(`${d}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+
+/** Latest checked result per test across all saved reports (newest report first). */
+export function latestLabs(reports) {
+  const latest = {};
+  for (const r of reports || []) {
+    for (const t of r.tests || []) {
+      if (t.key && !latest[t.key] && ["normal", "high", "low"].includes(t.status)) latest[t.key] = { ...t, date: r.reportDate };
+    }
+  }
+  return Object.values(latest);
+}
+
+function labRow(t) {
+  const level = t.critical ? "high" : LAB_LEVEL[t.status];
+  const hint = t.status === "normal" ? null : t.band || t.meaning;
+  return row(`${t.display} · lab ${shortDate(t.date)}`, `${t.valueText} ${t.unit || ""}`.trim(), level, hint, { lab: true, status: t.status });
+}
 
 /**
  * Loads the user's latest risk assessment, 7-day averages and air-quality snapshot,
@@ -21,10 +43,11 @@ export function useOrganInsights() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [pred, today, env] = await Promise.all([
+      const [pred, today, env, reports] = await Promise.all([
         getPredictions(1).then((r) => r.data[0]).catch(() => null),
         getToday().then((r) => r.data).catch(() => null),
         getExposomeHistory().then((r) => r.data.at(-1)).catch(() => null),
+        getLabReports().then((r) => r.data).catch(() => []),
       ]);
       if (!alive) return;
       const s = Object.fromEntries((pred?.scores || []).map((x) => [x.key, x]));
@@ -57,6 +80,19 @@ export function useOrganInsights() {
         ],
         eyes: [diabetesRow, bpRow],
       };
+      // Blood test results go first on the organs they describe; tests without an organ
+      // (vitamins, blood count) are listed separately on the page.
+      // Out-of-range results first, then the rest, each in report order.
+      const labs = latestLabs(reports).sort((a, b) => (a.status === "normal") - (b.status === "normal"));
+      const labLevels = {};
+      const labRows = {};
+      for (const t of labs) {
+        for (const organ of t.organs || []) {
+          (labRows[organ] ||= []).push(labRow(t));
+          (labLevels[organ] ||= []).push(t.critical ? "high" : LAB_LEVEL[t.status]);
+        }
+      }
+      for (const [organ, rows] of Object.entries(labRows)) organs[organ] = [...rows, ...(organs[organ] || [])];
       for (const k of Object.keys(organs)) organs[k] = organs[k].filter(Boolean);
 
       const riskScores = {
@@ -73,7 +109,20 @@ export function useOrganInsights() {
         ovaryL: null,
         ovaryR: null,
       };
-      setState({ loading: false, riskScores, organs, analysedAt: pred?.createdAt || null });
+      for (const [organ, levels] of Object.entries(labLevels)) riskScores[organ] = worst(...levels, riskLevelOf(riskScores[organ]));
+      const latestReport = reports?.[0] || null;
+      setState({
+        loading: false,
+        riskScores,
+        organs,
+        analysedAt: pred?.createdAt || null,
+        labs: {
+          count: reports?.length || 0,
+          latestDate: latestReport?.reportDate || null,
+          outOfRange: labs.filter((t) => t.status !== "normal"),
+          other: labs.filter((t) => !t.organs?.length).map(labRow),
+        },
+      });
     })();
     return () => {
       alive = false;

@@ -10,6 +10,7 @@ const FoodLog = require("../models/FoodLog");
 const Appointment = require("../models/Appointment");
 const EmergencyEvent = require("../models/EmergencyEvent");
 const GroceryScan = require("../models/GroceryScan");
+const LabReport = require("../models/LabReport");
 const ExposomeData = require("../models/ExposomeData");
 const { Goal, GoalCheckin } = require("../models/Goal");
 
@@ -117,7 +118,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
     await Promise.all(
-      [HealthMetrics, Prediction, FoodLog, Appointment, EmergencyEvent, GroceryScan, ExposomeData, Goal, GoalCheckin].map((M) =>
+      [HealthMetrics, Prediction, FoodLog, Appointment, EmergencyEvent, GroceryScan, LabReport, ExposomeData, Goal, GoalCheckin].map((M) =>
         M.deleteMany({ userId })
       )
     );

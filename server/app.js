@@ -45,6 +45,7 @@ app.use("/api/exposome", require("./routes/exposome"));
 app.use("/api/emergency", require("./routes/emergency"));
 app.use("/api/places", require("./routes/places"));
 app.use("/api/appointments", require("./routes/appointments"));
+app.use("/api/labs", require("./routes/labs"));
 app.use("/api/system", require("./routes/system"));
 app.use("/api", notFound);
 

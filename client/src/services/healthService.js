@@ -59,3 +59,9 @@ export const downloadAppointmentIcs = async (id) => {
   a.click();
   URL.revokeObjectURL(url);
 };
+
+// Lab reports
+export const readLabReport = (images) => api.post("/labs/read", { images });
+export const saveLabReport = (report) => api.post("/labs", report);
+export const getLabReports = () => api.get("/labs");
+export const deleteLabReport = (id) => api.delete(`/labs/${id}`);

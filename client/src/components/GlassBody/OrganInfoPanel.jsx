@@ -1,14 +1,16 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ORGAN_INFO } from "./organInsights";
-import "../../styles/ui.css";
 
-const LEVEL = { low: ["ui-badge-good", "healthy range"], moderate: ["ui-badge-warn", "watch"], high: ["ui-badge-bad", "high risk"] };
+const LEVEL = { low: ["good", "healthy range"], moderate: ["warn", "watch"], high: ["bad", "high risk"] };
+const RANK = { low: 1, moderate: 2, high: 3 };
 
-/** Side panel for a clicked organ: the user's own related numbers, then general guidance. */
+/** Glass side panel for a clicked organ: the user's own numbers (lab results first), then general guidance. */
 export default function OrganInfoPanel({ selectedOrgan, onClose, insights }) {
   const info = ORGAN_INFO[selectedOrgan];
   const rows = insights?.organs?.[selectedOrgan] || [];
+  const worst = rows.reduce((w, r) => ((RANK[r.level] || 0) > (RANK[w] || 0) ? r.level : w), null);
+  const hasLabs = rows.some((r) => r.lab);
 
   return (
     <AnimatePresence>
@@ -19,48 +21,51 @@ export default function OrganInfoPanel({ selectedOrgan, onClose, insights }) {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 40 }}
           transition={{ duration: 0.25 }}
-          className="ui-card"
-          style={{ position: "absolute", top: 72, right: 16, width: "min(360px, calc(100% - 32px))", maxHeight: "calc(100% - 96px)", overflowY: "auto", background: "rgba(10, 13, 20, 0.92)", backdropFilter: "blur(12px)", zIndex: 30 }}
+          className={`gb-panel gb-glass gb-tone-${worst ? LEVEL[worst][0] : "none"}`}
           aria-label={`${info.name} details`}
         >
-          <div className="ui-row" style={{ marginBottom: "0.75rem" }}>
-            <span style={{ fontSize: "1.5rem" }} aria-hidden="true">{info.icon}</span>
-            <h2 style={{ margin: 0 }}>{info.name}</h2>
-            <div className="ui-spacer" />
-            <button className="ui-btn ui-btn-ghost ui-btn-sm" onClick={onClose} aria-label="Close">✕</button>
-          </div>
+          <header className="gb-panel-head">
+            <span className="gb-panel-icon" aria-hidden="true">{info.icon}</span>
+            <div>
+              <h2>{info.name}</h2>
+              <div className="gb-panel-sub">{worst ? `Overall: ${LEVEL[worst][1]}` : "No personal data yet"}</div>
+            </div>
+            <button className="gb-close" onClick={onClose} aria-label="Close">✕</button>
+          </header>
 
-          <h3 className="ui-small" style={{ marginBottom: "0.4rem" }}>Your numbers</h3>
+          <h3 className="gb-eyebrow">Your numbers</h3>
           {insights?.loading ? (
             <div className="ui-loading"><span className="ui-spinner" /> Loading…</div>
           ) : rows.length ? (
-            <ul className="ui-list" style={{ marginBottom: "1rem" }}>
+            <ul className="gb-rows">
               {rows.map((r) => (
-                <li key={r.label}>
-                  <div className="ui-row">
-                    <span className="ui-small">{r.label}</span>
-                    <div className="ui-spacer" />
-                    {r.level && <span className={`ui-badge ${LEVEL[r.level][0]}`}>{LEVEL[r.level][1]}</span>}
+                <li key={r.label} className={r.level ? `gb-row-${LEVEL[r.level][0]}` : ""}>
+                  <div className="gb-row-top">
+                    <span className="gb-row-label">
+                      {r.lab && <span className="gb-tag">LAB</span>}
+                      {r.label}
+                    </span>
+                    {r.level && <span className={`ui-badge ui-badge-${LEVEL[r.level][0]}`}>{r.lab && r.status !== "normal" ? r.status : LEVEL[r.level][1]}</span>}
                   </div>
-                  <strong>{r.value}</strong>
-                  {r.hint && <div className="ui-faint">{r.hint}</div>}
+                  <strong className="gb-row-value">{r.value}</strong>
+                  {r.hint && <div className="gb-row-hint">{r.hint}</div>}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="ui-faint" style={{ marginBottom: "1rem" }}>No personal data is linked to this organ yet.</p>
+            <p className="ui-faint">No personal data is linked to this organ yet.</p>
           )}
 
-          <h3 className="ui-small" style={{ marginBottom: "0.4rem" }}>About</h3>
-          <p className="ui-small ui-muted" style={{ lineHeight: 1.55, marginBottom: "0.75rem" }}>{info.about}</p>
-          <h3 className="ui-small" style={{ marginBottom: "0.4rem" }}>Keep it healthy</h3>
-          <ul className="ui-bullets ui-small">{info.tips.map((t) => <li key={t}>{t}</li>)}</ul>
+          <h3 className="gb-eyebrow">About</h3>
+          <p className="gb-about">{info.about}</p>
+          <h3 className="gb-eyebrow">Keep it healthy</h3>
+          <ul className="gb-tips">{info.tips.map((t) => <li key={t}>{t}</li>)}</ul>
 
-          <div className="ui-row" style={{ marginTop: "1rem" }}>
-            <Link to="/dashboard" className="ui-btn ui-btn-sm">Run risk analysis</Link>
+          <div className="gb-actions">
+            <Link to="/labs" className="ui-btn ui-btn-sm">{hasLabs ? "Lab reports" : "Add a lab report"}</Link>
+            <Link to="/dashboard" className="ui-btn ui-btn-sm">Risk analysis</Link>
             <Link to="/chat" className="ui-btn ui-btn-sm">Ask about it</Link>
           </div>
-          <p className="ui-faint" style={{ marginTop: "0.75rem" }}>Colours: green healthy range, amber watch, red high risk, blue no data yet.</p>
         </motion.aside>
       )}
     </AnimatePresence>

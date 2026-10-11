@@ -181,39 +181,39 @@ function HumanBodyScene({ activeLayers, selectedOrgan, onSelectOrgan, hoveredOrg
         {activeLayers.organs && (
           <>
             <OrganWrapper name="brain" hoveredOrgan={hoveredOrgan} onHover={onHover} onSelect={onSelectOrgan}>
-              <Brain position={ORGAN_POSITIONS.brain} riskScore={riskScores.brain} hovered={hoveredOrgan === "brain"} />
+              <Brain position={ORGAN_POSITIONS.brain} riskScore={riskScores.brain} hovered={hoveredOrgan === "brain" || selectedOrgan === "brain"} />
             </OrganWrapper>
 
             <OrganWrapper name="eyes" hoveredOrgan={hoveredOrgan} onHover={onHover} onSelect={onSelectOrgan}>
-              <Eyes position={ORGAN_POSITIONS.eyes} riskScore={riskScores.eyes} hovered={hoveredOrgan === "eyes"} />
+              <Eyes position={ORGAN_POSITIONS.eyes} riskScore={riskScores.eyes} hovered={hoveredOrgan === "eyes" || selectedOrgan === "eyes"} />
             </OrganWrapper>
 
             <OrganWrapper name="heart" hoveredOrgan={hoveredOrgan} onHover={onHover} onSelect={onSelectOrgan}>
-              <Heart position={ORGAN_POSITIONS.heart} riskScore={riskScores.heart} hovered={hoveredOrgan === "heart"} />
+              <Heart position={ORGAN_POSITIONS.heart} riskScore={riskScores.heart} hovered={hoveredOrgan === "heart" || selectedOrgan === "heart"} />
             </OrganWrapper>
 
             <OrganWrapper name="lungs" hoveredOrgan={hoveredOrgan} onHover={onHover} onSelect={onSelectOrgan}>
-              <Lungs position={ORGAN_POSITIONS.lungs} riskScore={riskScores.lungs} hovered={hoveredOrgan === "lungs"} />
+              <Lungs position={ORGAN_POSITIONS.lungs} riskScore={riskScores.lungs} hovered={hoveredOrgan === "lungs" || selectedOrgan === "lungs"} />
             </OrganWrapper>
 
             <OrganWrapper name="liver" hoveredOrgan={hoveredOrgan} onHover={onHover} onSelect={onSelectOrgan}>
-              <Liver position={ORGAN_POSITIONS.liver} riskScore={riskScores.liver} hovered={hoveredOrgan === "liver"} />
+              <Liver position={ORGAN_POSITIONS.liver} riskScore={riskScores.liver} hovered={hoveredOrgan === "liver" || selectedOrgan === "liver"} />
             </OrganWrapper>
 
             <OrganWrapper name="stomach" hoveredOrgan={hoveredOrgan} onHover={onHover} onSelect={onSelectOrgan}>
-              <Stomach position={ORGAN_POSITIONS.stomach} riskScore={riskScores.stomach} hovered={hoveredOrgan === "stomach"} />
+              <Stomach position={ORGAN_POSITIONS.stomach} riskScore={riskScores.stomach} hovered={hoveredOrgan === "stomach" || selectedOrgan === "stomach"} />
             </OrganWrapper>
 
             <OrganWrapper name="kidneyL" hoveredOrgan={hoveredOrgan} onHover={onHover} onSelect={onSelectOrgan}>
-              <Kidney position={ORGAN_POSITIONS.kidneyL} riskScore={riskScores.kidneyL} hovered={hoveredOrgan === "kidneyL"} />
+              <Kidney position={ORGAN_POSITIONS.kidneyL} riskScore={riskScores.kidneyL} hovered={hoveredOrgan === "kidneyL" || selectedOrgan === "kidneyL"} />
             </OrganWrapper>
 
             <OrganWrapper name="kidneyR" hoveredOrgan={hoveredOrgan} onHover={onHover} onSelect={onSelectOrgan}>
-              <Kidney position={ORGAN_POSITIONS.kidneyR} riskScore={riskScores.kidneyR} hovered={hoveredOrgan === "kidneyR"} />
+              <Kidney position={ORGAN_POSITIONS.kidneyR} riskScore={riskScores.kidneyR} hovered={hoveredOrgan === "kidneyR" || selectedOrgan === "kidneyR"} />
             </OrganWrapper>
 
             <OrganWrapper name="digestive" hoveredOrgan={hoveredOrgan} onHover={onHover} onSelect={onSelectOrgan}>
-              <DigestiveSystem position={ORGAN_POSITIONS.digestive} riskScore={riskScores.digestive} hovered={hoveredOrgan === "digestive"} />
+              <DigestiveSystem position={ORGAN_POSITIONS.digestive} riskScore={riskScores.digestive} hovered={hoveredOrgan === "digestive" || selectedOrgan === "digestive"} />
             </OrganWrapper>
 
             {/* Hover tooltip */}
@@ -263,13 +263,16 @@ function HumanBodyScene({ activeLayers, selectedOrgan, onSelectOrgan, hoveredOrg
   );
 }
 
-export default function GlassBodyViewer({ insights }) {
+export default function GlassBodyViewer({ insights, selectedOrgan: controlled, onSelectOrgan }) {
   const [activeLayers, setActiveLayers] = useState({
     skeleton: true,
     muscles: false,
     organs: true,
   });
-  const [selectedOrgan, setSelectedOrgan] = useState(null);
+  // The page can drive the selection (organ list beside the canvas); otherwise it's local.
+  const [ownSelection, setOwnSelection] = useState(null);
+  const selectedOrgan = controlled !== undefined ? controlled : ownSelection;
+  const setSelectedOrgan = onSelectOrgan || setOwnSelection;
   const [hoveredOrgan, setHoveredOrgan] = useState(null);
   const riskScores = insights?.riskScores || {};
 
@@ -278,7 +281,7 @@ export default function GlassBodyViewer({ insights }) {
   }, []);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%", background: "linear-gradient(180deg, #0a0e1a 0%, #111827 50%, #1a2240 100%)" }}>
+    <div className="gb-viewer">
       <Canvas
         camera={{ position: [0, 0.2, 3.5], fov: 40 }}
         gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
@@ -307,44 +310,6 @@ export default function GlassBodyViewer({ insights }) {
         onClose={() => setSelectedOrgan(null)}
         insights={insights}
       />
-
-      {/* Title overlay */}
-      <div style={{
-        position: "absolute",
-        bottom: "24px",
-        left: "50%",
-        transform: "translateX(-50%)",
-        textAlign: "center",
-        pointerEvents: "none",
-        zIndex: 10,
-      }}>
-        <div style={{
-          fontSize: "0.6rem",
-          color: "#4488ff",
-          letterSpacing: "4px",
-          textTransform: "uppercase",
-          marginBottom: "6px",
-          fontWeight: 600,
-        }}>
-          PranexusAI
-        </div>
-        <div style={{
-          fontSize: "1.1rem",
-          color: "rgba(255,255,255,0.9)",
-          fontWeight: 200,
-          letterSpacing: "2px",
-        }}>
-          Digital Health Twin
-        </div>
-        <div style={{
-          fontSize: "0.65rem",
-          color: "rgba(255,255,255,0.25)",
-          marginTop: "6px",
-          letterSpacing: "0.5px",
-        }}>
-          Click any organ for health insights · Scroll to zoom · Drag to rotate
-        </div>
-      </div>
     </div>
   );
 }

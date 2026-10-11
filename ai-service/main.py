@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from app.config import get_settings  # noqa: E402
 from app.llm import get_llm  # noqa: E402
-from app.routers import chat, exposome, goals, nutrition, risk, triage, vision  # noqa: E402
+from app.routers import chat, exposome, goals, labs, nutrition, risk, triage, vision  # noqa: E402
 from app.security import require_internal_token  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -47,6 +47,7 @@ protected = [Depends(require_internal_token)]
 app.include_router(risk.router, prefix="/risk", tags=["Risk"], dependencies=protected)
 app.include_router(chat.router, prefix="/chat", tags=["Chat"], dependencies=protected)
 app.include_router(vision.router, prefix="/vision", tags=["Vision"], dependencies=protected)
+app.include_router(labs.router, prefix="/labs", tags=["Labs"], dependencies=protected)
 app.include_router(nutrition.router, prefix="/nutrition", tags=["Nutrition"], dependencies=protected)
 app.include_router(goals.router, prefix="/goals", tags=["Goals"], dependencies=protected)
 app.include_router(exposome.router, prefix="/exposome", tags=["Exposome"], dependencies=protected)

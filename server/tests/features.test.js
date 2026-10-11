@@ -10,6 +10,8 @@ jest.mock("../services/aiService", () => ({
   goalPlan: jest.fn(),
   triage: jest.fn(),
   analyzeMeal: jest.fn(),
+  readLabReport: jest.fn(),
+  evaluateLabs: jest.fn(),
   health: jest.fn(async () => ({ aiReady: false, providers: [] })),
 }));
 jest.mock("../services/places", () => ({ nearby: jest.fn(async () => [{ name: "City Hospital", distanceKm: 1.2, phone: "+91 80 1234 5678" }]) }));
@@ -193,5 +195,48 @@ describe("streaming chat", () => {
     await request(app).post("/api/chat/stream").send({ messages: [{ role: "user", content: "hi" }] }).expect(401);
     const { agent } = await signIn();
     await agent("post", "/api/chat/stream").send({ messages: [{ role: "assistant", content: "hi" }] }).expect(400);
+  });
+});
+
+describe("lab reports", () => {
+  const IMG = "data:image/jpeg;base64," + "A".repeat(200);
+  const checked = {
+    tests: [{ name: "HbA1c", key: "hba1c", display: "HbA1c", valueText: "6.8", value: 6.8, unit: "%", status: "high", standardValue: 6.8, organs: ["eyes"] }],
+    counts: { normal: 0, high: 1, low: 0, check: 0, unknown: 0 },
+    summary: "1 of 1 checked results are outside the range: HbA1c.",
+  };
+
+  test("reading passes the pages and the user's sex, and saves nothing", async () => {
+    const { agent } = await signIn();
+    ai.readLabReport.mockResolvedValue({ isLabReport: true, ...checked });
+    await agent("put", "/api/users/me").send({ gender: "female" });
+    const res = await agent("post", "/api/labs/read").send({ images: [IMG] }).expect(200);
+    expect(res.body.tests[0].status).toBe("high");
+    expect(ai.readLabReport.mock.calls[0][0].images).toHaveLength(1);
+    expect((await agent("get", "/api/labs").expect(200)).body).toHaveLength(0);
+  });
+
+  test("saving re-checks the rows on the AI service; statuses never come from the browser", async () => {
+    const { agent } = await signIn();
+    ai.evaluateLabs.mockResolvedValue(checked);
+    const sent = { reportDate: "2026-09-30", labName: "City Lab", tests: [{ name: "HbA1c", key: "hba1c", value: "6.8", unit: "%", refRange: "4-5.6", status: "normal" }] };
+    const saved = (await agent("post", "/api/labs").send(sent).expect(201)).body;
+    expect(saved.tests[0].status).toBe("high");
+    expect(ai.evaluateLabs.mock.calls[0][0].tests[0]).not.toHaveProperty("status");
+    const list = (await agent("get", "/api/labs").expect(200)).body;
+    expect(list).toHaveLength(1);
+    await agent("delete", `/api/labs/${saved._id}`).expect(200);
+    expect((await agent("get", "/api/labs").expect(200)).body).toHaveLength(0);
+  });
+
+  test("validates input and keeps reports private", async () => {
+    const { agent } = await signIn();
+    await agent("post", "/api/labs/read").send({ images: [] }).expect(400);
+    await agent("post", "/api/labs").send({ reportDate: "2999-01-01", tests: [{ name: "Hb", value: "13" }] }).expect(400);
+    ai.evaluateLabs.mockResolvedValue(checked);
+    const saved = (await agent("post", "/api/labs").send({ reportDate: "2026-09-30", tests: [{ name: "HbA1c", value: "6.8" }] }).expect(201)).body;
+    const other = await signIn();
+    await other.agent("delete", `/api/labs/${saved._id}`).expect(404);
+    expect((await other.agent("get", "/api/labs").expect(200)).body).toHaveLength(0);
   });
 });
