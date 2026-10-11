@@ -133,3 +133,18 @@
 .cp-sources a {
   text-decoration: underline;
 }
+/* Blinking cursor while an answer is still being written. */
+.cp-streaming > p:last-child::after,
+.cp-streaming > ul:last-child > li:last-child::after,
+.cp-streaming > ol:last-child > li:last-child::after {
+  content: "▍";
+  margin-left: 2px;
+  color: var(--ui-accent);
+  animation: cp-blink 1s steps(2) infinite;
+}
+@keyframes cp-blink {
+  50% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cp-streaming > p:last-child::after { animation: none; }
+}

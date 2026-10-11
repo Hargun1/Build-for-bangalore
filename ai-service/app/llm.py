@@ -22,7 +22,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional, Type
+from typing import Any, AsyncIterator, Optional, Type
 
 import httpx
 from cachetools import TTLCache
@@ -236,6 +236,108 @@ class LLMClient:
                     msgs[i] = {"role": "user", "content": parts}
                     break
         return msgs
+
+    async def stream(
+        self,
+        messages: list[dict],
+        *,
+        temperature: float = 0.5,
+        max_tokens: int = 900,
+        meta: Optional[dict] = None,
+        reasoning: Optional[str] = None,
+    ) -> AsyncIterator[str]:
+        """Yields the reply text piece by piece as the provider generates it.
+
+        Falls back across providers and models only until the first text arrives:
+        once words are on the user's screen the answer cannot switch models. If
+        `meta` is given, meta["source"] is set to "provider:model" when streaming
+        starts. `reasoning` overrides the provider's reasoning_effort (e.g. "minimal"
+        halves Gemini's time to first word: 0.96 s vs 2.26 s measured 2026-10-11).
+        Raises LLMUnavailable if no model starts.
+        """
+        providers = self.available_providers()
+        if not providers:
+            raise LLMUnavailable("No AI provider is configured" if not any(p.enabled for p in self.providers) else "All AI providers are resting or disabled")
+        errors: list[str] = []
+        for provider in providers:
+            st = self.state[provider.name]
+            extra = dict(provider.extra_body)
+            if reasoning and "reasoning_effort" in extra:
+                extra["reasoning_effort"] = reasoning
+            for model in self.ready_models(provider):
+                if st.disabled_reason:
+                    break
+                payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens, "stream": True, **extra}
+                headers = {"Authorization": f"Bearer {provider.api_key}", "Content-Type": "application/json", **provider.extra_headers}
+                st.calls += 1
+                started = False
+                try:
+                    async with self.http.stream("POST", f"{provider.base_url}/chat/completions", headers=headers, json=payload, timeout=self.timeout) as resp:
+                        if resp.status_code == 400 and extra:
+                            # Some models reject a reasoning level: retry this model once without extras.
+                            await resp.aread()
+                            payload = {k: v for k, v in payload.items() if k not in extra}
+                            async with self.http.stream("POST", f"{provider.base_url}/chat/completions", headers=headers, json=payload, timeout=self.timeout) as retry:
+                                async for piece in self._read_stream(retry, st, provider, model, meta, errors):
+                                    started = True
+                                    yield piece
+                            if started:
+                                st.last_ok_at = time.time()
+                                return
+                            continue
+                        if resp.status_code != 200:
+                            await resp.aread()
+                            if resp.status_code in (401, 403):
+                                st.disabled_reason = f"HTTP {resp.status_code}: check the API key"
+                                self._fail(st, st.disabled_reason)
+                                break
+                            if resp.status_code == 429:
+                                wait = retry_after_seconds(resp)
+                                st.model_resting_until[model] = time.time() + wait
+                                self._fail(st, f"{model} rate limited (429), resting {int(wait)}s")
+                            else:
+                                self._fail(st, f"stream HTTP {resp.status_code}")
+                            errors.append(f"{provider.name}/{model}: HTTP {resp.status_code}")
+                            continue
+                        async for piece in self._read_stream(resp, st, provider, model, meta, errors):
+                            started = True
+                            yield piece
+                except (httpx.TimeoutException, httpx.HTTPError) as exc:
+                    self._fail(st, f"stream {exc.__class__.__name__}")
+                    if started:
+                        raise LLMUnavailable("The answer was interrupted") from exc
+                    errors.append(f"{provider.name}/{model}: {exc.__class__.__name__}")
+                    continue
+                if started:
+                    st.last_ok_at = time.time()
+                    return
+                self._fail(st, "empty stream")
+                errors.append(f"{provider.name}/{model}: empty stream")
+        raise LLMUnavailable("; ".join(errors[-4:]) or "no provider answered")
+
+    async def _read_stream(self, resp, st, provider, model, meta, errors) -> AsyncIterator[str]:
+        """Yields text deltas from an OpenAI-style SSE response (skips metadata-only chunks)."""
+        if resp.status_code != 200:
+            await resp.aread()
+            self._fail(st, f"stream HTTP {resp.status_code}")
+            errors.append(f"{provider.name}/{model}: HTTP {resp.status_code}")
+            return
+        first = True
+        async for line in resp.aiter_lines():
+            if not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                break
+            try:
+                delta = json.loads(data)["choices"][0].get("delta", {}).get("content")
+            except (ValueError, KeyError, IndexError, TypeError):
+                continue
+            if delta:  # some chunks only carry provider metadata
+                if first and meta is not None:
+                    meta["source"] = f"{provider.name}:{model}"
+                first = False
+                yield delta
 
     async def _post(self, provider: ProviderConfig, payload: dict) -> httpx.Response:
         headers = {"Authorization": f"Bearer {provider.api_key}", "Content-Type": "application/json", **provider.extra_headers}

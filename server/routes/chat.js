@@ -17,6 +17,16 @@ const chatSchema = z.object({
   mode: z.enum(["general", "nutrition"]).default("general"),
 });
 
+async function buildPayload(req) {
+  const [user, avg] = await Promise.all([User.findById(req.user.id), recentAverages(req.user.id, 7)]);
+  return {
+    messages: req.body.messages.slice(-12),
+    mode: req.body.mode,
+    context: user ? aiContext(user) : undefined,
+    metricsSummary: metricsSummary(avg) || undefined,
+  };
+}
+
 // POST /api/chat: the conversation so far -> the assistant's next reply.
 router.post(
   "/",
@@ -24,14 +34,52 @@ router.post(
   aiLimiter,
   validate(chatSchema),
   asyncHandler(async (req, res) => {
-    const [user, avg] = await Promise.all([User.findById(req.user.id), recentAverages(req.user.id, 7)]);
-    const result = await ai.chat({
-      messages: req.body.messages.slice(-12),
-      mode: req.body.mode,
-      context: user ? aiContext(user) : undefined,
-      metricsSummary: metricsSummary(avg) || undefined,
+    res.json(await ai.chat(await buildPayload(req)));
+  })
+);
+
+const sseEvent = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+
+// POST /api/chat/stream: same reply as server-sent events (delta ... done | error),
+// relayed from the AI service as it is generated.
+router.post(
+  "/stream",
+  auth,
+  aiLimiter,
+  validate(chatSchema),
+  asyncHandler(async (req, res) => {
+    const payload = await buildPayload(req);
+    const controller = new AbortController();
+
+    res.status(200).set({
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no", // stop proxies (Render, nginx) from buffering the stream
     });
-    res.json(result);
+    res.flushHeaders();
+    // If the user closes the tab or presses Stop, stop the AI call too (saves free quota).
+    res.on("close", () => {
+      if (!res.writableEnded) controller.abort();
+    });
+
+    let upstream;
+    try {
+      upstream = await ai.chatStream(payload, controller.signal);
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        res.write(sseEvent("error", { message: err.message || "The AI assistant is unavailable right now." }));
+      }
+      res.end();
+      return;
+    }
+    upstream.on("error", () => {
+      if (!res.writableEnded) {
+        res.write(sseEvent("error", { message: "The answer was cut off. Please ask again.", partial: true }));
+        res.end();
+      }
+    });
+    upstream.pipe(res);
   })
 );
 

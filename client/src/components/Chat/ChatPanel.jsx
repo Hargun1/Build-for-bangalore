@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { errorMessage } from "../../services/api";
 import { sendChat } from "../../services/healthService";
+import { StreamUnsupported, streamChat } from "../../services/stream";
 import SourceBadge from "../Shared/SourceBadge";
 import RichText from "./RichText";
 import "./ChatPanel.css";
@@ -27,6 +28,7 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const endRef = useRef(null);
+  const abortRef = useRef(null);
 
   useEffect(() => {
     try {
@@ -37,27 +39,63 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, mode]);
 
+  // Replaces the last message (the assistant reply being written).
+  const updateLast = (patch) =>
+    setMessages((m) => {
+      const copy = m.slice();
+      copy[copy.length - 1] = { ...copy[copy.length - 1], ...(typeof patch === "function" ? patch(copy[copy.length - 1]) : patch) };
+      return copy;
+    });
+
   const send = async (text) => {
     const content = (text ?? input).trim();
     if (!content || busy) return;
     const next = [...messages, { role: "user", content }];
-    setMessages(next);
+    const history = next.slice(-12).map(({ role, content: c }) => ({ role, content: c }));
+    setMessages([...next, { role: "assistant", content: "", streaming: true }]);
     setInput("");
     setError("");
     setBusy(true);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    const finish = (data) =>
+      updateLast({ content: data.reply, redFlag: data.redFlag, source: data.aiSource, sources: data.sources || [], streaming: false });
+
     try {
-      const history = next.slice(-12).map(({ role, content: c }) => ({ role, content: c }));
-      const { data } = await sendChat(history, mode);
-      setMessages((m) => [...m, { role: "assistant", content: data.reply, redFlag: data.redFlag, source: data.aiSource, sources: data.sources || [] }]);
+      // Words appear as they are generated; the final event carries the citation-checked text.
+      const data = await streamChat(history, mode, {
+        signal: controller.signal,
+        onDelta: (piece) => updateLast((last) => ({ content: last.content + piece })),
+        onFlag: (redFlag) => updateLast({ redFlag }),
+      });
+      finish(data);
     } catch (err) {
-      setError(errorMessage(err, "The assistant couldn't answer right now."));
-      // Put the question back so the user can retry with one click.
-      setMessages((m) => m.slice(0, -1));
-      setInput(content);
+      if (err.name === "AbortError") {
+        updateLast((last) => ({ content: last.content ? `${last.content} …(stopped)` : "(stopped)", streaming: false }));
+      } else if (err instanceof StreamUnsupported) {
+        try {
+          finish((await sendChat(history, mode)).data); // no streaming available: plain request
+        } catch (inner) {
+          fail(inner);
+        }
+      } else {
+        fail(err);
+      }
     } finally {
+      abortRef.current = null;
       setBusy(false);
     }
+
+    function fail(err) {
+      setError(err.response ? errorMessage(err, "The assistant couldn't answer right now.") : err.message);
+      // Remove the empty reply and put the question back so it can be retried in one click.
+      setMessages((m) => m.slice(0, -2));
+      setInput(content);
+    }
   };
+
+  const stop = () => abortRef.current?.abort();
 
   const onKey = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -99,7 +137,11 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
                 </div>
               </div>
             )}
-            <div className="cp-bubble">{m.role === "assistant" ? <RichText text={m.content} sources={m.sources} /> : m.content}</div>
+            {!(m.streaming && !m.content) && (
+              <div className={`cp-bubble ${m.streaming ? "cp-streaming" : ""}`}>
+                {m.role === "assistant" ? <RichText text={m.content} sources={m.sources} /> : m.content}
+              </div>
+            )}
             {m.sources?.length > 0 && (
               <div className="cp-sources">
                 <span className="ui-faint">Sources</span>
@@ -120,7 +162,7 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
           </div>
         ))}
 
-        {busy && (
+        {busy && messages[messages.length - 1]?.streaming && !messages[messages.length - 1].content && (
           <div className="cp-msg cp-assistant">
             <div className="cp-bubble cp-typing" aria-label="Assistant is typing">
               <span />
@@ -156,7 +198,11 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
           aria-label="Your message"
         />
         <div className="ui-stack" style={{ gap: "0.4rem" }}>
-          <button className="ui-btn ui-btn-primary" disabled={busy || !input.trim()}>Send</button>
+          {busy ? (
+            <button type="button" className="ui-btn" onClick={stop}>Stop</button>
+          ) : (
+            <button className="ui-btn ui-btn-primary" disabled={!input.trim()}>Send</button>
+          )}
           {messages.length > 0 && (
             <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => setMessages([])} disabled={busy}>
               Clear

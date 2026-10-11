@@ -6,6 +6,7 @@ jest.mock("../services/emailService", () => ({
 jest.mock("../services/aiService", () => ({
   riskAssess: jest.fn(),
   chat: jest.fn(),
+  chatStream: jest.fn(),
   goalPlan: jest.fn(),
   triage: jest.fn(),
   analyzeMeal: jest.fn(),
@@ -160,5 +161,37 @@ describe("appointments", () => {
     const ics = await agent("get", `/api/appointments/${list.body.upcoming[0]._id}/ics`).expect(200);
     expect(ics.text).toContain("BEGIN:VCALENDAR");
     expect(ics.text).toContain("TRIGGER:-P1D");
+  });
+});
+
+describe("streaming chat", () => {
+  const { Readable } = require("stream");
+
+  test("relays the AI service's events to the browser as they arrive", async () => {
+    const { agent } = await signIn();
+    ai.chatStream.mockResolvedValue(
+      Readable.from(['event: delta\ndata: {"text":"Drink "}\n\n', 'event: delta\ndata: {"text":"ORS."}\n\n', 'event: done\ndata: {"reply":"Drink ORS.","sources":[]}\n\n'])
+    );
+    const res = await agent("post", "/api/chat/stream").send({ messages: [{ role: "user", content: "loose motions" }] }).expect(200);
+    expect(res.headers["content-type"]).toMatch(/text\/event-stream/);
+    expect(res.text).toContain('"text":"Drink "');
+    expect(res.text).toContain("event: done");
+    const payload = ai.chatStream.mock.calls[0][0];
+    expect(payload.messages).toHaveLength(1);
+    expect(payload.context).not.toHaveProperty("email");
+  });
+
+  test("turns an AI-service failure into an error event", async () => {
+    const { agent } = await signIn();
+    ai.chatStream.mockRejectedValue(new Error("The AI service is unreachable right now."));
+    const res = await agent("post", "/api/chat/stream").send({ messages: [{ role: "user", content: "hi" }] }).expect(200);
+    expect(res.text).toMatch(/^event: error\ndata: .*unreachable/);
+  });
+
+  test("still validates and requires login", async () => {
+    const request = require("supertest");
+    await request(app).post("/api/chat/stream").send({ messages: [{ role: "user", content: "hi" }] }).expect(401);
+    const { agent } = await signIn();
+    await agent("post", "/api/chat/stream").send({ messages: [{ role: "assistant", content: "hi" }] }).expect(400);
   });
 });

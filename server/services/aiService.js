@@ -31,8 +31,20 @@ async function call(path, payload) {
   }
 }
 
+// Returns the AI service's SSE response body as a Node stream (the caller pipes it on).
+async function chatStream(payload, signal) {
+  try {
+    const res = await client.post("/chat/stream", payload, { responseType: "stream", signal, timeout: 0 });
+    return res.data;
+  } catch (err) {
+    if (err.response) throw new HttpError(err.response.status >= 500 ? 502 : err.response.status, `AI service error (${err.response.status})`);
+    throw new HttpError(503, "The AI service is unreachable right now. Please try again in a minute.");
+  }
+}
+
 module.exports = {
   call,
+  chatStream,
   health: () => client.get("/health", { timeout: 10000 }).then((r) => r.data),
   riskAssess: (p) => call("/risk/assess", p),
   chat: (p) => call("/chat", p),
