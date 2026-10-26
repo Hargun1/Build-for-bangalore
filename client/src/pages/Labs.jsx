@@ -7,6 +7,7 @@ import SourceBadge from "../components/Shared/SourceBadge";
 import { errorMessage } from "../services/api";
 import { deleteLabReport, getLabReports, readLabReport, saveLabReport } from "../services/healthService";
 import { filesToPages, MAX_PAGES } from "../utils/reportPages";
+import { CHART, tooltipStyle } from "../utils/chartTheme";
 import "./Labs.css";
 
 const STATUS = {
@@ -338,12 +339,12 @@ function Trends({ reports }) {
       <div style={{ height: 240 }}>
         <ResponsiveContainer>
           <LineChart data={s.points} margin={{ top: 10, right: 16, bottom: 0, left: -10 }}>
-            <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+            <CartesianGrid stroke={CHART.grid} vertical={false} />
             <XAxis dataKey="date" tickFormatter={fmt} stroke="#6b7385" fontSize={12} />
             <YAxis stroke="#6b7385" fontSize={12} domain={domain} />
             {band && <ReferenceArea y1={band.low ?? undefined} y2={band.high ?? undefined} fill="#4ade80" fillOpacity={0.08} />}
-            <Tooltip contentStyle={{ background: "#0f131c", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8 }} labelFormatter={fmt} formatter={(v) => [`${v} ${s.unit}`, s.name]} />
-            <Line type="monotone" dataKey="value" stroke="#22d3ee" strokeWidth={2} dot={{ r: 4, fill: "#22d3ee" }} isAnimationActive={false} />
+            <Tooltip {...tooltipStyle} labelFormatter={fmt} formatter={(v) => [`${v} ${s.unit}`, s.name]} />
+            <Line type="monotone" dataKey="value" stroke={CHART.series[2]} strokeWidth={2} dot={{ r: 4, fill: CHART.series[2] }} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

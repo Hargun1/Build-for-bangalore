@@ -158,7 +158,7 @@
   margin-right: 0.3rem;
   border-radius: 999px;
   border: 0;
-  background: rgba(255, 255, 255, 0.15);
+  background: #d7dee7;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -170,7 +170,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #cbd5e1;
+  background: #ffffff;
   transition: transform 0.2s;
 }
 .rm-switch.on {

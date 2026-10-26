@@ -9,7 +9,7 @@
 .gb-system { display: block; font-size: 10px; text-transform: uppercase; font-weight: 550; color: var(--ui-text-faint); margin: 20px 8px 8px; }
 .gb-organ { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; border-radius: 4px; background: transparent; color: var(--ui-text-dim); font-size: 12px; text-align: left; padding: 9px 8px; min-height: 36px; }
 .gb-organ:hover { background: var(--ui-surface); }
-.gb-organ.active { color: var(--ui-accent); background: #a6dfbf10; }
+.gb-organ.active { color: var(--ui-accent); background: var(--ui-blue); }
 .gb-dot { display: inline-block; width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: #919c94; }
 .gb-good { background: var(--ui-good); }.gb-warn { background: var(--ui-warn); }.gb-bad { background: var(--ui-bad); }.gb-none { background: #919c94; }
 .gb-viewer { min-width: 0; width: 100%; position: relative; }
@@ -18,8 +18,8 @@
 .gb-toolbar .ui-tabs button { padding: 6px 10px; }
 .gb-camera-tools { display: flex; align-items: center; gap: 1px; }
 .gb-camera-tools .ui-icon-btn { width: 30px; height: 32px; min-height: 32px; }
-.gb-camera-tools .active { color: var(--ui-accent); background: #a6dfbf15; }
-.gb-canvas { position: relative; height: 630px; width: 100%; touch-action: none; }
+.gb-camera-tools .active { color: var(--ui-accent); background: var(--ui-blue); }
+.gb-canvas { position: relative; height: 630px; width: 100%; touch-action: none; background: #eff3f5; }
 .gb-canvas canvas { display: block; outline: none; }
 .gb-orientation { position: absolute; top: 45%; font-size: 11px; color: var(--ui-text-faint); border: 1px solid var(--ui-border); padding: 3px 6px; border-radius: 4px; pointer-events: none; }
 .gb-orientation-left { left: 16px; }.gb-orientation-right { right: 16px; }
@@ -27,7 +27,7 @@
 .gb-layer-controls .ui-check { font-size: 11px; color: var(--ui-text-dim); }
 .gb-layer-controls input { width: 14px; height: 14px; }
 .gb-model-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 170px; font-size: 12px; color: var(--ui-text-faint); }
-.gb-tooltip { display: inline-block; padding: 5px 9px; background: #111513; border: 1px solid var(--ui-border-strong); border-radius: 4px; color: var(--ui-text); white-space: nowrap; font-size: 11px; }
+.gb-tooltip { display: inline-block; padding: 5px 9px; background: var(--ui-surface); border: 1px solid var(--ui-border-strong); border-radius: 4px; color: var(--ui-text); white-space: nowrap; font-size: 11px; }
 .gb-panel { min-width: 0; padding: 24px 0 24px 22px; border-left: 1px solid var(--ui-border); align-self: stretch; }
 .gb-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
 .gb-panel-head .gb-system { margin: 0 0 6px; }

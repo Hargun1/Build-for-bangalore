@@ -23,7 +23,7 @@ const Reminders = lazy(() => import("./pages/Reminders"));
 
 function PageLoader() {
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#171a19", color: "#b2bab4" }}>
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#f6f8fa", color: "#536273" }}>
       <span>Loading…</span>
     </div>
   );

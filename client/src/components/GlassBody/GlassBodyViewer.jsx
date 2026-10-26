@@ -111,7 +111,7 @@ export default function GlassBodyViewer({ body = "male", insights, selectedOrgan
           <directionalLight position={[2,3,4]} intensity={2.3} color="#fff8ef" />
           <directionalLight position={[-3,1,-2]} intensity={1.5} color="#dcebe6" />
           <Suspense fallback={<LoadingModel />}>
-            {layers.skeleton && <Model file="male_human_skeleton_-_zbrush_-_anatomy_study.glb" size={1.8} color="#b6c7bc" opacity={.18} passive />}
+            {layers.skeleton && <Model file="male_human_skeleton_-_zbrush_-_anatomy_study.glb" size={1.8} color="#607b83" opacity={.32} passive />}
             {layers.muscles && <Model file="male_body_muscular_system_-_anatomy_study.glb" size={1.8} color="#b79184" opacity={.1} passive />}
             {layers.organs && organKeys(body).map((id) => <Organ key={id} id={id} selected={selectedOrgan === id} onSelect={onSelectOrgan} healthColors={healthColors} score={insights?.riskScores?.[id]} dimmed={isolate && selectedOrgan && id !== selectedOrgan} moving={moving} />)}
           </Suspense>

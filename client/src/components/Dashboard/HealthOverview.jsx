@@ -14,8 +14,8 @@ const fmt = (v, digits = 0) => (v == null ? "–" : Number(v).toLocaleString("en
 
 function Tile({ label, value, unit, sub, icon: Icon, tone }) {
   return (
-    <div className="ui-stat" style={{ "--metric-tone": tone }}>
-      <div className="ui-stat-label">{Icon && <Icon />}{label}</div>
+    <div className={`ui-stat overview-metric ${tone}`}>
+      <div className="ui-stat-label">{Icon && <span className="metric-icon"><Icon /></span>}{label}</div>
       <div className="ui-stat-value">
         {value}
         {unit && value !== "–" && <small>{unit}</small>}
@@ -92,7 +92,7 @@ function MiniTrend({ title, data, dataKey, unit, kind = "line", color }) {
             <CartesianGrid vertical={false} stroke={CHART.grid} />
             <XAxis dataKey="label" {...axisProps} interval="preserveStartEnd" />
             <YAxis {...axisProps} width={48} tickFormatter={compactNumber} />
-            <Tooltip {...tooltipStyle} cursor={{ fill: "rgba(255,255,255,0.04)" }} formatter={(v) => [`${fmt(v)} ${unit}`, title]} />
+            <Tooltip {...tooltipStyle} cursor={{ fill: "#315fb510" }} formatter={(v) => [`${fmt(v)} ${unit}`, title]} />
             <Bar dataKey={dataKey} fill={color} radius={[4, 4, 0, 0]} maxBarSize={22} />
           </BarChart>
         ) : (
@@ -169,7 +169,7 @@ export default function HealthOverview() {
   if (loading) return <div className="ui-loading"><span className="ui-spinner" /> Loading your health data…</div>;
 
   return (
-    <div className="ui-stack" style={{ gap: "1.25rem" }}>
+    <div className="ui-stack health-overview" style={{ gap: "1.5rem" }}>
       {error && <div className="ui-alert ui-alert-error" role="alert">{error}</div>}
 
       {missingProfile.length > 0 && (
@@ -184,18 +184,18 @@ export default function HealthOverview() {
         </div>
       )}
 
-      <section>
+      <section className="overview-today">
         <div className="ui-card-title">
-          <h2 style={{ fontSize: "1.2rem" }}>Today</h2>
+          <div><h2 style={{ fontSize: "1.1rem" }}>Your daily snapshot</h2><span className="ui-faint">Today & your 7-day averages</span></div>
           <button className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => setLogOpen(true)}><Plus /> Log today</button>
         </div>
         <div className="ui-grid overview-metrics">
-          <Tile label="Steps" icon={Footprints} tone="#a6dfbf" value={fmt(m.steps)} sub={`7-day avg ${fmt(avg.steps)}`} />
-          <Tile label="Sleep" icon={Moon} tone="#9fc9e9" value={fmt(m.sleepHours, 1)} unit="h" sub={`7-day avg ${fmt(avg.sleepHours, 1)} h`} />
-          <Tile label="Resting heart rate" icon={HeartPulse} tone="#ed9891" value={fmt(m.restingHeartRate)} unit="bpm" sub={m.source === "bluetooth" ? "from Bluetooth monitor" : `7-day avg ${fmt(avg.restingHeartRate)}`} />
-          <Tile label="Blood pressure" icon={Activity} tone="#d6b3cb" value={m.systolic ? `${m.systolic}/${m.diastolic ?? "?"}` : "–"} unit="mmHg" sub={avg.systolic ? `7-day avg ${fmt(avg.systolic)}/${fmt(avg.diastolic)}` : "Not logged this week"} />
-          <Tile label="Food logged" icon={Utensils} tone="#e8c17b" value={fmt(today?.caloriesEaten)} unit="kcal" sub={<Link to="/grocery?tab=log" style={{ textDecoration: "underline" }}>{today?.meals ? `${today.meals} meal(s) logged` : "View food diary"}</Link>} />
-          <Tile label="Water" icon={Droplets} tone="#9fc9e9" value={fmt(m.waterLitres, 1)} unit="L" sub={`7-day avg ${fmt(avg.waterLitres, 1)} L`} />
+          <Tile label="Steps" icon={Footprints} tone="mint" value={fmt(m.steps)} sub={`7-day avg ${fmt(avg.steps)}`} />
+          <Tile label="Sleep" icon={Moon} tone="lilac" value={fmt(m.sleepHours, 1)} unit="h" sub={`7-day avg ${fmt(avg.sleepHours, 1)} h`} />
+          <Tile label="Resting heart rate" icon={HeartPulse} tone="rose" value={fmt(m.restingHeartRate)} unit="bpm" sub={m.source === "bluetooth" ? "from Bluetooth monitor" : `7-day avg ${fmt(avg.restingHeartRate)}`} />
+          <Tile label="Blood pressure" icon={Activity} tone="blue" value={m.systolic ? `${m.systolic}/${m.diastolic ?? "?"}` : "–"} unit="mmHg" sub={avg.systolic ? `7-day avg ${fmt(avg.systolic)}/${fmt(avg.diastolic)}` : "Not logged this week"} />
+          <Tile label="Food logged" icon={Utensils} tone="peach" value={fmt(today?.caloriesEaten)} unit="kcal" sub={<Link to="/grocery?tab=log" style={{ textDecoration: "underline" }}>{today?.meals ? `${today.meals} meal(s) logged` : "View food diary"}</Link>} />
+          <Tile label="Water" icon={Droplets} tone="aqua" value={fmt(m.waterLitres, 1)} unit="L" sub={`7-day avg ${fmt(avg.waterLitres, 1)} L`} />
         </div>
         {!today?.metrics && <p className="ui-faint" style={{ marginTop: "0.6rem" }}>Nothing logged today yet. Log a few numbers, or connect a heart-rate monitor on the Vitals page.</p>}
       </section>
@@ -265,9 +265,9 @@ export default function HealthOverview() {
       {series.length >= 2 ? (
         <section className="ui-grid ui-grid-2">
           <MiniTrend title="Steps" data={series} dataKey="steps" unit="steps" kind="bar" color={CHART.series[0]} />
-          <MiniTrend title="Sleep" data={series} dataKey="sleepHours" unit="h" color={CHART.series[0]} />
-          <MiniTrend title="Systolic blood pressure" data={series} dataKey="systolic" unit="mmHg" color={CHART.series[0]} />
-          <MiniTrend title="Weight" data={series} dataKey="weightKg" unit="kg" color={CHART.series[0]} />
+          <MiniTrend title="Sleep" data={series} dataKey="sleepHours" unit="h" color={CHART.series[1]} />
+          <MiniTrend title="Systolic blood pressure" data={series} dataKey="systolic" unit="mmHg" color={CHART.series[2]} />
+          <MiniTrend title="Weight" data={series} dataKey="weightKg" unit="kg" color={CHART.series[3]} />
         </section>
       ) : (
         <div className="overview-empty-trends"><ChartNoAxesCombined /><div><strong>Your patterns, over time</strong><p>Trends will appear after two days of health logs.</p></div></div>

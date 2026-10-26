@@ -1,20 +1,18 @@
-// Chart colours for the app's dark surface, taken from the validated reference
-// palette (dark steps). Categorical slots are used in this fixed order; status
-// colours are reserved for good/warning/critical states only.
+// Categorical chart colours are separate from clinical status colours.
 export const CHART = {
-  series: ["#a6dfbf", "#9fc9e9", "#ed9891", "#e8c17b"],
-  grid: "rgba(255,255,255,0.07)",
-  axis: "#919c94",
-  text: "#c3c2b7",
-  surface: "#1f2321",
-  status: { good: "#a6dfbf", warn: "#e8c17b", bad: "#ed9891" },
+  series: ["#3b8271", "#8564ad", "#4f79ba", "#b66a61"],
+  grid: "#e1e7ed",
+  axis: "#647183",
+  text: "#243240",
+  surface: "#ffffff",
+  status: { good: "#20745b", warn: "#896017", bad: "#b13d4d" },
 };
 
 export const tooltipStyle = {
-  contentStyle: { background: CHART.surface, border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, color: "#e8eaf0", fontSize: 12 },
+  contentStyle: { background: CHART.surface, border: `1px solid ${CHART.grid}`, borderRadius: 6, color: CHART.text, fontSize: 12 },
   labelStyle: { color: CHART.text },
-  itemStyle: { color: "#e8eaf0" },
-  cursor: { stroke: "rgba(255,255,255,0.25)", strokeWidth: 1 },
+  itemStyle: { color: CHART.text },
+  cursor: { stroke: "#b8c8dc", strokeWidth: 1 },
 };
 
 export const axisProps = {

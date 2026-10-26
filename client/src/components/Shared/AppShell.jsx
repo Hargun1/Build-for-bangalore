@@ -87,7 +87,7 @@ export default function AppShell({ title, subtitle, actions, children, className
           <div className="app-breadcrumb"><button className="ui-btn ui-btn-ghost ui-icon-btn app-menu-button" onClick={() => setMenu(true)} title="Open navigation" aria-label="Open navigation" aria-expanded={menu}><Menu /></button><span>My health</span><ChevronRight size={14} /><span>{current?.label || title}</span></div>
           <div className="app-topbar-actions">
             <span className="app-date">{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</span>
-            <button className="ui-btn ui-btn-ghost app-search-button" title="Find a page" aria-label="Find a page" onClick={() => { setQuery(""); setSearch(true); }}><Search /><span>Find a page</span><kbd>Ctrl K</kbd></button>
+            <button className="ui-btn ui-btn-ghost app-search-button" title="Find a page" aria-label="Find a page" onClick={() => { setQuery(""); setSearch(true); }}><Search /><span>Find a page</span></button>
             <Link to="/reminders" className="ui-btn ui-btn-ghost ui-icon-btn" title="Reminders" aria-label="Reminders"><Bell /></Link>
           </div>
         </header>
