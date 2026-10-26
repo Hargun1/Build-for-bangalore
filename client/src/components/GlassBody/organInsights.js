@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getExposomeHistory, getLabReports, getPredictions, getToday } from "../../services/healthService";
 
-// 3D colour intensity per risk level; null means "no data" (shown neutral blue).
+// Optional health colours: null means no linked assessment (shown neutral grey).
 const LEVEL_RISK = { low: 0.2, moderate: 0.55, high: 0.85 };
 const worst = (...levels) => {
   const known = levels.filter((l) => LEVEL_RISK[l] != null);
@@ -134,6 +134,11 @@ export function useOrganInsights() {
 
 // General, well-established information shown alongside the user's own numbers.
 export const ORGAN_INFO = {
+  thyroid: { name: "Thyroid", about: "A small gland at the front of the neck. Its hormones help regulate how the body uses energy.", tips: [] },
+  spleen: { name: "Spleen", about: "An organ in the upper left abdomen, behind the stomach. It filters blood and supports the immune system.", tips: [] },
+  pancreas: { name: "Pancreas", about: "A gland behind the stomach. It produces digestive enzymes and hormones that help regulate blood glucose.", tips: [] },
+  gallbladder: { name: "Gallbladder", about: "A small sac beneath the liver. It stores bile and releases it into the small intestine during digestion.", tips: [] },
+  bladder: { name: "Bladder", about: "A hollow organ in the pelvis that stores urine arriving from the kidneys through the ureters.", tips: [] },
   heart: { name: "Heart", icon: "❤️", about: "Pumps about 7,000 litres of blood a day. High blood pressure, smoking, diabetes and inactivity are the main risks you can change.", tips: ["Aim for 150 minutes of brisk walking a week", "Keep salt under 5 g a day (about one teaspoon)", "Check blood pressure at least once a year after 30"] },
   lungs: { name: "Lungs", icon: "🫁", about: "Move about 10,000 litres of air a day. Outdoor PM2.5 and smoking are the biggest preventable harms in Indian cities.", tips: ["Exercise outdoors when the AQI is under 100", "Wear an N95 on poor-air days", "Avoid smoking and second-hand smoke"] },
   liver: { name: "Liver", icon: "🫀", about: "Filters blood and stores energy. Fatty liver disease is common in India and is closely tied to belly fat and sugary diets.", tips: ["Cut sugary drinks and refined snacks", "Lose 5-10% of body weight if overweight", "Limit alcohol"] },

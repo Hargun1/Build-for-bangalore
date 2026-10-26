@@ -15,6 +15,9 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     tokenStore.clear();
+    try {
+      Object.keys(sessionStorage).filter((key) => key.startsWith("pranexus-chat-")).forEach((key) => sessionStorage.removeItem(key));
+    } catch { /* Storage can be unavailable in private browsing. */ }
     setUser(null);
   }, []);
 

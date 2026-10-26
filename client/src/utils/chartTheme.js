@@ -2,12 +2,12 @@
 // palette (dark steps). Categorical slots are used in this fixed order; status
 // colours are reserved for good/warning/critical states only.
 export const CHART = {
-  series: ["#3987e5", "#d95926", "#199e70", "#c98500"],
+  series: ["#a6dfbf", "#9fc9e9", "#ed9891", "#e8c17b"],
   grid: "rgba(255,255,255,0.07)",
-  axis: "#6b7385",
+  axis: "#919c94",
   text: "#c3c2b7",
-  surface: "#12151c",
-  status: { good: "#4ade80", warn: "#fbbf24", bad: "#f87171" },
+  surface: "#1f2321",
+  status: { good: "#a6dfbf", warn: "#e8c17b", bad: "#ed9891" },
 };
 
 export const tooltipStyle = {

@@ -14,7 +14,7 @@ export default function SOSButton({ onTrigger, onCancel, isActive, emergencyType
   const circumference = 2 * Math.PI * 108; // ring radius
 
   const startHold = useCallback(() => {
-    if (countdown !== null) return; // already in countdown
+    if (countdown !== null || holdTimer.current) return; // already in countdown
     setHolding(true);
     startTime.current = Date.now();
 
@@ -25,6 +25,7 @@ export default function SOSButton({ onTrigger, onCancel, isActive, emergencyType
 
       if (pct >= 1) {
         clearInterval(holdTimer.current);
+        holdTimer.current = null;
         setHolding(false);
         setProgress(0);
         startCountdown();
@@ -97,16 +98,16 @@ export default function SOSButton({ onTrigger, onCancel, isActive, emergencyType
             style={{ textAlign: 'center' }}
           >
             <div className="sos-countdown">{countdown}</div>
-            <p style={{ color: '#ef5350', fontSize: '1rem', fontWeight: 600, marginTop: '0.5rem' }}>
-              🚨 Emergency activating in {countdown} seconds...
+            <p style={{ color: 'var(--ui-bad)', fontSize: '1rem', fontWeight: 600, marginTop: '0.5rem' }}>
+              Emergency activating in {countdown} seconds...
             </p>
             {emergencyType && (
-              <p style={{ color: '#ffa726', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+              <p style={{ color: 'var(--ui-warn)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
                 Detected: {emergencyType}
               </p>
             )}
             <button className="sos-cancel-btn" onClick={cancelCountdown}>
-              ✕ Cancel Emergency
+              Cancel emergency
             </button>
           </motion.div>
         ) : (
@@ -145,9 +146,12 @@ export default function SOSButton({ onTrigger, onCancel, isActive, emergencyType
                 onPointerDown={startHold}
                 onPointerUp={endHold}
                 onPointerLeave={endHold}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                animate={holding ? { boxShadow: '0 0 80px rgba(239, 83, 80, 0.6)' } : {}}
+                onPointerCancel={endHold}
+                onBlur={endHold}
+                onKeyDown={(e) => { if (["Enter", " "].includes(e.key)) { e.preventDefault(); if (!e.repeat) startHold(); } }}
+                onKeyUp={(e) => { if (["Enter", " "].includes(e.key)) { e.preventDefault(); endHold(); } }}
+                aria-label="Hold for two seconds to start emergency SOS"
+                aria-pressed={holding}
               >
                 SOS
                 <span className="sos-button-sub">HOLD TO TRIGGER</span>

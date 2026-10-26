@@ -115,7 +115,7 @@ export default function Profile() {
   );
 
   return (
-    <AppShell title="Profile & settings" subtitle="Your details power the risk scores. Nothing here is shared with anyone else.">
+    <AppShell title="Profile & settings" subtitle="Your details, health profile and preferences.">
       {params.get("welcome") && (
         <div className="ui-alert ui-alert-info" style={{ marginBottom: "1rem" }}>
           <strong>Welcome! One step left.</strong>

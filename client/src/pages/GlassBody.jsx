@@ -1,123 +1,40 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { FileText, Search } from "lucide-react";
 import AppShell from "../components/Shared/AppShell";
 import GlassBodyViewer from "../components/GlassBody/GlassBodyViewer";
-import GlassBodyViewerFemale from "../components/GlassBody/GlassBodyViewerFemale";
-import { ORGAN_INFO, useOrganInsights } from "../components/GlassBody/organInsights";
+import OrganInfoPanel from "../components/GlassBody/OrganInfoPanel";
+import { useOrganInsights } from "../components/GlassBody/organInsights";
+import { ANATOMY, organKeys, riskTone } from "../components/GlassBody/anatomyLayout";
 import { useAuth } from "../context/AuthContext";
 import "../components/GlassBody/GlassBody.css";
-
-const ORGANS = {
-  male: ["brain", "eyes", "heart", "lungs", "liver", "stomach", "digestive", "kidneyL"],
-  female: ["brain", "eyes", "heart", "lungs", "liver", "stomach", "digestive", "kidneyL", "uterus", "ovaryL"],
-};
-// Same thresholds as the 3D materials, so the list and the model always agree.
-const tone = (score) => (score == null ? "none" : score > 0.7 ? "bad" : score > 0.4 ? "warn" : "good");
-const LEGEND = [
-  ["good", "Healthy range"],
-  ["warn", "Watch"],
-  ["bad", "High risk"],
-  ["none", "No data yet"],
-];
-const fmt = (d) => new Date(`${d}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-
-function LabPill({ labs }) {
-  if (!labs) return null;
-  if (!labs.count) {
-    return (
-      <Link to="/labs" className="gb-pill gb-glass">
-        <span aria-hidden="true">🧪</span> Add a blood test to colour organs with real lab results →
-      </Link>
-    );
-  }
-  const off = labs.outOfRange.length;
-  return (
-    <Link to="/labs" className={`gb-pill gb-glass ${off ? "gb-pill-warn" : ""}`}>
-      <span className={`gb-dot gb-${off ? "bad" : "good"}`} />
-      Lab report {fmt(labs.latestDate)} · {off ? `${off} result${off > 1 ? "s" : ""} out of range` : "all results in range"} →
-    </Link>
-  );
-}
 
 export default function GlassBody() {
   const { user } = useAuth();
   const [body, setBody] = useState(user?.gender === "female" ? "female" : "male");
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState("heart");
+  const [query, setQuery] = useState("");
   const insights = useOrganInsights();
-  const scores = insights.riskScores || {};
-  const Viewer = body === "male" ? GlassBodyViewer : GlassBodyViewerFemale;
-
-  return (
-    <AppShell
-      title="Your body"
-      subtitle="Organs are coloured by your own data: lab results, risk analysis, logs and air quality. Click one to see the numbers behind its colour."
-      actions={
-        <div className="ui-tabs" role="tablist" aria-label="Body model">
-          {["male", "female"].map((b) => (
-            <button key={b} role="tab" aria-selected={body === b} className={body === b ? "active" : ""} onClick={() => { setBody(b); setSelected(null); }}>
-              {b === "male" ? "Male model" : "Female model"}
-            </button>
-          ))}
-        </div>
-      }
-    >
-      <div className={`gb-stage gb-stage-${body}`}>
-        <Viewer insights={insights} selectedOrgan={selected} onSelectOrgan={setSelected} />
-
-        <div className="gb-top">
-          {!insights.loading && <LabPill labs={insights.labs} />}
-        </div>
-
-        <nav className="gb-organs gb-glass" aria-label="Organs">
-          <div className="gb-eyebrow">Organs</div>
-          {ORGANS[body].map((k) => (
-            <button key={k} type="button" className={`gb-organ ${selected === k ? "active" : ""}`} aria-pressed={selected === k} onClick={() => setSelected(selected === k ? null : k)}>
-              <span className={`gb-dot gb-${tone(scores[k])}`} />
-              <span>{ORGAN_INFO[k].name}</span>
-              {(insights.organs?.[k] || []).some((r) => r.lab) && <span className="gb-tag">LAB</span>}
-            </button>
-          ))}
-        </nav>
-
-        <div className="gb-legend gb-glass" aria-label="Colour legend">
-          {LEGEND.map(([t, label]) => (
-            <span key={t}><span className={`gb-dot gb-${t}`} /> {label}</span>
-          ))}
-        </div>
-
-        <div className="gb-hint" aria-hidden="true">Drag to rotate · Scroll to zoom · Click an organ</div>
-        {insights.loading && <div className="gb-loading gb-glass"><span className="ui-spinner" /> Loading your data…</div>}
-      </div>
-
-      {insights.labs?.other?.length > 0 && (
-        <section className="ui-card gb-other">
-          <div className="ui-row">
-            <h2 className="ui-card-title" style={{ margin: 0 }}>Other blood results</h2>
-            <div className="ui-spacer" />
-            <Link to="/labs" className="ui-btn ui-btn-sm">All lab reports</Link>
-          </div>
-          <p className="ui-faint">Tests that aren't tied to one organ, from your latest reports.</p>
-          <div className="gb-other-grid">
-            {insights.labs.other.map((r) => (
-              <div key={r.label} className={`gb-other-item gb-row-${r.level === "low" ? "good" : r.level === "high" ? "bad" : "warn"}`}>
-                <div className="ui-faint">{r.label}</div>
-                <strong>{r.value}</strong>
-                {r.hint && <div className="ui-small ui-muted">{r.hint}</div>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {!insights.loading && !insights.analysedAt && !insights.labs?.count && (
-        <div className="ui-alert ui-alert-info" style={{ marginTop: "0.75rem" }}>
-          The organs are blue because there's no data yet. <Link to="/labs">Add a lab report</Link> or run the risk analysis on your <Link to="/dashboard">dashboard</Link>.
-        </div>
-      )}
-      <p className="ui-faint" style={{ marginTop: "0.6rem" }}>
-        3D models from Sketchfab under CC BY 4.0 by adimed, 3DRT STUDIOS, DEGUIDER, ElliotSS, Ruslan Gadzhiev, Safiya and neshallads.{" "}
-        <a href="https://github.com/Hargun1/Build-for-bangalore#data-and-credits" target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>Full credits</a>
-      </p>
-    </AppShell>
-  );
+  const keys = useMemo(() => organKeys(body).filter((k) => `${ANATOMY[k].name} ${ANATOMY[k].system}`.toLowerCase().includes(query.toLowerCase())), [body, query]);
+  return <AppShell className="body-page" title="Body explorer" subtitle="Anatomy and your related health measurements."
+    actions={<div className="ui-tabs" role="tablist" aria-label="Body model">{["male","female"].map((b) => <button key={b} role="tab" aria-selected={body === b} className={body === b ? "active" : ""} onClick={() => { setBody(b); setSelected("heart"); }}>{b === "male" ? "Male" : "Female"}</button>)}</div>}>
+    <div className="gb-statusbar"><span>{organKeys(body).length} anatomical regions</span><span className="ui-spacer" /><Link to="/labs"><FileText />{insights.labs?.count ? `${insights.labs.count} lab reports linked` : "Add lab results"}</Link></div>
+    <div className="gb-layout">
+      <aside className="gb-organ-sidebar">
+        <label className="gb-search"><Search /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find an organ" aria-label="Find an organ" /></label>
+        <nav className="gb-organ-list" aria-label="Organs">{keys.map((key, i) => <div key={key}>
+          {(i === 0 || ANATOMY[key].system !== ANATOMY[keys[i-1]].system) && <h2 className="gb-system">{ANATOMY[key].system}</h2>}
+          <button className={`gb-organ ${selected === key ? "active" : ""}`} aria-pressed={selected === key} onClick={() => setSelected(key)}><span className={`gb-dot gb-${riskTone(insights.riskScores?.[key])}`} />{ANATOMY[key].name}</button>
+        </div>)}</nav>
+        {!keys.length && <p className="ui-faint" style={{ padding: 16 }}>No matching organs.</p>}
+      </aside>
+      <GlassBodyViewer key={body} body={body} insights={insights} selectedOrgan={selected} onSelectOrgan={setSelected} />
+      <OrganInfoPanel selectedOrgan={selected} insights={insights} onClose={() => setSelected(null)} />
+    </div>
+    <div className="gb-footer">
+      <div className="gb-legend">{[["good","Within range"],["warn","Watch"],["bad","High risk"],["none","No linked assessment"]].map(([tone,label]) => <span key={tone}><i className={`gb-dot gb-${tone}`} />{label}</span>)}</div>
+      <p>Educational reference, not a scan of your body or a diagnosis. Both views share a reference skeleton; the female view includes pelvic organs.</p>
+      <p>3D assets: adimed, 3DRT STUDIOS, DEGUIDER, ElliotSS, Ruslan Gadzhiev, Safiya and neshallads, CC BY 4.0. <a href="https://github.com/Hargun1/Build-for-bangalore#data-and-credits" target="_blank" rel="noreferrer">Credits</a>. Additional organs are simplified reference shapes.</p>
+    </div>
+  </AppShell>;
 }

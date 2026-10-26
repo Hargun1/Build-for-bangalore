@@ -2,12 +2,13 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  letter-spacing: 0;
 }
 
 body {
   font-family: "Inter", system-ui, -apple-system, sans-serif;
-  background: #0f0f0f;
-  color: #e0e0e0;
+  background: #171a19;
+  color: #f0f2ef;
   min-height: 100vh;
 }
 

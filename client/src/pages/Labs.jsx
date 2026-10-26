@@ -1,3 +1,4 @@
+import { FileUp } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { CartesianGrid, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -195,7 +196,7 @@ function Uploader({ onRead }) {
           pick(e.dataTransfer.files);
         }}
       >
-        <div className="lab-drop-icon" aria-hidden="true">🧪</div>
+        <div className="lab-drop-icon" aria-hidden="true"><FileUp size={30} /></div>
         <strong>Drop a photo or PDF of your blood test</strong>
         <div className="ui-faint">Up to {MAX_PAGES} pages · photos: flat, well lit, whole table visible</div>
         <input ref={inputRef} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => e.target.files.length && pick(e.target.files)} />
@@ -382,7 +383,7 @@ export default function Labs() {
   };
 
   return (
-    <AppShell title="Lab reports" subtitle="Upload a blood test. See which results are out of range, what they mean, and how they change over time.">
+    <AppShell title="Lab reports" subtitle="Your results and how they change over time.">
       {error && <div className="ui-alert ui-alert-error" role="alert">{error}</div>}
       <div className="ui-stack" style={{ gap: "1rem" }}>
         {draft ? <Review draft={draft} setDraft={setDraft} onSaved={onSaved} /> : <Uploader onRead={onRead} />}

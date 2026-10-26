@@ -228,7 +228,7 @@ export default function GoalPlanner() {
   const done = (goals || []).filter((g) => g.status === "completed");
 
   return (
-    <AppShell title="Goals" subtitle="Say what you want to change. AI drafts a safe, measurable plan, and progress is measured from what you actually log, not from button presses.">
+    <AppShell title="Goals" subtitle="Your goals and progress.">
       <div className="ui-grid ui-grid-2" style={{ alignItems: "start", marginBottom: "1.25rem" }}>
         <form className="ui-card ui-stack" onSubmit={plan}>
           <h2>New goal</h2>

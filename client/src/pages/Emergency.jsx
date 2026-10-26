@@ -116,7 +116,7 @@ export default function Emergency() {
   };
 
   return (
-    <AppShell title="Emergency" subtitle="Live vital checks, a one-press SOS to your family, and the nearest hospitals.">
+    <AppShell title="Emergency" subtitle="Emergency contacts and nearby care.">
       <AlarmSystem active={alarm} onMute={() => setAlarm(false)} />
 
       <div className="ui-grid ui-grid-2" style={{ marginBottom: "1rem" }}>
@@ -133,7 +133,7 @@ export default function Emergency() {
       )}
 
       <div className="ui-grid ui-grid-2" style={{ alignItems: "start" }}>
-        <div className="ui-card ui-stack">
+        <section className="ui-card ui-stack">
           <h2>SOS</h2>
           {contacts.length === 0 ? (
             <div className="ui-alert ui-alert-warn">
@@ -182,13 +182,13 @@ export default function Emergency() {
               <li>It does not call 112 for you. Use the red buttons above for that.</li>
             </ul>
           </details>
-        </div>
+        </section>
 
-        <div className="ui-card ui-stack">
+        <section className="ui-card ui-stack">
           <h2>Live vitals</h2>
           <VitalsControls />
           {source !== "none" && <VitalsTiles />}
-        </div>
+        </section>
       </div>
 
       <div style={{ height: "1rem" }} />

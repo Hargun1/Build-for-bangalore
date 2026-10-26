@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Camera, Utensils, Trash2 } from "lucide-react";
 import { errorMessage } from "../../services/api";
 import { deleteMeal, getMeals } from "../../services/healthService";
 import { shortDay } from "../../utils/chartTheme";
@@ -26,7 +28,7 @@ export default function MealLog({ refreshKey }) {
 
   if (error) return <div className="ui-alert ui-alert-error">{error}</div>;
   if (!meals) return <div className="ui-loading"><span className="ui-spinner" /> Loading meals…</div>;
-  if (!meals.length) return <div className="ui-empty"><strong>No meals logged this week</strong>Analyse a meal photo or scan a barcode, then tap "Log".</div>;
+  if (!meals.length) return <div className="ui-empty" style={{ paddingBlock: 64 }}><Utensils style={{ width: 32, height: 32, marginBottom: 16, color: "var(--ui-warn)" }} /><strong>A fresh page in your food diary</strong><p>No meals logged this week.</p><Link to="/grocery?tab=meal" className="ui-btn ui-btn-primary" style={{ marginTop: 24 }}><Camera /> Add your first meal</Link></div>;
 
   const byDay = meals.reduce((acc, m) => {
     (acc[m.day] = acc[m.day] || []).push(m);
@@ -52,7 +54,7 @@ export default function MealLog({ refreshKey }) {
                   <span className="ui-faint">{m.source === "barcode" ? "barcode" : "photo"}</span>
                   <div className="ui-spacer" />
                   <span className="ui-small">{Math.round(m.totals?.calories || 0)} kcal</span>
-                  <button className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => remove(m._id)} aria-label={`Delete ${m.title}`}>Delete</button>
+                  <button className="ui-btn ui-btn-ghost ui-icon-btn" onClick={() => remove(m._id)} aria-label={`Delete ${m.title}`} title={`Delete ${m.title}`}><Trash2 /></button>
                 </li>
               ))}
             </ul>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Bell, BellOff, Clock, Droplets, Pill, Stethoscope, Trash2 } from "lucide-react";
 import AppShell from "../components/Shared/AppShell";
 import { errorMessage } from "../services/api";
 import {
@@ -16,13 +17,13 @@ import {
 import "./Reminders.css";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const KINDS = { medicine: "💊", water: "💧", checkup: "🩺", custom: "⏰" };
+const KINDS = { medicine: <Pill size={20} />, water: <Droplets size={20} />, checkup: <Stethoscope size={20} />, custom: <Clock size={20} /> };
 const every2h = ["09:00", "11:00", "13:00", "15:00", "17:00", "19:00"];
 const PRESETS = [
-  { label: "💊 Medicine twice a day", value: { kind: "medicine", title: "", note: "", times: ["08:00", "20:00"], days: [] } },
-  { label: "💧 Water every 2 hours", value: { kind: "water", title: "Drink water", note: "", times: every2h, days: [] } },
-  { label: "🩺 Weekly BP check", value: { kind: "checkup", title: "Check blood pressure", note: "Log it on the dashboard.", times: ["09:00"], days: [0] } },
-  { label: "⏰ Custom", value: { kind: "custom", title: "", note: "", times: ["09:00"], days: [] } },
+  { label: "Medicine twice a day", value: { kind: "medicine", title: "", note: "", times: ["08:00", "20:00"], days: [] } },
+  { label: "Water every 2 hours", value: { kind: "water", title: "Drink water", note: "", times: every2h, days: [] } },
+  { label: "Weekly BP check", value: { kind: "checkup", title: "Check blood pressure", note: "Log it on the dashboard.", times: ["09:00"], days: [0] } },
+  { label: "Custom", value: { kind: "custom", title: "", note: "", times: ["09:00"], days: [] } },
 ];
 const daysText = (d) => (!d?.length ? "Every day" : d.length === 5 && !d.includes(0) && !d.includes(6) ? "Weekdays" : d.map((x) => DAYS[x]).join(", "));
 const ago = (d) => new Date(d).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -48,7 +49,7 @@ function DeviceCard({ state, setState }) {
   const iosNeedsInstall = isIos() && !isStandalone();
   return (
     <section className={`ui-card rm-device rm-device-${state}`}>
-      <div className="rm-device-icon" aria-hidden="true">{state === "on" ? "🔔" : "🔕"}</div>
+      <div className="rm-device-icon" aria-hidden="true">{state === "on" ? <Bell size={22} /> : <BellOff size={22} />}</div>
       <div className="rm-device-body">
         <h2 className="ui-card-title" style={{ margin: 0 }}>
           {state === "on" ? "Notifications are on for this device" : "Turn on notifications"}
@@ -190,7 +191,7 @@ export default function Reminders() {
   };
 
   return (
-    <AppShell title="Reminders" subtitle="Medicine, water and check-up reminders, delivered as notifications even when the app is closed.">
+    <AppShell title="Reminders" subtitle="Your daily routines, on schedule.">
       {error && <div className="ui-alert ui-alert-error" role="alert">{error}</div>}
       <div className="ui-stack" style={{ gap: "1rem" }}>
         <DeviceCard state={device} setState={setDevice} />
@@ -202,7 +203,7 @@ export default function Reminders() {
             <h2 className="ui-card-title">Add a reminder</h2>
             <div className="rm-presets">
               {PRESETS.map((p) => (
-                <button key={p.label} className="rm-preset" onClick={() => setEditing({ value: { ...p.value, times: [...p.value.times] } })}>{p.label}</button>
+                <button key={p.label} className="rm-preset" onClick={() => setEditing({ value: { ...p.value, times: [...p.value.times] } })}>{KINDS[p.value.kind]}{p.label}</button>
               ))}
             </div>
           </section>
@@ -236,7 +237,7 @@ export default function Reminders() {
                   <div className="rm-actions">
                     <button className={`rm-switch ${r.enabled ? "on" : ""}`} role="switch" aria-checked={r.enabled} aria-label={`${r.title} ${r.enabled ? "on" : "paused"}`} onClick={() => toggle(r)} />
                     <button className="ui-btn ui-btn-sm ui-btn-ghost" onClick={() => setEditing({ id: r._id, value: { ...r, times: [...r.times], days: [...(r.days || [])] } })}>Edit</button>
-                    <button className="ui-btn ui-btn-sm ui-btn-ghost" onClick={() => remove(r)} aria-label={`Delete ${r.title}`}>✕</button>
+                    <button className="ui-btn ui-btn-sm ui-btn-ghost" onClick={() => remove(r)} aria-label={`Delete ${r.title}`} title="Delete reminder"><Trash2 size={16} /></button>
                   </div>
                 </li>
               ))}

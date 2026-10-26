@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Camera } from "lucide-react";
 import { resizeImage } from "../../utils/image";
 
 /** Drop zone + file/camera picker that hands back a resized JPEG data URI. */
@@ -24,7 +25,7 @@ export default function PhotoPicker({ onPicked, title, hint, disabled }) {
         tabIndex={0}
         aria-disabled={disabled}
         onClick={() => !disabled && inputRef.current?.click()}
-        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
+        onKeyDown={(e) => { if (!disabled && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); inputRef.current?.click(); } }}
         onDragOver={(e) => {
           e.preventDefault();
           setDragging(true);
@@ -33,10 +34,10 @@ export default function PhotoPicker({ onPicked, title, hint, disabled }) {
         onDrop={(e) => {
           e.preventDefault();
           setDragging(false);
-          if (e.dataTransfer.files[0]) handle(e.dataTransfer.files[0]);
+          if (!disabled && e.dataTransfer.files[0]) handle(e.dataTransfer.files[0]);
         }}
       >
-        <div style={{ fontSize: "2rem" }} aria-hidden="true">📷</div>
+        <Camera style={{ width: 32, height: 32, marginBottom: 12, color: "var(--ui-accent)" }} aria-hidden="true" />
         <p style={{ fontWeight: 600, marginTop: "0.4rem" }}>{title}</p>
         <p className="ui-faint">{hint}</p>
         <span className="ui-btn ui-btn-sm" style={{ marginTop: "0.8rem" }}>Take or choose a photo</span>

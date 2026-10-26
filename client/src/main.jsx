@@ -7,6 +7,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { VitalsProvider } from "./context/VitalsContext";
 import { GOOGLE_CLIENT_ID } from "./config";
 import "./index.css";
+import "./styles/ui.css";
 
 const tree = (
   <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowUp, MessageCircle, Square, Trash2 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import { errorMessage } from "../../services/api";
 import { sendChat } from "../../services/healthService";
 import { StreamUnsupported, streamChat } from "../../services/stream";
@@ -12,18 +14,23 @@ const SUGGESTIONS = {
   nutrition: ["High-protein vegetarian breakfast ideas", "What should I eat if my sugar is borderline?", "Is curd rice good for dinner?", "Healthy snacks under 150 kcal"],
 };
 
-const storageKey = (mode) => `pranexus-chat-${mode}`;
-const load = (mode) => {
+const storageKey = (mode, accountId) => `pranexus-chat-${accountId}-${mode}`;
+const load = (mode, accountId) => {
   try {
-    return JSON.parse(sessionStorage.getItem(storageKey(mode)) || "[]");
+    return JSON.parse(sessionStorage.getItem(storageKey(mode, accountId)) || "[]");
   } catch {
     return [];
   }
 };
 
 /** Conversation UI shared by the Health chat page and the Nutrition Q&A tab. */
-export default function ChatPanel({ mode = "general", height = "calc(100vh - 230px)" }) {
-  const [messages, setMessages] = useState(() => load(mode));
+export default function ChatPanel(props) {
+  const { user } = useAuth();
+  return <AccountChatPanel key={`${user?.id}:${props.mode || "general"}`} {...props} accountId={user?.id || "anonymous"} />;
+}
+
+function AccountChatPanel({ mode = "general", height = "calc(100dvh - 280px)", accountId }) {
+  const [messages, setMessages] = useState(() => load(mode, accountId));
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -32,12 +39,15 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(storageKey(mode), JSON.stringify(messages.slice(-30)));
+      sessionStorage.setItem(storageKey(mode, accountId), JSON.stringify(messages.slice(-30)));
     } catch {
       /* storage unavailable */
     }
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, mode]);
+    const container = endRef.current?.parentElement;
+    if (container) container.scrollTop = container.scrollHeight;
+  }, [messages, mode, accountId]);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   // Replaces the last message (the assistant reply being written).
   const updateLast = (patch) =>
@@ -109,8 +119,9 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
       <div className="cp-messages" aria-live="polite">
         {messages.length === 0 && (
           <div className="cp-empty">
+            <MessageCircle className="cp-empty-icon" />
             <h2>{mode === "nutrition" ? "Ask about food" : "How can I help today?"}</h2>
-            <p className="ui-muted">Answers use your profile and recent logs. Warning signs of an emergency are always checked first.</p>
+            <p className="ui-muted">General health information, grounded in your profile.</p>
             <div className="cp-suggestions">
               {SUGGESTIONS[mode].map((s) => (
                 <button key={s} type="button" className="ui-btn ui-btn-sm" onClick={() => send(s)}>
@@ -199,13 +210,13 @@ export default function ChatPanel({ mode = "general", height = "calc(100vh - 230
         />
         <div className="ui-stack" style={{ gap: "0.4rem" }}>
           {busy ? (
-            <button type="button" className="ui-btn" onClick={stop}>Stop</button>
+            <button type="button" className="ui-btn ui-icon-btn" onClick={stop} aria-label="Stop response" title="Stop response"><Square /></button>
           ) : (
-            <button className="ui-btn ui-btn-primary" disabled={!input.trim()}>Send</button>
+            <button className="ui-btn ui-btn-primary ui-icon-btn" disabled={!input.trim()} aria-label="Send" title="Send"><ArrowUp /></button>
           )}
           {messages.length > 0 && (
-            <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => setMessages([])} disabled={busy}>
-              Clear
+            <button type="button" className="ui-btn ui-btn-ghost ui-icon-btn" onClick={() => setMessages([])} disabled={busy} aria-label="Clear conversation" title="Clear conversation">
+              <Trash2 />
             </button>
           )}
         </div>

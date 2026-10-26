@@ -1,20 +1,34 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 
 export default function Modal({ open, title, onClose, children, width }) {
   const ref = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => e.key === "Escape" && onClose?.();
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); closeRef.current?.(); }
+      if (e.key !== "Tab") return;
+      const items = [...ref.current.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')].filter((el) => el.getClientRects().length);
+      const first = items[0], last = items.at(-1);
+      if (!first) { e.preventDefault(); ref.current.focus(); }
+      else if (e.shiftKey && (document.activeElement === first || document.activeElement === ref.current)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (document.activeElement === last || !ref.current.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener("keydown", onKey);
     const prev = document.activeElement;
-    ref.current?.focus();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
       prev?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return createPortal(
@@ -24,7 +38,7 @@ export default function Modal({ open, title, onClose, children, width }) {
           <h2>{title}</h2>
           <div className="ui-spacer" />
           <button type="button" className="ui-btn ui-btn-ghost ui-btn-sm" onClick={onClose} aria-label="Close">
-            ✕
+            <X size={18} />
           </button>
         </div>
         {children}

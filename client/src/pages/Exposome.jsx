@@ -63,7 +63,7 @@ export default function Exposome() {
   return (
     <AppShell
       title="Environment"
-      subtitle="Live air quality on India's CPCB scale, weather and UV where you are, and the best time to be outside today."
+      subtitle="Air quality and weather around you."
       actions={<button className="ui-btn ui-btn-sm" onClick={load} disabled={state.loading}>{state.loading ? "Updating…" : "Refresh"}</button>}
     >
       {loc?.isDefault && <div className="ui-alert ui-alert-info" style={{ marginBottom: "1rem" }}>Location access is off, so this shows central Bengaluru. Allow location in your browser for your own area.</div>}

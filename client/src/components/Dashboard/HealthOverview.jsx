@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Activity, ChartNoAxesCombined, Droplets, Footprints, HeartPulse, Moon, Plus, UserRound, Utensils } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAuth } from "../../context/AuthContext";
 import { errorMessage } from "../../services/api";
@@ -11,10 +12,10 @@ import "../../styles/ui.css";
 
 const fmt = (v, digits = 0) => (v == null ? "–" : Number(v).toLocaleString("en-IN", { maximumFractionDigits: digits }));
 
-function Tile({ label, value, unit, sub }) {
+function Tile({ label, value, unit, sub, icon: Icon, tone }) {
   return (
-    <div className="ui-stat">
-      <div className="ui-stat-label">{label}</div>
+    <div className="ui-stat" style={{ "--metric-tone": tone }}>
+      <div className="ui-stat-label">{Icon && <Icon />}{label}</div>
       <div className="ui-stat-value">
         {value}
         {unit && value !== "–" && <small>{unit}</small>}
@@ -172,10 +173,11 @@ export default function HealthOverview() {
       {error && <div className="ui-alert ui-alert-error" role="alert">{error}</div>}
 
       {missingProfile.length > 0 && (
-        <div className="ui-alert ui-alert-info ui-row">
+        <div className="overview-setup">
+          <UserRound />
           <div>
-            <strong>Complete your profile for accurate risk scores</strong>
-            Missing: {missingProfile.join(", ")}.
+            <strong>Your health profile is incomplete</strong>
+            <p>{missingProfile.length} details needed for your screening estimates.</p>
           </div>
           <div className="ui-spacer" />
           <Link to="/profile" className="ui-btn ui-btn-sm">Complete profile</Link>
@@ -185,15 +187,15 @@ export default function HealthOverview() {
       <section>
         <div className="ui-card-title">
           <h2 style={{ fontSize: "1.2rem" }}>Today</h2>
-          <button className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => setLogOpen(true)}>+ Log today</button>
+          <button className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => setLogOpen(true)}><Plus /> Log today</button>
         </div>
-        <div className="ui-grid ui-grid-4">
-          <Tile label="Steps" value={fmt(m.steps)} sub={`7-day avg ${fmt(avg.steps)}`} />
-          <Tile label="Sleep" value={fmt(m.sleepHours, 1)} unit="h" sub={`7-day avg ${fmt(avg.sleepHours, 1)} h`} />
-          <Tile label="Resting HR" value={fmt(m.restingHeartRate)} unit="bpm" sub={m.source === "bluetooth" ? "from Bluetooth monitor" : `7-day avg ${fmt(avg.restingHeartRate)}`} />
-          <Tile label="Blood pressure" value={m.systolic ? `${m.systolic}/${m.diastolic ?? "?"}` : "–"} unit="mmHg" sub={avg.systolic ? `7-day avg ${fmt(avg.systolic)}/${fmt(avg.diastolic)}` : "Not logged this week"} />
-          <Tile label="Calories eaten" value={fmt(today?.caloriesEaten)} unit="kcal" sub={<Link to="/grocery" style={{ textDecoration: "underline" }}>{today?.meals ? `${today.meals} meal(s) logged` : "Log a meal photo"}</Link>} />
-          <Tile label="Water" value={fmt(m.waterLitres, 1)} unit="L" sub={`7-day avg ${fmt(avg.waterLitres, 1)} L`} />
+        <div className="ui-grid overview-metrics">
+          <Tile label="Steps" icon={Footprints} tone="#a6dfbf" value={fmt(m.steps)} sub={`7-day avg ${fmt(avg.steps)}`} />
+          <Tile label="Sleep" icon={Moon} tone="#9fc9e9" value={fmt(m.sleepHours, 1)} unit="h" sub={`7-day avg ${fmt(avg.sleepHours, 1)} h`} />
+          <Tile label="Resting heart rate" icon={HeartPulse} tone="#ed9891" value={fmt(m.restingHeartRate)} unit="bpm" sub={m.source === "bluetooth" ? "from Bluetooth monitor" : `7-day avg ${fmt(avg.restingHeartRate)}`} />
+          <Tile label="Blood pressure" icon={Activity} tone="#d6b3cb" value={m.systolic ? `${m.systolic}/${m.diastolic ?? "?"}` : "–"} unit="mmHg" sub={avg.systolic ? `7-day avg ${fmt(avg.systolic)}/${fmt(avg.diastolic)}` : "Not logged this week"} />
+          <Tile label="Food logged" icon={Utensils} tone="#e8c17b" value={fmt(today?.caloriesEaten)} unit="kcal" sub={<Link to="/grocery?tab=log" style={{ textDecoration: "underline" }}>{today?.meals ? `${today.meals} meal(s) logged` : "View food diary"}</Link>} />
+          <Tile label="Water" icon={Droplets} tone="#9fc9e9" value={fmt(m.waterLitres, 1)} unit="L" sub={`7-day avg ${fmt(avg.waterLitres, 1)} L`} />
         </div>
         {!today?.metrics && <p className="ui-faint" style={{ marginTop: "0.6rem" }}>Nothing logged today yet. Log a few numbers, or connect a heart-rate monitor on the Vitals page.</p>}
       </section>
@@ -268,7 +270,7 @@ export default function HealthOverview() {
           <MiniTrend title="Weight" data={series} dataKey="weightKg" unit="kg" color={CHART.series[0]} />
         </section>
       ) : (
-        <p className="ui-faint">Trends appear after you've logged at least two days.</p>
+        <div className="overview-empty-trends"><ChartNoAxesCombined /><div><strong>Your patterns, over time</strong><p>Trends will appear after two days of health logs.</p></div></div>
       )}
 
       {logOpen && <LogMetricsModal open onClose={() => setLogOpen(false)} initial={today?.metrics} onSaved={load} />}

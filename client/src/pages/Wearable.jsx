@@ -32,7 +32,7 @@ export default function Wearable() {
   };
 
   return (
-    <AppShell title="Vitals" subtitle="Live heart rate from a Bluetooth monitor, or readings you enter. Saved readings feed your dashboard, goals and SOS.">
+    <AppShell title="Vitals" subtitle="Your latest readings and connected devices.">
       <div className="ui-grid ui-grid-2" style={{ alignItems: "start" }}>
         <div className="ui-card">
           <h2>Source</h2>
