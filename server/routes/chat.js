@@ -58,8 +58,14 @@ router.post(
       "X-Accel-Buffering": "no", // stop proxies (Render, nginx) from buffering the stream
     });
     res.flushHeaders();
+    // Free providers can be silent during startup or fallback; keep proxy idle timers alive.
+    res.write(": connected\n\n");
+    const heartbeat = setInterval(() => {
+      if (!res.destroyed && !res.writableEnded) res.write(": keep-alive\n\n");
+    }, 10000);
     // If the user closes the tab or presses Stop, stop the AI call too (saves free quota).
     res.on("close", () => {
+      clearInterval(heartbeat);
       if (!res.writableEnded) controller.abort();
     });
 

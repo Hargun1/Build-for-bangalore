@@ -187,7 +187,31 @@ describe("streaming chat", () => {
     const { agent } = await signIn();
     ai.chatStream.mockRejectedValue(new Error("The AI service is unreachable right now."));
     const res = await agent("post", "/api/chat/stream").send({ messages: [{ role: "user", content: "hi" }] }).expect(200);
-    expect(res.text).toMatch(/^event: error\ndata: .*unreachable/);
+    expect(res.text).toContain(": connected\n\n");
+    expect(res.text).toMatch(/event: error\ndata: .*unreachable/);
+  });
+
+  test("keeps an idle stream alive without exposing answer text and clears the timer", async () => {
+    const { agent } = await signIn();
+    const intervals = jest.spyOn(global, "setInterval");
+    const clear = jest.spyOn(global, "clearInterval");
+    let timer;
+    try {
+      ai.chatStream.mockImplementationOnce(() => new Promise((resolve) => {
+        const index = intervals.mock.calls.findIndex((call) => call[1] === 10000);
+        timer = intervals.mock.results[index].value;
+        intervals.mock.calls[index][0]();
+        resolve(Readable.from(['event: done\ndata: {"reply":"Checked answer","aiSource":"test"}\n\n']));
+      }));
+      const res = await agent("post", "/api/chat/stream")
+        .send({ messages: [{ role: "user", content: "sleep routine" }] }).expect(200);
+      expect(res.text).toMatch(/^: connected\n\n: keep-alive\n\nevent: done/);
+      expect(res.text).not.toContain("event: delta");
+      expect(clear).toHaveBeenCalledWith(timer);
+    } finally {
+      intervals.mockRestore();
+      clear.mockRestore();
+    }
   });
 
   test("still validates and requires login", async () => {
