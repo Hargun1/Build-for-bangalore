@@ -44,15 +44,13 @@ const userSchema = new mongoose.Schema(
     emailOtpExpires: { type: Date, default: null, select: false },
     emailOtpAttempts: { type: Number, default: 0, select: false },
     isGuest: { type: Boolean, default: false },
-    // MongoDB deletes guest accounts automatically once this date passes (TTL index below).
+    // Guest cleanup removes this account and its linked records after expiry.
     guestExpiresAt: { type: Date, default: undefined },
     profile: { type: profileSchema, default: () => ({}) },
     emergencyContacts: { type: [contactSchema], default: [] },
   },
   { timestamps: true }
 );
-
-userSchema.index({ guestExpiresAt: 1 }, { expireAfterSeconds: 0 });
 
 userSchema.virtual("age").get(function age() {
   if (!this.dob) return null;

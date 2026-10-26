@@ -23,6 +23,9 @@ const ai = require("../services/aiService");
 const { sendSosAlert } = require("../services/emailService");
 const User = require("../models/User");
 const HealthMetrics = require("../models/HealthMetrics");
+const FoodLog = require("../models/FoodLog");
+const { deleteOrphanedAccountData } = require("../services/accountData");
+const { cleanupExpiredGuests, removeLegacyTtlIndex } = require("../jobs/guestCleanup");
 const { dayKey, daysAgoKey } = require("../services/userContext");
 
 beforeAll(db.connect);
@@ -70,6 +73,43 @@ describe("profile and account safety", () => {
     await agent("delete", "/api/users/me").expect(200);
     expect(await User.countDocuments({ _id: userId })).toBe(0);
     expect(await HealthMetrics.countDocuments({ userId })).toBe(0);
+    await agent("get", "/api/health/today").expect(401);
+    await agent("put", "/api/health/metrics").send({ steps: 123 }).expect(401);
+    expect(await HealthMetrics.countDocuments({ userId })).toBe(0);
+  });
+
+  test("expired guests lose access before cleanup and linked records are removed", async () => {
+    const { agent, userId } = await signIn();
+    const other = await signIn();
+    await agent("put", "/api/health/metrics").send({ steps: 5000 }).expect(200);
+    await FoodLog.create({ userId, day: dayKey(), mealType: "lunch", title: "Test", items: [{ name: "Rice" }] });
+    await User.updateOne({ _id: userId }, { guestExpiresAt: new Date(Date.now() - 1000) });
+
+    await agent("get", "/api/users/me").expect(401);
+    await agent("put", "/api/health/metrics").send({ steps: 123 }).expect(401);
+    expect(await cleanupExpiredGuests()).toBe(1);
+    expect(await User.countDocuments({ _id: userId })).toBe(0);
+    expect(await HealthMetrics.countDocuments({ userId })).toBe(0);
+    expect(await FoodLog.countDocuments({ userId })).toBe(0);
+    await other.agent("get", "/api/users/me").expect(200);
+  });
+
+  test("old TTL orphan records are removed without touching active users", async () => {
+    const { agent, userId } = await signIn();
+    const other = await signIn();
+    await agent("put", "/api/health/metrics").send({ steps: 100 }).expect(200);
+    await other.agent("put", "/api/health/metrics").send({ steps: 200 }).expect(200);
+    await User.deleteOne({ _id: userId }); // Simulate the former user-only TTL index.
+    expect(await deleteOrphanedAccountData()).toBe(1);
+    expect(await HealthMetrics.countDocuments({ userId })).toBe(0);
+    expect(await HealthMetrics.countDocuments({ userId: other.userId })).toBe(1);
+  });
+
+  test("startup removes the legacy user-only TTL index", async () => {
+    await User.collection.createIndex({ guestExpiresAt: 1 }, { expireAfterSeconds: 0 });
+    await removeLegacyTtlIndex();
+    const indexes = await User.collection.indexes();
+    expect(indexes.some((index) => index.key.guestExpiresAt === 1 && index.expireAfterSeconds === 0)).toBe(false);
   });
 });
 

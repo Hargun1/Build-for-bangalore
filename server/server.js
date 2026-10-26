@@ -22,11 +22,13 @@ async function connectDatabase() {
 async function start() {
   try {
     await connectDatabase();
+    await require("./jobs/guestCleanup").removeLegacyTtlIndex();
   } catch (err) {
-    console.error("Could not connect to MongoDB:", err.message);
+    console.error("Could not prepare MongoDB:", err.message);
     process.exit(1);
   }
   app.listen(env.port, () => console.log(`PranexusAI API listening on port ${env.port}`));
+  require("./jobs/guestCleanup").start();
   require("./jobs/reminders").start();
 }
 

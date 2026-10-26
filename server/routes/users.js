@@ -4,17 +4,7 @@ const auth = require("../middleware/auth");
 const validate = require("../middleware/validate");
 const { asyncHandler, HttpError } = require("../middleware/errors");
 const User = require("../models/User");
-const HealthMetrics = require("../models/HealthMetrics");
-const Prediction = require("../models/Prediction");
-const FoodLog = require("../models/FoodLog");
-const Appointment = require("../models/Appointment");
-const EmergencyEvent = require("../models/EmergencyEvent");
-const GroceryScan = require("../models/GroceryScan");
-const LabReport = require("../models/LabReport");
-const Reminder = require("../models/Reminder");
-const PushSubscription = require("../models/PushSubscription");
-const ExposomeData = require("../models/ExposomeData");
-const { Goal, GoalCheckin } = require("../models/Goal");
+const { deleteAccountData } = require("../services/accountData");
 
 router.use(auth);
 
@@ -119,12 +109,8 @@ router.delete(
   "/me",
   asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    await Promise.all(
-      [HealthMetrics, Prediction, FoodLog, Appointment, EmergencyEvent, GroceryScan, LabReport, Reminder, PushSubscription, ExposomeData, Goal, GoalCheckin].map((M) =>
-        M.deleteMany({ userId })
-      )
-    );
     await User.deleteOne({ _id: userId });
+    await deleteAccountData([userId]);
     res.json({ message: "Your account and all of its data were deleted." });
   })
 );
