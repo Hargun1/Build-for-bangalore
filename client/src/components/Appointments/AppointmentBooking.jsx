@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { MapPin, Plus } from "lucide-react";
 import SourceBadge from "../Shared/SourceBadge";
 import { errorMessage } from "../../services/api";
 import {
@@ -10,7 +11,7 @@ import {
   setAppointmentStatus,
   triageSymptoms,
 } from "../../services/healthService";
-import { getLocation } from "../../utils/geo";
+import { getLocation, mapsSearchUrl } from "../../utils/geo";
 
 // Values match OpenStreetMap's healthcare:speciality tag, so search can filter on them.
 const SPECIALTIES = {
@@ -52,6 +53,7 @@ function Triage({ onResult }) {
   const run = async (e) => {
     e.preventDefault();
     setState({ busy: true, error: "", result: null });
+    onResult(null);
     try {
       const { data } = await triageSymptoms(symptoms.trim());
       setState({ busy: false, error: "", result: data });
@@ -146,7 +148,7 @@ function ClinicFinder({ specialty, onSpecialty, onPick }) {
       )}
       {state.places && !state.loading && (
         state.places.length === 0 ? (
-          <div className="ui-empty">Nothing found. Try a bigger radius, or add the clinic by hand below.</div>
+          <div className="ui-empty">Nothing found. Try a bigger radius, search in Maps, or add the clinic by hand below.</div>
         ) : (
           <ul className="ui-list" style={{ maxHeight: 420, overflowY: "auto" }}>
             {state.places.map((p) => (
@@ -169,9 +171,10 @@ function ClinicFinder({ specialty, onSpecialty, onPick }) {
           </ul>
         )
       )}
-      <button className="ui-btn ui-btn-ghost ui-btn-sm" style={{ alignSelf: "flex-start" }} onClick={() => onPick({ name: "", address: "", phone: "", manual: true })}>
-        + My clinic isn't listed
-      </button>
+      <div className="ui-row">
+        <a className="ui-btn ui-btn-sm" href={mapsSearchUrl(SPECIALTIES[specialty] || "clinics", state.loc)} target="_blank" rel="noreferrer"><MapPin size={15} /> Search in Maps</a>
+        <button className="ui-btn ui-btn-ghost ui-btn-sm" onClick={() => onPick({ name: "", address: "", phone: "", manual: true })}><Plus size={15} /> My clinic isn't listed</button>
+      </div>
       <p className="ui-faint">Clinic data © OpenStreetMap contributors. Many clinics don't list their specialties, so clinics without a tag are shown too.</p>
     </div>
   );
@@ -209,7 +212,7 @@ function BookForm({ place, specialty, triage, onDone, onCancel }) {
         <label className="ui-field"><span>Phone</span><input className="ui-input" type="tel" value={form.phone} onChange={set("phone")} maxLength={40} /></label>
       </div>
       <label className="ui-field"><span>Reason for visit</span><textarea className="ui-textarea" value={form.reason} onChange={set("reason")} maxLength={600} /></label>
-      <p className="ui-faint">PranexusAI doesn't book with the clinic. Call them to confirm the slot; we'll email you the details and a calendar reminder.</p>
+      <p className="ui-faint">PranexusAI doesn't book with the clinic. Call them to confirm the slot. After saving, you can download a calendar file; email is attempted when available.</p>
       {state.error && <div className="ui-alert ui-alert-error">{state.error}</div>}
       <div className="ui-row">
         <div className="ui-spacer" />
@@ -220,14 +223,39 @@ function BookForm({ place, specialty, triage, onDone, onCancel }) {
   );
 }
 
+function CalendarDownload({ id }) {
+  const [state, setState] = useState({ busy: false, message: "", ok: true });
+  const download = async () => {
+    setState({ busy: true, message: "", ok: true });
+    try {
+      await downloadAppointmentIcs(id);
+      setState({ busy: false, message: "File downloaded. Import it into your calendar and check its alerts.", ok: true });
+    } catch (err) {
+      setState({ busy: false, message: errorMessage(err), ok: false });
+    }
+  };
+  return (
+    <span className="ui-row">
+      <button className="ui-btn ui-btn-sm" onClick={download} disabled={state.busy}>{state.busy ? "Downloading…" : "Download calendar file"}</button>
+      {state.message && <span className={state.ok ? "ui-faint" : ""} style={state.ok ? undefined : { color: "var(--ui-bad)" }} role={state.ok ? "status" : "alert"}>{state.message}</span>}
+    </span>
+  );
+}
+
 function AppointmentList({ refreshKey }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
 
-  const load = useCallback(() => {
-    getAppointments().then((r) => setData(r.data)).catch((err) => setError(errorMessage(err)));
+  const load = useCallback(async () => {
+    setError("");
+    try {
+      const { data: appointments } = await getAppointments();
+      setData(appointments);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
   }, []);
-  useEffect(load, [load, refreshKey]);
+  useEffect(() => { load(); }, [load, refreshKey]);
 
   const act = async (fn) => {
     try {
@@ -238,8 +266,9 @@ function AppointmentList({ refreshKey }) {
     }
   };
 
-  if (error) return <div className="ui-alert ui-alert-error">{error}</div>;
-  if (!data) return <div className="ui-loading"><span className="ui-spinner" /> Loading appointments…</div>;
+  if (!data) return error
+    ? <div className="ui-alert ui-alert-error ui-row"><span>{error}</span><button className="ui-btn ui-btn-sm" onClick={load}>Try again</button></div>
+    : <div className="ui-loading"><span className="ui-spinner" /> Loading appointments…</div>;
 
   const row = (a, upcoming) => (
     <li key={a._id}>
@@ -254,7 +283,7 @@ function AppointmentList({ refreshKey }) {
       </div>
       {a.reason && <div className="ui-faint" style={{ marginTop: "0.2rem" }}>{a.reason}</div>}
       <div className="ui-row" style={{ marginTop: "0.5rem" }}>
-        {upcoming && <button className="ui-btn ui-btn-sm" onClick={() => act(() => downloadAppointmentIcs(a._id))}>Add to calendar</button>}
+        {upcoming && <CalendarDownload id={a._id} />}
         {a.place.phone && <a className="ui-btn ui-btn-sm" href={`tel:${a.place.phone.replace(/\s/g, "")}`}>Call clinic</a>}
         {a.place.lat != null && <a className="ui-btn ui-btn-sm" href={`https://www.google.com/maps/dir/?api=1&destination=${a.place.lat},${a.place.lon}`} target="_blank" rel="noreferrer">Directions</a>}
         <div className="ui-spacer" />
@@ -266,14 +295,17 @@ function AppointmentList({ refreshKey }) {
   );
 
   return (
-    <div className="ui-grid ui-grid-2" style={{ alignItems: "start" }}>
-      <div className="ui-card">
-        <h2>Upcoming ({data.upcoming.length})</h2>
-        {data.upcoming.length ? <ul className="ui-list">{data.upcoming.map((a) => row(a, true))}</ul> : <div className="ui-empty">No upcoming visits.</div>}
-      </div>
-      <div className="ui-card">
-        <h2>Past and cancelled</h2>
-        {data.past.length ? <ul className="ui-list">{data.past.slice(0, 10).map((a) => row(a, false))}</ul> : <div className="ui-empty">Nothing yet.</div>}
+    <div className="ui-stack">
+      {error && <div className="ui-alert ui-alert-error ui-row"><span>{error}</span><button className="ui-btn ui-btn-sm" onClick={load}>Try again</button></div>}
+      <div className="ui-grid ui-grid-2" style={{ alignItems: "start" }}>
+        <div className="ui-card">
+          <h2>Upcoming ({data.upcoming.length})</h2>
+          {data.upcoming.length ? <ul className="ui-list">{data.upcoming.map((a) => row(a, true))}</ul> : <div className="ui-empty">No upcoming visits.</div>}
+        </div>
+        <div className="ui-card">
+          <h2>Past and cancelled</h2>
+          {data.past.length ? <ul className="ui-list">{data.past.slice(0, 10).map((a) => row(a, false))}</ul> : <div className="ui-empty">Nothing yet.</div>}
+        </div>
       </div>
     </div>
   );
@@ -291,15 +323,15 @@ export default function AppointmentBooking() {
       {saved && (
         <div className="ui-alert ui-alert-info ui-row">
           <div>
-            <strong>Saved: {saved.place.name}, {new Date(saved.startsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</strong>
-            {saved.confirmationEmailSent ? "A confirmation with a calendar reminder is in your inbox." : "Download the calendar file to get a reminder."} Remember to call the clinic to confirm.
+            <strong>Saved: {saved.place.name}, {new Date(saved.startsAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</strong>{" "}
+            {saved.confirmationEmailSent ? "A confirmation email was accepted for delivery. Check your inbox." : "Email was not available."} Remember to call the clinic to confirm. Calendar files include the clinic and time, not your reason for visiting.
           </div>
           <div className="ui-spacer" />
-          <button className="ui-btn ui-btn-sm" onClick={() => downloadAppointmentIcs(saved._id)}>Add to calendar</button>
+          <CalendarDownload id={saved._id} />
         </div>
       )}
       <div className="ui-grid ui-grid-2" style={{ alignItems: "start" }}>
-        <Triage onResult={(t) => { setTriage(t); setSpecialty(t.specialty); setPlace(null); }} />
+        <Triage onResult={(t) => { setTriage(t); if (t) setSpecialty(t.specialty); setPlace(null); }} />
         {place ? (
           <BookForm
             key={place.osmId || "manual"}

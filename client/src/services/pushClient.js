@@ -59,3 +59,14 @@ export const getReminders = () => api.get("/reminders");
 export const createReminder = (r) => api.post("/reminders", r);
 export const updateReminder = (id, r) => api.put(`/reminders/${id}`, r);
 export const deleteReminder = (id) => api.delete(`/reminders/${id}`);
+export async function downloadReminderCalendar() {
+  const { data } = await api.get("/reminders/calendar.ics", { responseType: "blob" });
+  const url = URL.createObjectURL(data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "pranexus-reminders.ics";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+}

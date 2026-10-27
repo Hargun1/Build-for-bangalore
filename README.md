@@ -38,7 +38,7 @@ flowchart LR
   N --> OM["Open-Meteo"]
   N --> OFF["Open Food Facts"]
   N --> OSM["OpenStreetMap"]
-  N --> GM["Gmail SMTP"]
+  N --> GM["Brevo email API"]
 ```
 
 - **Node API** owns auth, validation (zod), rate limits, MongoDB and calls to the public data APIs. It also serves the built React app in production.
@@ -74,7 +74,8 @@ All optional for local development; all free.
 | `GROQ_API_KEY` | `ai-service/.env` | [Groq console](https://console.groq.com/keys) (fast text fallback) |
 | `OPENROUTER_API_KEY` | `ai-service/.env` | [OpenRouter](https://openrouter.ai/keys) (free models, text and images) |
 | `MONGODB_URI` | `server/.env` | [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) free M0 cluster |
-| `GMAIL_USER`, `GMAIL_PASSWORD` | `server/.env` | A Gmail address and a 16-character [App Password](https://myaccount.google.com/apppasswords) |
+| `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` | `server/.env` and Render backend | A [Brevo](https://www.brevo.com/) API key and a sender address verified in Brevo. Its free plan allows 300 sends per day. |
+| `GMAIL_USER`, `GMAIL_PASSWORD` | `server/.env` only | Optional local-development SMTP fallback. Render Free blocks SMTP ports, so these do not enable production email. |
 | `GOOGLE_CLIENT_ID` (+ `VITE_GOOGLE_CLIENT_ID`) | `server/.env`, `client/.env` | [Google Cloud credentials](https://console.cloud.google.com/apis/credentials), OAuth client for a web app |
 | `JWT_SECRET`, `AI_INTERNAL_TOKEN` | both `.env` files | Any long random strings; the token must match in both services |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | `server/.env` | `npx web-push generate-vapid-keys` (reminders; temporary keys are used in development) |
@@ -93,7 +94,7 @@ node scripts/smoke-test.mjs http://localhost:5001/api   # live end-to-end check
 
 ## Deploy (Render, free)
 
-`render.yaml` defines two free web services: the Node app (API + React build) and the AI service. In Render choose **New → Blueprint**, select this repo, then fill in the variables Render asks for: `MONGODB_URI`, `AI_SERVICE_URL` (the AI service's public URL), `CLIENT_URL`, the AI keys and, optionally, Gmail and Google sign-in. `JWT_SECRET` and the shared `AI_INTERNAL_TOKEN` are generated for you.
+`render.yaml` defines two free web services: the Node app (API + React build) and the AI service. In Render choose **New → Blueprint**, select this repo, then fill in the variables Render asks for: `MONGODB_URI`, `AI_SERVICE_URL` (the AI service's public URL), `CLIENT_URL`, the AI keys, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and optionally Google sign-in. `JWT_SECRET` and the shared `AI_INTERNAL_TOKEN` are generated for you. The sender must be verified in Brevo before verification codes, password resets, appointment emails, or SOS emails can work. An API acceptance confirms only that Brevo queued the message, not inbox delivery.
 
 Free instances sleep after 15 minutes idle, so the first request afterwards takes about a minute. Reminders are sent up to 30 minutes late after a sleep; a free pinger such as [cron-job.org](https://cron-job.org) hitting `/api/ping` every 10 minutes keeps them on time.
 

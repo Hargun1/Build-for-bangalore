@@ -13,6 +13,7 @@ const scoreSchema = new mongoose.Schema(
     level: { type: String, enum: ["low", "moderate", "high", "unknown"] },
     factors: [{ name: String, points: Number, detail: String }],
     missing: [String], // inputs the user has not provided yet
+    note: String,
   },
   { _id: false }
 );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { MapPin } from "lucide-react";
 import AppShell from "../components/Shared/AppShell";
 import SOSButton from "../components/Emergency/SOSButton";
 import AlarmSystem from "../components/Emergency/AlarmSystem";
@@ -10,7 +11,8 @@ import { useAuth } from "../context/AuthContext";
 import { useVitals } from "../context/VitalsContext";
 import { errorMessage } from "../services/api";
 import { getNearbyPlaces, resolveSos, triggerSos } from "../services/healthService";
-import { getLocation } from "../utils/geo";
+import { getLocation, mapsSearchUrl } from "../utils/geo";
+import { hasRecentVitals, sosVitalPayload } from "../utils/vitals";
 import "../components/Emergency/Emergency.css";
 
 function Hospitals({ places, loading, error, onRetry }) {
@@ -47,21 +49,27 @@ export default function Emergency() {
   const [alarm, setAlarm] = useState(false);
   const [autoArm, setAutoArm] = useState(false);
   const [sos, setSos] = useState({ sending: false, result: null, error: "" });
-  const [hospitals, setHospitals] = useState({ loading: true, places: [], error: "" });
+  const [hospitals, setHospitals] = useState({ loading: true, places: [], error: "", loc: null });
   const [guideType, setGuideType] = useState("");
+  const [now, setNow] = useState(Date.now());
 
-  const detection = useMemo(() => (hasData ? detectEmergency(vitals) : null), [hasData, vitals]);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const detection = useMemo(() => (hasData && hasRecentVitals(vitals, source, now) ? detectEmergency(vitals) : null), [hasData, vitals, source, now]);
   const contacts = user?.emergencyContacts || [];
 
   // Loading this early also warms the server's cache, so an SOS can include hospitals quickly.
   const loadHospitals = useCallback(async () => {
-    setHospitals({ loading: true, places: [], error: "" });
+    setHospitals((current) => ({ ...current, loading: true, error: "" }));
     const loc = await getLocation();
     try {
       const { data } = await getNearbyPlaces({ lat: loc.lat, lon: loc.lon, kinds: "hospital", radiusKm: 8 });
-      setHospitals({ loading: false, places: data.places.slice(0, 6), error: "" });
+      setHospitals({ loading: false, places: data.places.slice(0, 6), error: "", loc });
     } catch (err) {
-      setHospitals({ loading: false, places: [], error: errorMessage(err) });
+      setHospitals({ loading: false, places: [], error: errorMessage(err), loc });
     }
   }, []);
 
@@ -90,17 +98,12 @@ export default function Emergency() {
     setSos({ sending: true, result: null, error: "" });
     const loc = await getLocation({ highAccuracy: true, timeoutMs: 10000 });
     try {
+      const currentVitals = sosVitalPayload(vitals, source);
       const { data } = await triggerSos({
         trigger: detection?.severity === "emergency" ? "auto" : "manual",
         ...(loc.isDefault ? {} : { lat: loc.lat, lon: loc.lon, accuracyM: loc.accuracyM }),
         detection: detection ? `${detection.type} (${detection.details})` : "",
-        vitals: {
-          ...(vitals.heartRate != null && { heartRate: vitals.heartRate }),
-          ...(vitals.spo2 != null && { spo2: vitals.spo2 }),
-          ...(vitals.bloodPressure && { systolic: vitals.bloodPressure.systolic, diastolic: vitals.bloodPressure.diastolic }),
-          ...(vitals.temperature != null && { temperatureC: vitals.temperature }),
-        },
-        vitalsSource: source,
+        ...(currentVitals ? { vitals: currentVitals, vitalsSource: source } : {}),
       });
       setSos({ sending: false, result: data, error: "" });
     } catch (err) {
@@ -148,12 +151,13 @@ export default function Emergency() {
           {sos.error && <div className="ui-alert ui-alert-error" role="alert">{sos.error}</div>}
           {sos.result && (
             <div className="ui-stack">
-              <div className="ui-alert ui-alert-info">
-                <strong>SOS sent</strong>
+              <div className={`ui-alert ${sos.result.notified.some((n) => n.ok) ? "ui-alert-info" : "ui-alert-warn"}`}>
+                <strong>SOS saved</strong>
                 {sos.result.notified.length
-                  ? sos.result.notified.map((n) => `${n.name}: ${n.ok ? "email sent" : `email failed (${n.error})`}`).join(" · ")
+                  ? sos.result.notified.map((n) => `${n.name}: ${n.ok ? "email accepted for delivery" : `email failed (${n.error})`}`).join(" · ")
                   : "No contact has an email address, so nothing was emailed."}
                 {sos.result.mapsUrl ? "" : " Your location could not be read."}
+                {" Call or message your contacts directly if help is urgent."}
               </div>
               {sos.result.shareLinks.length > 0 && (
                 <div>
@@ -177,7 +181,7 @@ export default function Emergency() {
             <summary className="ui-small ui-muted" style={{ cursor: "pointer" }}>What SOS does</summary>
             <ul className="ui-bullets ui-small" style={{ marginTop: "0.4rem" }}>
               <li>Reads your location from the browser (with your permission).</li>
-              <li>Emails every contact who has an email: your location on Google Maps, latest vitals and the 3 nearest hospitals.</li>
+              <li>Attempts to email each contact who has an email address. Includes your location, latest vitals and up to 3 hospitals when the lookup works.</li>
               <li>Prepares a WhatsApp/SMS message for contacts with a phone number; you tap once to send it.</li>
               <li>It does not call 112 for you. Use the red buttons above for that.</li>
             </ul>
@@ -207,6 +211,8 @@ export default function Emergency() {
         <div className="ui-card">
           <h2>Nearest hospitals</h2>
           <Hospitals {...hospitals} onRetry={loadHospitals} />
+          <a className="ui-btn ui-btn-sm" href={mapsSearchUrl("hospitals", hospitals.loc)} target="_blank" rel="noreferrer" style={{ alignSelf: "flex-start" }}><MapPin size={15} /> Search hospitals in Maps</a>
+          {hospitals.loc?.isDefault && <p className="ui-faint">Location is off, so this searches around central Bengaluru.</p>}
           <p className="ui-faint" style={{ marginTop: "0.6rem" }}>From OpenStreetMap. Call ahead if you can; not every listing has an emergency department.</p>
         </div>
       </div>

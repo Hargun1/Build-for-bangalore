@@ -48,7 +48,12 @@ router.post(
   validate(z.object({ symptoms: z.string().trim().min(3, "Describe your symptoms").max(1500) })),
   asyncHandler(async (req, res) => {
     const user = await User.findById(req.user.id);
-    res.json(await ai.triage({ symptoms: req.body.symptoms, context: user ? aiContext(user) : undefined }));
+    try {
+      res.json(await ai.triage({ symptoms: req.body.symptoms, context: user ? aiContext(user) : undefined }));
+    } catch (err) {
+      if (![429, 502, 503, 504].includes(err.status)) throw err;
+      res.status(503).json({ message: "Symptom assessment is unavailable. If this could be an emergency, call 112 or seek in-person care now." });
+    }
   })
 );
 
@@ -92,6 +97,7 @@ router.get(
     const appt = await findOwn(req);
     res.setHeader("Content-Type", "text/calendar; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="appointment-${appt._id}.ics"`);
+    res.setHeader("Cache-Control", "private, no-store");
     res.send(appointmentIcs(appt));
   })
 );

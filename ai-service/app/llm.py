@@ -159,11 +159,17 @@ class LLMClient:
         rows = []
         for p in self.providers:
             st = self.state[p.name]
+            available_text_models = (
+                self.ready_models(p)
+                if p.enabled and not st.disabled_reason and st.resting_until <= time.time()
+                else []
+            )
             rows.append(
                 {
                     "provider": p.name,
                     "configured": p.enabled,
                     "textModels": p.text_models,
+                    "availableTextModels": available_text_models,
                     "visionModels": p.vision_models,
                     "calls": st.calls,
                     "failures": st.failures,

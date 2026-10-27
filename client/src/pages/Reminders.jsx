@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Clock, Droplets, Pill, Stethoscope, Trash2 } from "lucide-react";
+import { Bell, BellOff, Clock, Download, Droplets, Pill, Stethoscope, Trash2 } from "lucide-react";
 import AppShell from "../components/Shared/AppShell";
 import { errorMessage } from "../services/api";
 import {
@@ -7,6 +7,7 @@ import {
   deleteReminder,
   devicePushState,
   disablePush,
+  downloadReminderCalendar,
   enablePush,
   getReminders,
   isIos,
@@ -59,8 +60,8 @@ function DeviceCard({ state, setState }) {
             ? "On iPhone: tap Share → Add to Home Screen, open PranexusAI from there, then turn notifications on (iOS 16.4 or newer)."
             : "This browser can't receive notifications. Try Chrome, Edge or Firefox.")}
           {state === "denied" && "Notifications are blocked for this site. Allow them in the browser's site settings (the icon left of the address bar), then reload."}
-          {state === "off" && "Reminders arrive even when the app is closed. Turn them on for each phone or computer you use."}
-          {state === "on" && "Reminders will arrive on this device even when the app is closed."}
+          {state === "off" && "Browser alerts are off on this device. Turn them on for best-effort notifications."}
+          {state === "on" && "This device can receive browser alerts. Scheduled delivery may be late or missed while the server is asleep."}
         </p>
         {msg && <p className={`ui-small ${msg.ok ? "rm-ok" : "rm-err"}`} role="status">{msg.text}</p>}
       </div>
@@ -68,7 +69,7 @@ function DeviceCard({ state, setState }) {
         {state === "off" && <button className="ui-btn ui-btn-primary" disabled={busy} onClick={() => run(enablePush, "Done. Send a test to check it.")}>Turn on</button>}
         {state === "on" && (
           <>
-            <button className="ui-btn" disabled={busy} onClick={() => run(async () => { const { data } = await sendTestPush(); if (!data.delivered) throw new Error("The test couldn't be delivered. Try turning notifications off and on."); }, "Test sent. It should appear in a few seconds.")}>Send test</button>
+            <button className="ui-btn" disabled={busy} onClick={() => run(async () => { const { data } = await sendTestPush(); if (!data.delivered) throw new Error("The test couldn't be delivered. Try turning notifications off and on."); }, "The push service accepted the test. Check this device for the alert.")}>Send test</button>
             <button className="ui-btn ui-btn-ghost" disabled={busy} onClick={() => run(disablePush)}>Turn off</button>
           </>
         )}
@@ -153,6 +154,8 @@ export default function Reminders() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // {id?, value}
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState(false);
 
   useEffect(() => {
     devicePushState().then(setDevice).catch(() => setDevice("unsupported"));
@@ -170,12 +173,14 @@ export default function Reminders() {
       const { data } = await createReminder(value);
       setList((l) => [...l, data]);
     }
+    setExported(false);
     setEditing(null);
   };
   const toggle = async (r) => {
     try {
       const { data } = await updateReminder(r._id, { ...r, enabled: !r.enabled });
       setList((l) => l.map((x) => (x._id === data._id ? data : x)));
+      setExported(false);
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -185,15 +190,32 @@ export default function Reminders() {
     try {
       await deleteReminder(r._id);
       setList((l) => l.filter((x) => x._id !== r._id));
+      setExported(false);
     } catch (err) {
       setError(errorMessage(err));
     }
   };
 
+  const exportCalendar = async () => {
+    setExporting(true);
+    setError("");
+    try {
+      await downloadReminderCalendar();
+      setExported(true);
+    } catch (err) {
+      setError(errorMessage(err, "Couldn't download the calendar file."));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const activeCount = list.filter((r) => r.enabled).length;
+
   return (
-    <AppShell title="Reminders" subtitle="Your daily routines, on schedule.">
+    <AppShell title="Reminders" subtitle="Your routines and alerts.">
       {error && <div className="ui-alert ui-alert-error" role="alert">{error}</div>}
       <div className="ui-stack" style={{ gap: "1rem" }}>
+        <div className="ui-alert ui-alert-info" role="note">Browser push is best-effort on this hosting plan. For time-sensitive medicine, also use a device calendar or alarm.</div>
         <DeviceCard state={device} setState={setDevice} />
 
         {editing ? (
@@ -210,7 +232,10 @@ export default function Reminders() {
         )}
 
         <section className="ui-card">
-          <h2 className="ui-card-title">Your reminders</h2>
+          <div className="ui-card-title">
+            <h2>Your reminders</h2>
+            <button className="ui-btn ui-btn-sm" onClick={exportCalendar} disabled={!activeCount || exporting || loading} title="Download active reminders as a calendar file"><Download size={16} /> {exporting ? "Preparing…" : "Download calendar file"}</button>
+          </div>
           {loading ? (
             <div className="ui-loading"><span className="ui-spinner" /> Loading…</div>
           ) : !list.length ? (
@@ -229,8 +254,8 @@ export default function Reminders() {
                     </div>
                     {r.lastSentAt && (
                       <div className="ui-faint ui-small">
-                        Last sent {ago(r.lastSentAt)}
-                        {r.lastResult && !r.lastResult.delivered && " · not delivered (no device with notifications on)"}
+                        Last push attempt {ago(r.lastSentAt)}
+                        {r.lastResult && !r.lastResult.delivered && " · not delivered; check device settings"}
                       </div>
                     )}
                   </div>
@@ -243,7 +268,8 @@ export default function Reminders() {
               ))}
             </ul>
           )}
-          {list.length > 0 && device !== "on" && <p className="ui-faint ui-small" style={{ marginTop: "0.75rem" }}>Turn on notifications above, or these reminders won't reach you.</p>}
+          {exported && <p className="ui-small rm-ok" role="status">Calendar file downloaded. Import it on your calendar website and check its notification settings.</p>}
+          {list.length > 0 && <p className="ui-faint ui-small" style={{ marginTop: "0.75rem" }}>Calendar export is a one-time copy of active reminders in India time. Edits or pauses here will not update imported events; remove old events before importing again. Titles and notes are included. <a href="https://support.google.com/calendar/answer/37118?hl=en" target="_blank" rel="noreferrer">Google Calendar import guide</a></p>}
         </section>
       </div>
     </AppShell>

@@ -3,7 +3,7 @@ const env = require("../config/env");
 
 let transporter = null;
 function getTransporter() {
-  if (!env.emailConfigured) return null;
+  if (env.emailProvider !== "gmail") return null;
   if (!transporter) {
     transporter = nodemailer.createTransport({
       service: "gmail",
@@ -23,16 +23,43 @@ const layout = (title, body) => `
     <p style="color:#64748b; font-size:12px; margin-top:24px;">Sent by PranexusAI. This app gives general wellness information, not medical diagnosis.</p>
   </div>`;
 
+async function sendViaBrevo({ to, subject, html, attachments }) {
+  const payload = {
+    sender: { name: "PranexusAI", email: env.brevoSenderEmail },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+    ...(attachments?.length ? {
+      attachment: attachments.map((file) => ({
+        name: file.filename,
+        content: Buffer.from(file.content).toString("base64"),
+      })),
+    } : {}),
+  };
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: { "api-key": env.brevoApiKey, accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!response.ok) {
+    console.error(`[email] Brevo rejected a message (HTTP ${response.status})`);
+    return { ok: false, error: "Email provider rejected the message" };
+  }
+  return { ok: true };
+}
+
 // Returns { ok, skipped?, error? } and never throws, so a mail failure cannot break a request.
 async function send({ to, subject, html, attachments }) {
-  const t = getTransporter();
-  if (!t) return { ok: false, skipped: true, error: "Email is not configured on the server" };
+  if (!env.emailConfigured) return { ok: false, skipped: true, error: "Email is not configured on the server" };
   try {
+    if (env.emailProvider === "brevo") return await sendViaBrevo({ to, subject, html, attachments });
+    const t = getTransporter();
     await t.sendMail({ from: `PranexusAI <${env.gmailUser}>`, to, subject, html, attachments });
     return { ok: true };
   } catch (err) {
-    console.error(`Email to ${to} failed: ${err.message}`);
-    return { ok: false, error: err.message };
+    console.error(`[email] ${env.emailProvider} request failed: ${err.name || "Error"}`);
+    return { ok: false, error: "Email provider could not be reached" };
   }
 }
 

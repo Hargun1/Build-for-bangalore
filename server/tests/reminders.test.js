@@ -11,6 +11,7 @@ const db = require("./db");
 const Reminder = require("../models/Reminder");
 const PushSubscription = require("../models/PushSubscription");
 const { tick } = require("../jobs/reminders");
+const { remindersIcs } = require("../services/ics");
 
 beforeAll(db.connect);
 afterEach(async () => {
@@ -30,6 +31,42 @@ const SUB = { endpoint: "https://fcm.googleapis.com/fcm/send/abc123", keys: { p2
 const SAT_0805_IST = new Date("2026-10-10T02:35:00Z");
 
 describe("reminder API", () => {
+  test("calendar export includes only this user's active reminders", async () => {
+    const { agent } = await signIn();
+    await agent("get", "/api/reminders/calendar.ics").expect(400);
+    await agent("post", "/api/reminders").send({ title: "Morning, evening pill", note: "Take after food", kind: "medicine", times: ["08:00", "20:00"] }).expect(201);
+    await agent("post", "/api/reminders").send({ title: "Weekly BP", times: ["09:00"], days: [1, 3, 5] }).expect(201);
+    await agent("post", "/api/reminders").send({ title: "Paused secret", times: ["10:00"], enabled: false }).expect(201);
+    const other = await signIn();
+    await other.agent("post", "/api/reminders").send({ title: "Another user's private medicine", times: ["11:00"] }).expect(201);
+
+    const res = await agent("get", "/api/reminders/calendar.ics").expect(200);
+    expect(res.headers["content-type"]).toMatch(/^text\/calendar/);
+    expect(res.headers["content-disposition"]).toContain("pranexus-reminders.ics");
+    expect(res.headers["cache-control"]).toBe("private, no-store");
+    expect(res.text.match(/BEGIN:VEVENT/g)).toHaveLength(3);
+    expect(res.text.match(/RRULE:FREQ=DAILY/g)).toHaveLength(2);
+    expect(res.text).toContain("RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR");
+    expect(res.text).toContain("TRIGGER:PT0S");
+    expect(res.text).toContain("CLASS:PRIVATE");
+    expect(res.text).toContain("SUMMARY:Morning\\, evening pill");
+    expect(res.text).not.toMatch(/Paused secret|Another user's private medicine/);
+    await request(app).get("/api/reminders/calendar.ics").expect(401);
+  });
+
+  test("calendar export preserves India-time recurrence and folds escaped text", () => {
+    const reminders = [{ _id: "abc123", title: "Pill; dose\\check\rBEGIN:VTODO " + "very long ".repeat(9), note: "with food\nnot twice", enabled: true, times: ["08:00", "20:00"], days: [] },
+      { _id: "def456", title: "Weekday BP", enabled: true, times: ["08:00"], days: [1, 3, 5] }];
+    const ics = remindersIcs(reminders, SAT_0805_IST);
+    expect(ics).toContain("DTSTART:20261011T023000Z"); // Sunday 08:00 IST, after today's 08:05
+    expect(ics).toContain("DTSTART:20261010T143000Z"); // Saturday 20:00 IST
+    expect(ics).toContain("DTSTART:20261012T023000Z"); // Monday 08:00 IST
+    expect(ics).toContain("SUMMARY:Pill\\; dose\\\\check\\nBEGIN:VTODO");
+    expect(ics).toContain("DESCRIPTION:with food\\nnot twice");
+    expect(ics).not.toContain("\rBEGIN:VTODO");
+    expect(ics.trimEnd().endsWith("END:VCALENDAR")).toBe(true);
+    expect(ics.split("\r\n").every((line) => Buffer.byteLength(line, "utf8") <= 75)).toBe(true);
+  });
   test("creates, normalises, lists, updates and deletes reminders", async () => {
     const { agent } = await signIn();
     const created = (await agent("post", "/api/reminders").send({ kind: "medicine", title: "Metformin 500 mg", times: ["20:00", "08:00", "08:00"], days: [0, 1, 2, 3, 4, 5, 6] }).expect(201)).body;

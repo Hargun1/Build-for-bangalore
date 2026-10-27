@@ -1,0 +1,32 @@
+[
+  {
+    "name": "complete male profile",
+    "inputs": { "age": 55, "sex": "male", "heightCm": 175, "weightKg": 79.6, "waistCm": 95, "activityLevel": "moderate", "familyHistoryDiabetes": "one_parent", "smoker": false, "hasDiabetes": false, "onBpMedication": false, "systolic": 140, "diastolic": 88, "avgSleepHours": 7, "avgSteps": 6000, "avgStress": 4, "daysLogged": 3 },
+    "wellnessScore": 51,
+    "scores": [["diabetes", 60, 60, "high"], ["heart", 15.1, 15.1, "moderate"], ["weight", 26, 55, "high"], ["bloodPressure", 140, 56, "high"], ["sleep", 7, 70, "low"], ["activity", 6000, 60, "moderate"], ["stress", 4, 40, "moderate"]]
+  },
+  {
+    "name": "complete female profile",
+    "inputs": { "age": 40, "sex": "female", "heightCm": 160, "weightKg": 57, "waistCm": 85, "activityLevel": "mild", "familyHistoryDiabetes": "none", "smoker": true, "hasDiabetes": false, "onBpMedication": true, "systolic": 135, "diastolic": 85, "avgSleepHours": 6.5, "avgSteps": 7500, "avgStress": 7, "daysLogged": 2 },
+    "wellnessScore": 66,
+    "scores": [["diabetes", 50, 50, "moderate"], ["heart", 7.4, 7.4, "low"], ["weight", 22.3, 36, "moderate"], ["bloodPressure", 135, 50, "moderate"], ["sleep", 6.5, 65, "moderate"], ["activity", 7500, 75, "low"], ["stress", 7, 70, "high"]]
+  },
+  {
+    "name": "partial profile",
+    "inputs": { "age": 40, "activityLevel": "mild" },
+    "wellnessScore": null,
+    "scores": [["diabetes", 40, null, "unknown"], ["heart", null, null, "unknown"], ["weight", null, null, "unknown"], ["bloodPressure", null, null, "unknown"], ["sleep", null, null, "unknown"], ["activity", null, null, "unknown"], ["stress", null, null, "unknown"]]
+  },
+  {
+    "name": "known diabetes outside heart model age",
+    "inputs": { "age": 25, "sex": "male", "heightCm": 175, "weightKg": 79.6, "waistCm": 95, "activityLevel": "moderate", "familyHistoryDiabetes": "one_parent", "smoker": false, "hasDiabetes": true, "onBpMedication": false, "systolic": 140, "diastolic": 88 },
+    "wellnessScore": 25,
+    "scores": [["diabetes", null, null, "unknown"], ["heart", null, null, "unknown"], ["weight", 26, 55, "high"], ["bloodPressure", 140, 56, "high"], ["sleep", null, null, "unknown"], ["activity", null, null, "unknown"], ["stress", null, null, "unknown"]]
+  },
+  {
+    "name": "crisis-range blood pressure",
+    "inputs": { "systolic": 185, "diastolic": 95 },
+    "wellnessScore": 25,
+    "scores": [["diabetes", 0, null, "unknown"], ["heart", null, null, "unknown"], ["weight", null, null, "unknown"], ["bloodPressure", 185, 100, "high"], ["sleep", null, null, "unknown"], ["activity", null, null, "unknown"], ["stress", null, null, "unknown"]]
+  }
+]

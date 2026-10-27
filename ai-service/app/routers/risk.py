@@ -35,8 +35,13 @@ def rule_based(scores) -> tuple[str, list[dict]]:
     for s in flagged[:5]:
         title, detail = RULE_RECOMMENDATIONS[s.key]
         recs.append({"title": title, "detail": detail, "priority": "high" if s.level == "high" else "medium", "relatedTo": s.key})
-    if not flagged:
-        summary = "Everything we could score looks healthy. Keep logging your daily numbers so we can spot changes early."
+    known_count = sum(s.level != "unknown" for s in scores)
+    if not known_count:
+        summary = "There is not enough information to calculate a risk score yet. Add your health details and readings first."
+    elif not flagged:
+        summary = ("The scores we could calculate are low risk, but some could not be calculated. Add the missing details for a fuller screening estimate."
+                   if known_count < len(scores) else
+                   "Everything we could score looks healthy. Keep logging your daily numbers so we can spot changes early.")
     else:
         names = ", ".join(s.label.lower() for s in flagged[:3])
         summary = f"Your scores point to {names} as the areas to work on first. These are screening estimates, not a diagnosis."

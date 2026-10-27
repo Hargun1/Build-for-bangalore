@@ -9,6 +9,7 @@ const HealthMetrics = require("../models/HealthMetrics");
 const Prediction = require("../models/Prediction");
 const FoodLog = require("../models/FoodLog");
 const ai = require("../services/aiService");
+const { assessRiskRules } = require("../services/riskRules");
 const { dayKey, daysAgoKey, aiContext, recentAverages } = require("../services/userContext");
 
 router.use(auth);
@@ -122,7 +123,13 @@ router.post(
     // Drop undefined so pydantic sees missing values as missing.
     Object.keys(inputs).forEach((k) => inputs[k] === undefined && delete inputs[k]);
 
-    const result = await ai.riskAssess({ inputs, context: aiContext(user), explain: true });
+    let result;
+    try {
+      result = await ai.riskAssess({ inputs, context: aiContext(user), explain: true });
+    } catch (err) {
+      if (![429, 502, 503, 504].includes(err.status)) throw err;
+      result = assessRiskRules(inputs);
+    }
     const prediction = await Prediction.create({
       userId: req.user.id,
       scores: result.scores,

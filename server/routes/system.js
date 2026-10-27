@@ -12,10 +12,20 @@ router.get(
     let aiStatus = { reachable: false };
     try {
       const h = await ai.health();
+      const providers = h.providers.map((p) => {
+        const available = (p.availableTextModels || []).length > 0;
+        const recentlyWorked = p.lastOkAt && Date.now() / 1000 - p.lastOkAt < 15 * 60;
+        let state = "unavailable";
+        if (!p.configured) state = "not-configured";
+        else if (p.disabledReason) state = "rejected";
+        else if (available) state = recentlyWorked ? "recently-working" : "available";
+        else if (p.restingForSeconds > 0 || Object.keys(p.restingModels || {}).length > 0) state = "rate-limited";
+        return { provider: p.provider, state };
+      });
       aiStatus = {
         reachable: true,
         aiReady: h.aiReady,
-        providers: h.providers.map((p) => ({ provider: p.provider, configured: p.configured, healthy: p.configured && !p.disabledReason })),
+        providers,
       };
     } catch {
       /* AI service asleep or down */

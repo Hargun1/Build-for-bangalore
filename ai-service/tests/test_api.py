@@ -34,6 +34,17 @@ def test_health_reports_no_ai_without_keys(client):
     assert body["aiReady"] is False and {p["provider"] for p in body["providers"]} == {"gemini", "groq", "openrouter"}
 
 
+def test_health_does_not_call_resting_models_ready(client, monkeypatch):
+    import main
+
+    class RestingClient:
+        def status(self):
+            return [{"provider": "gemini", "configured": True, "availableTextModels": []}]
+
+    monkeypatch.setattr(main, "get_llm", lambda: RestingClient())
+    assert client.get("/health").json()["aiReady"] is False
+
+
 def test_internal_token_enforced(client, monkeypatch):
     from app.config import get_settings
 
@@ -48,6 +59,17 @@ def test_risk_assess_falls_back_to_rules(client):
     body = res.json()
     assert res.status_code == 200 and body["aiSource"] == "rules"
     assert {r["relatedTo"] for r in body["recommendations"]} == {"weight", "activity"}
+
+
+def test_risk_without_data_does_not_claim_healthy(client):
+    body = client.post("/risk/assess", json={"inputs": {}}).json()
+    assert body["wellnessScore"] is None
+    assert "not enough information" in body["summary"]
+
+
+def test_risk_with_one_low_score_does_not_claim_whole_profile_healthy(client):
+    body = client.post("/risk/assess", json={"inputs": {"avgSleepHours": 8}}).json()
+    assert "some could not be calculated" in body["summary"]
 
 
 def test_chat_answers_emergencies_without_ai(client):

@@ -37,7 +37,7 @@ export default function VerifyEmail() {
   return (
     <AuthCard
       title="Verify your email"
-      subtitle="We sent a 6-digit code to your inbox. It expires in 10 minutes."
+      subtitle="Enter the 6-digit code from your inbox. It expires in 10 minutes."
       footer={<Link to="/login" style={{ textDecoration: "underline" }}>Back to sign in</Link>}
     >
       <form className="ui-stack" onSubmit={submit}>

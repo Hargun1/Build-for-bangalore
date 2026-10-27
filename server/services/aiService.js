@@ -15,9 +15,9 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-async function call(path, payload) {
+async function call(path, payload, timeout) {
   try {
-    const { data } = await client.post(path, payload);
+    const { data } = await client.post(path, payload, timeout ? { timeout } : undefined);
     return data;
   } catch (err) {
     if (err.response) {
@@ -46,7 +46,8 @@ module.exports = {
   call,
   chatStream,
   health: () => client.get("/health", { timeout: 10000 }).then((r) => r.data),
-  riskAssess: (p) => call("/risk/assess", p),
+  // Numeric risk scores fall back to local rules if this optional explanation is slow.
+  riskAssess: (p) => call("/risk/assess", p, 15000),
   chat: (p) => call("/chat", p),
   analyzeMeal: (p) => call("/vision/meal", p),
   analyzeGroceryPhoto: (p) => call("/vision/grocery", p),

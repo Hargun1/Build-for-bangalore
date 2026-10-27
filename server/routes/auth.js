@@ -8,6 +8,7 @@ const validate = require("../middleware/validate");
 const { authLimiter } = require("../middleware/rateLimit");
 const { asyncHandler, HttpError } = require("../middleware/errors");
 const { sendVerificationOtp, sendPasswordResetOtp } = require("../services/emailService");
+const env = require("../config/env");
 const { verifyGoogleCredential } = require("../services/googleAuth");
 
 const OTP_TTL_MS = 10 * 60 * 1000;
@@ -77,6 +78,9 @@ router.post(
   authLimiter,
   validate(registerSchema),
   asyncHandler(async (req, res) => {
+    if (env.isProduction && !env.emailConfigured) {
+      throw new HttpError(503, "Email sign-up is temporarily unavailable. Please try again later.");
+    }
     const { name, email: mail, password: pw, gender, dob } = req.body;
     const existing = await User.findOne({ email: mail });
     if (existing && existing.emailVerified) {
@@ -87,8 +91,8 @@ router.post(
     const user = existing || new User({ email: mail });
     Object.assign(user, { name, password: hashed, gender, dob, emailVerified: false });
     const sent = await issueOtp(user);
-    res.status(201).json({
-      message: sent.ok ? "Check your email for a 6-digit verification code." : "Account created, but we could not send the code. Use 'Resend code'.",
+    res.status(sent.ok ? 201 : 503).json({
+      message: sent.ok ? "Check your email for a 6-digit verification code." : "Account created, but we could not send the code. Please try again later.",
       requiresEmailVerification: true,
       email: mail,
     });
@@ -112,6 +116,9 @@ router.post(
   authLimiter,
   validate(resendSchema),
   asyncHandler(async (req, res) => {
+    if (env.isProduction && !env.emailConfigured) {
+      throw new HttpError(503, "Email delivery is temporarily unavailable. Please try again later.");
+    }
     const user = await User.findOne({ email: req.body.email });
     // Same answer whether or not the account exists, so this cannot be used to probe emails.
     if (user && !user.emailVerified) await issueOtp(user);
@@ -163,6 +170,9 @@ router.post(
   authLimiter,
   validate(resendSchema),
   asyncHandler(async (req, res) => {
+    if (env.isProduction && !env.emailConfigured) {
+      throw new HttpError(503, "Email delivery is temporarily unavailable. Please try again later.");
+    }
     const user = await User.findOne({ email: req.body.email, isGuest: false });
     if (user) await issueOtp(user, "reset");
     res.json({ message: "If an account exists for that email, a reset code is on its way." });

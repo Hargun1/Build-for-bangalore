@@ -1,4 +1,6 @@
 import math
+import json
+from pathlib import Path
 
 import pytest
 
@@ -11,6 +13,16 @@ def full(**over):
                 systolic=140, diastolic=88)
     base.update(over)
     return RiskInputs(**base)
+
+
+PARITY_CASES = json.loads((Path(__file__).resolve().parents[2] / "server" / "tests" / "fixtures" / "risk-parity.json").read_text())
+
+
+@pytest.mark.parametrize("case", PARITY_CASES, ids=lambda case: case["name"])
+def test_shared_parity_cases(case):
+    result = assess(RiskInputs(**case["inputs"]))
+    assert result["wellnessScore"] == case["wellnessScore"]
+    assert [[s.key, s.value, s.percent, s.level] for s in result["scores"]] == case["scores"]
 
 
 # ---------------------------------------------------------------- IDRS
@@ -93,6 +105,11 @@ def test_central_obesity_raises_normal_bmi():
 @pytest.mark.parametrize("sys_,dia,level", [(115, 75, "low"), (125, 78, "moderate"), (135, 85, "moderate"), (150, 95, "high"), (185, 100, "high")])
 def test_bp_categories(sys_, dia, level):
     assert blood_pressure(RiskInputs(systolic=sys_, diastolic=dia)).level == level
+
+
+def test_crisis_range_bp_has_visible_action_note():
+    s = blood_pressure(RiskInputs(systolic=185, diastolic=95))
+    assert "call 112 now" in s.note
 
 
 def test_assess_wellness_ignores_unknown_scores():

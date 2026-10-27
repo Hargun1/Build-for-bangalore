@@ -34,7 +34,12 @@ router.post(
   aiLimiter,
   validate(chatSchema),
   asyncHandler(async (req, res) => {
-    res.json(await ai.chat(await buildPayload(req)));
+    try {
+      res.json(await ai.chat(await buildPayload(req)));
+    } catch (err) {
+      if (![429, 502, 503, 504].includes(err.status)) throw err;
+      res.status(503).json({ message: "The assistant cannot check your message right now. If this could be an emergency, call 112 or seek in-person care now." });
+    }
   })
 );
 
@@ -74,7 +79,7 @@ router.post(
       upstream = await ai.chatStream(payload, controller.signal);
     } catch (err) {
       if (!controller.signal.aborted) {
-        res.write(sseEvent("error", { message: err.message || "The AI assistant is unavailable right now." }));
+        res.write(sseEvent("error", { message: `${err.message || "The AI assistant is unavailable right now."} If this could be an emergency, call 112 or seek in-person care now.` }));
       }
       res.end();
       return;

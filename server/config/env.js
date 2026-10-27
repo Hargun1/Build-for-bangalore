@@ -32,6 +32,8 @@ const env = {
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   gmailUser: process.env.GMAIL_USER || "",
   gmailPassword: process.env.GMAIL_PASSWORD || "",
+  brevoApiKey: process.env.BREVO_API_KEY || "",
+  brevoSenderEmail: process.env.BREVO_SENDER_EMAIL || "",
   // Open Food Facts and OpenStreetMap ask every client to identify itself.
   // Web Push (VAPID) key pair: generate once with `npx web-push generate-vapid-keys`.
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY || "",
@@ -40,6 +42,9 @@ const env = {
   userAgent: process.env.HTTP_USER_AGENT || "PranexusAI/2.0 (https://github.com/Hargun1/Build-for-bangalore)",
 };
 
-env.emailConfigured = Boolean(env.gmailUser && env.gmailPassword);
+env.emailProvider = null;
+if (env.brevoApiKey && env.brevoSenderEmail) env.emailProvider = "brevo";
+else if (!isProduction && env.gmailUser && env.gmailPassword) env.emailProvider = "gmail";
+env.emailConfigured = Boolean(env.emailProvider);
 
 module.exports = env;

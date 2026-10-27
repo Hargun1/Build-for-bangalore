@@ -20,9 +20,12 @@ const request = require("supertest");
 const app = require("../app");
 const db = require("./db");
 const ai = require("../services/aiService");
+const { HttpError } = require("../middleware/errors");
 const { sendSosAlert } = require("../services/emailService");
 const User = require("../models/User");
 const HealthMetrics = require("../models/HealthMetrics");
+const Prediction = require("../models/Prediction");
+const LabReport = require("../models/LabReport");
 const FoodLog = require("../models/FoodLog");
 const { deleteOrphanedAccountData } = require("../services/accountData");
 const { cleanupExpiredGuests, removeLegacyTtlIndex } = require("../jobs/guestCleanup");
@@ -40,6 +43,24 @@ async function signIn() {
   const agent = (method, url) => request(app)[method](url).set("Authorization", `Bearer ${res.body.token}`);
   return { agent, userId: res.body.user.id };
 }
+
+test("system status distinguishes unverified, recently working, rate-limited and rejected AI providers", async () => {
+  ai.health.mockResolvedValueOnce({
+    aiReady: true,
+    providers: [
+      { provider: "gemini", configured: true, availableTextModels: ["flash"], lastOkAt: null },
+      { provider: "groq", configured: true, availableTextModels: ["llama"], lastOkAt: Math.floor(Date.now() / 1000) - 60 },
+      { provider: "openrouter", configured: true, availableTextModels: [], restingModels: { free: 60 } },
+      { provider: "invalid", configured: true, availableTextModels: [], disabledReason: "HTTP 401" },
+      { provider: "missing", configured: false, availableTextModels: [] },
+      { provider: "empty", configured: true, availableTextModels: [] },
+    ],
+  });
+  const res = await request(app).get("/api/system/status").expect(200);
+  expect(res.body.ai.providers.map((p) => p.state)).toEqual([
+    "available", "recently-working", "rate-limited", "rejected", "not-configured", "unavailable",
+  ]);
+});
 
 describe("profile and account safety", () => {
   test("users cannot set protected fields like emailVerified or isGuest", async () => {
@@ -151,6 +172,25 @@ describe("daily metrics", () => {
     expect(sent.context).not.toHaveProperty("email");
     expect(res.body.wellnessScore).toBe(40);
   });
+
+  test("analyze saves a rule-based assessment when the AI service is unavailable", async () => {
+    const { agent, userId } = await signIn();
+    await agent("put", "/api/users/me/profile").send({ heightCm: 170, weightKg: 80, waistCm: 100 });
+    await HealthMetrics.create({ userId, day: dayKey(), systolic: 185, diastolic: 95, steps: 3500 });
+    ai.riskAssess.mockRejectedValueOnce(new HttpError(503, "AI service unavailable"));
+    const res = await agent("post", "/api/health/analyze").expect(200);
+    expect(res.body.aiSource).toBe("rules");
+    expect(res.body.scores.find((s) => s.key === "bloodPressure")).toEqual(expect.objectContaining({ level: "high", note: expect.stringContaining("call 112 now") }));
+    expect(res.body.scores.find((s) => s.key === "heart").note).toContain("missing details");
+    expect(await Prediction.countDocuments({ userId })).toBe(1);
+  });
+
+  test("analyze does not hide validation failures behind a fallback", async () => {
+    const { agent, userId } = await signIn();
+    ai.riskAssess.mockRejectedValueOnce(new HttpError(422, "Invalid input"));
+    await agent("post", "/api/health/analyze").expect(422);
+    expect(await Prediction.countDocuments({ userId })).toBe(0);
+  });
 });
 
 describe("goals", () => {
@@ -191,18 +231,31 @@ describe("SOS", () => {
 });
 
 describe("appointments", () => {
+  test("triage does not invent an urgency when the AI service is down", async () => {
+    const { agent } = await signIn();
+    ai.triage.mockRejectedValueOnce(new HttpError(503, "unreachable"));
+    const res = await agent("post", "/api/appointments/triage").send({ symptoms: "severe chest pain" }).expect(503);
+    expect(res.body).toEqual({ message: expect.stringContaining("call 112") });
+    expect(res.body).not.toHaveProperty("urgency");
+  });
+
   test("rejects past times and double bookings", async () => {
     const { agent } = await signIn();
     const place = { name: "Jayanagar Clinic", address: "4th Block" };
     await agent("post", "/api/appointments").send({ place, startsAt: "2020-01-01T10:00:00Z" }).expect(400);
     const when = new Date(Date.now() + 2 * 24 * 3600 * 1000).toISOString();
-    await agent("post", "/api/appointments").send({ place, startsAt: when }).expect(201);
+    await agent("post", "/api/appointments").send({ place, startsAt: when, reason: "Private visit reason" }).expect(201);
     await agent("post", "/api/appointments").send({ place, startsAt: when }).expect(409);
     const list = await agent("get", "/api/appointments").expect(200);
     expect(list.body.upcoming).toHaveLength(1);
     const ics = await agent("get", `/api/appointments/${list.body.upcoming[0]._id}/ics`).expect(200);
     expect(ics.text).toContain("BEGIN:VCALENDAR");
     expect(ics.text).toContain("TRIGGER:-P1D");
+    expect(ics.text).not.toContain("Private visit reason");
+    expect(ics.headers["cache-control"]).toBe("private, no-store");
+    const other = await signIn();
+    await other.agent("get", `/api/appointments/${list.body.upcoming[0]._id}/ics`).expect(404);
+    await request(app).get(`/api/appointments/${list.body.upcoming[0]._id}/ics`).expect(401);
   });
 });
 
@@ -229,6 +282,14 @@ describe("streaming chat", () => {
     const res = await agent("post", "/api/chat/stream").send({ messages: [{ role: "user", content: "hi" }] }).expect(200);
     expect(res.text).toContain(": connected\n\n");
     expect(res.text).toMatch(/event: error\ndata: .*unreachable/);
+    expect(res.text).toContain("call 112");
+  });
+
+  test("non-stream chat fails with a safety message when the service is down", async () => {
+    const { agent } = await signIn();
+    ai.chat.mockRejectedValueOnce(new HttpError(503, "unreachable"));
+    const res = await agent("post", "/api/chat").send({ messages: [{ role: "user", content: "I feel unwell" }] }).expect(503);
+    expect(res.body.message).toContain("call 112");
   });
 
   test("keeps an idle stream alive without exposing answer text and clears the timer", async () => {
@@ -269,6 +330,17 @@ describe("lab reports", () => {
     counts: { normal: 0, high: 1, low: 0, check: 0, unknown: 0 },
     summary: "1 of 1 checked results are outside the range: HbA1c.",
   };
+
+  test("lab read and save fail closed when rule evaluation is unavailable", async () => {
+    const { agent, userId } = await signIn();
+    ai.readLabReport.mockRejectedValueOnce(new HttpError(503, "unreachable"));
+    const read = await agent("post", "/api/labs/read").send({ images: [IMG] }).expect(503);
+    expect(read.body.message).toContain("No results were saved");
+    ai.evaluateLabs.mockRejectedValueOnce(new HttpError(503, "unreachable"));
+    const save = await agent("post", "/api/labs").send({ reportDate: "2026-09-30", tests: [{ name: "HbA1c", value: "6.8" }] }).expect(503);
+    expect(save.body.message).toContain("not saved");
+    expect(await LabReport.countDocuments({ userId })).toBe(0);
+  });
 
   test("reading passes the pages and the user's sex, and saves nothing", async () => {
     const { agent } = await signIn();

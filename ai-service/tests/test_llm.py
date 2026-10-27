@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 
 import httpx
 import pytest
@@ -45,6 +46,18 @@ def test_falls_back_to_next_provider_on_rate_limit():
     assert seen == ["gemini.test", "groq.test"]
     # Gemini rests for 60 s after a 429, so the next call skips it.
     assert [p.name for p in c.available_providers()] == ["groq"]
+
+
+def test_status_only_counts_usable_text_models():
+    c = client_with(lambda request: reply("ok"), [provider("gemini", models=("flash", "lite"))])
+    assert c.status()[0]["availableTextModels"] == ["flash", "lite"]
+    c.state["gemini"].model_resting_until["flash"] = time.time() + 60
+    assert c.status()[0]["availableTextModels"] == ["lite"]
+    c.state["gemini"].resting_until = time.time() + 60
+    assert c.status()[0]["availableTextModels"] == []
+    c.state["gemini"].resting_until = 0
+    c.state["gemini"].disabled_reason = "HTTP 401"
+    assert c.status()[0]["availableTextModels"] == []
 
 
 def test_bad_key_disables_provider():

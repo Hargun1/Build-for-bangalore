@@ -15,6 +15,7 @@ const axios = require("axios");
 const app = require("../app");
 const db = require("./db");
 const User = require("../models/User");
+const env = require("../config/env");
 const { sendVerificationOtp, sendPasswordResetOtp } = require("../services/emailService");
 
 beforeAll(db.connect);
@@ -56,6 +57,28 @@ describe("email + password sign-up", () => {
     await registerAndGetOtp();
     const res = await request(app).post("/api/auth/login").send({ email: newUser.email, password: newUser.password }).expect(403);
     expect(res.body.requiresEmailVerification).toBe(true);
+  });
+
+  test("a failed verification email does not claim a code was sent", async () => {
+    sendVerificationOtp.mockResolvedValueOnce({ ok: false });
+    const res = await request(app).post("/api/auth/register").send(newUser).expect(503);
+    expect(res.body.message).toMatch(/could not send/i);
+    expect(await User.countDocuments({ email: "asha@example.com", emailVerified: false })).toBe(1);
+  });
+
+  test("production without an email provider refuses code requests for every address", async () => {
+    const previous = { isProduction: env.isProduction, emailConfigured: env.emailConfigured };
+    env.isProduction = true;
+    env.emailConfigured = false;
+    try {
+      await request(app).post("/api/auth/register").send(newUser).expect(503);
+      await request(app).post("/api/auth/resend-verification").send({ email: newUser.email }).expect(503);
+      await request(app).post("/api/auth/forgot-password").send({ email: "unknown@example.com" }).expect(503);
+      expect(await User.countDocuments({ email: "asha@example.com" })).toBe(0);
+      expect(sendVerificationOtp).not.toHaveBeenCalled();
+    } finally {
+      Object.assign(env, previous);
+    }
   });
 
   test("OTP locks after 5 wrong attempts, even if the 6th is correct", async () => {

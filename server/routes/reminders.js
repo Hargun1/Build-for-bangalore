@@ -6,6 +6,7 @@ const { asyncHandler, HttpError } = require("../middleware/errors");
 const Reminder = require("../models/Reminder");
 const PushSubscription = require("../models/PushSubscription");
 const push = require("../services/push");
+const { remindersIcs } = require("../services/ics");
 
 router.use(auth);
 
@@ -97,6 +98,20 @@ router.get(
   asyncHandler(async (req, res) => {
     const rows = await Reminder.find({ userId: req.user.id }).sort({ createdAt: 1 }).lean();
     res.json(rows.map(view));
+  })
+);
+
+router.get(
+  "/calendar.ics",
+  asyncHandler(async (req, res) => {
+    const reminders = await Reminder.find({ userId: req.user.id, enabled: true }).lean();
+    if (!reminders.length) throw new HttpError(400, "Enable a reminder before exporting a calendar.");
+    res.set({
+      "Content-Type": "text/calendar; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="pranexus-reminders.ics"',
+      "Cache-Control": "private, no-store",
+    });
+    res.send(remindersIcs(reminders));
   })
 );
 

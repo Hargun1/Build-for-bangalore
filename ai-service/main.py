@@ -76,7 +76,7 @@ def health():
         kb = {"error": str(exc)}
     return {
         "status": "ok",
-        "aiReady": any(p["configured"] and not p["disabledReason"] for p in providers),
+        "aiReady": any(p["availableTextModels"] for p in providers),
         "providers": providers,
         "knowledgeBase": kb,
     }

@@ -8,6 +8,7 @@ import { deleteAccount, getSystemStatus, updateAccount, updateEmergencyContacts,
 const list = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
 const num = (v) => (v === "" || v == null ? null : Number(v));
 const tri = (v) => (v === "" ? null : v === "yes");
+const providerLabels = { "not-configured": "not configured", rejected: "key rejected", "rate-limited": "rate limited", unavailable: "unavailable", available: "available (unverified)", "recently-working": "worked recently" };
 
 function Section({ title, description, children }) {
   return (
@@ -156,9 +157,9 @@ export default function Profile() {
           {system ? (
             <ul className="ui-list">
               <li className="ui-row"><span>Database</span><span className="ui-spacer" /><span className={`ui-badge ${system.database === "connected" ? "ui-badge-good" : "ui-badge-bad"}`}>{system.database}</span></li>
-              <li className="ui-row"><span>AI service</span><span className="ui-spacer" /><span className={`ui-badge ${system.ai.aiReady ? "ui-badge-good" : system.ai.reachable ? "ui-badge-warn" : "ui-badge-bad"}`}>{system.ai.aiReady ? "ready" : system.ai.reachable ? "no AI key: rule-based fallbacks" : "unreachable"}</span></li>
+              <li className="ui-row"><span>AI service</span><span className="ui-spacer" /><span className={`ui-badge ${system.ai.aiReady && system.ai.providers?.some((pr) => pr.state) ? "ui-badge-good" : system.ai.reachable ? "ui-badge-warn" : "ui-badge-bad"}`}>{!system.ai.reachable ? "unreachable" : !system.ai.providers?.some((pr) => pr.state) ? "status unavailable" : system.ai.aiReady ? "models available" : "no models available"}</span></li>
               {(system.ai.providers || []).map((pr) => (
-                <li key={pr.provider} className="ui-row"><span className="ui-faint">AI provider: {pr.provider}</span><span className="ui-spacer" /><span className={`ui-badge ${pr.healthy ? "ui-badge-good" : ""}`}>{pr.configured ? (pr.healthy ? "ok" : "key rejected") : "not configured"}</span></li>
+                <li key={pr.provider} className="ui-row"><span className="ui-faint">AI provider: {pr.provider}</span><span className="ui-spacer" /><span className={`ui-badge ${pr.state === "recently-working" ? "ui-badge-good" : pr.state === "available" ? "ui-badge-warn" : ""}`}>{providerLabels[pr.state] || (pr.configured === false ? "not configured" : "status unavailable")}</span></li>
               ))}
               <li className="ui-row"><span>Email (OTP, SOS)</span><span className="ui-spacer" /><span className={`ui-badge ${system.email === "configured" ? "ui-badge-good" : "ui-badge-warn"}`}>{system.email}</span></li>
             </ul>

@@ -43,7 +43,12 @@ router.post(
   aiLimiter,
   validate(z.object({ images: z.array(page).min(1, "Please attach a photo of the report").max(4, "Up to 4 pages at a time") })),
   asyncHandler(async (req, res) => {
-    res.json(await ai.readLabReport({ images: req.body.images, sex: await sexOf(req) }));
+    try {
+      res.json(await ai.readLabReport({ images: req.body.images, sex: await sexOf(req) }));
+    } catch (err) {
+      if (![429, 502, 503, 504].includes(err.status)) throw err;
+      res.status(503).json({ message: "Report reading is unavailable right now. No results were saved. Please try again later." });
+    }
   })
 );
 
@@ -55,7 +60,13 @@ router.post(
   asyncHandler(async (req, res) => {
     const { reportDate, labName, tests, aiSource } = req.body;
     if (reportDate > dayKey()) throw new HttpError(400, "The report date is in the future");
-    const checked = await ai.evaluateLabs({ tests: tests.map((t) => ({ ...t, key: t.key || "other" })), sex: await sexOf(req) });
+    let checked;
+    try {
+      checked = await ai.evaluateLabs({ tests: tests.map((t) => ({ ...t, key: t.key || "other" })), sex: await sexOf(req) });
+    } catch (err) {
+      if (![429, 502, 503, 504].includes(err.status)) throw err;
+      return res.status(503).json({ message: "Lab results could not be checked, so this report was not saved. Please try again later." });
+    }
     const doc = await LabReport.create({ userId: req.user.id, reportDate, labName, tests: checked.tests, counts: checked.counts, summary: checked.summary, aiSource });
     res.status(201).json(doc);
   })

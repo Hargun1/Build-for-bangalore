@@ -35,9 +35,11 @@ services:
       # This service's own URL, e.g. https://pranexusai.onrender.com
       - key: CLIENT_URL
         sync: false
-      - key: GMAIL_USER
+      # Free Render services block SMTP; use Brevo's HTTPS transactional API.
+      # The sender address must already be verified in Brevo.
+      - key: BREVO_API_KEY
         sync: false
-      - key: GMAIL_PASSWORD
+      - key: BREVO_SENDER_EMAIL
         sync: false
       # Web Push reminders: from `npx web-push generate-vapid-keys` (keep the pair together)
       - key: VAPID_PUBLIC_KEY

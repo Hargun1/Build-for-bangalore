@@ -75,6 +75,7 @@ export function VitalsProvider({ children }) {
     const bt = btRef.current;
     try {
       bt.characteristic?.removeEventListener("characteristicvaluechanged", bt.onValue);
+      bt.device?.removeEventListener("gattserverdisconnected", bt.onDisconnect);
       if (bt.device?.gatt?.connected) bt.device.gatt.disconnect();
     } catch {
       /* already gone */
@@ -107,12 +108,18 @@ export function VitalsProvider({ children }) {
       };
       characteristic.addEventListener("characteristicvaluechanged", onValue);
       await characteristic.startNotifications();
-      dev.addEventListener("gattserverdisconnected", () => {
+      const onDisconnect = () => {
+        characteristic.removeEventListener("characteristicvaluechanged", onValue);
+        dev.removeEventListener("gattserverdisconnected", onDisconnect);
+        btRef.current = { device: null, characteristic: null, rr: [] };
         setStatus({ connecting: false, error: `${dev.name || "The device"} disconnected.` });
         setSource("none");
         setDevice(null);
-      });
-      btRef.current = { device: dev, characteristic, rr: [], onValue };
+        setVitals(EMPTY);
+        setHistory([]);
+      };
+      dev.addEventListener("gattserverdisconnected", onDisconnect);
+      btRef.current = { device: dev, characteristic, rr: [], onValue, onDisconnect };
       setDevice({ name: dev.name || "Heart-rate monitor" });
       setSource("bluetooth");
       setStatus({ connecting: false, error: "" });
@@ -124,12 +131,12 @@ export function VitalsProvider({ children }) {
 
   const setManualVitals = useCallback(
     (values) => {
-      stopSimulator();
+      if (source !== "manual") disconnect();
       setSource("manual");
       setVitals((v) => ({ ...(v.timestamp && source === "manual" ? v : EMPTY), ...values, timestamp: Date.now() }));
       if (values.heartRate) pushHr(values.heartRate);
     },
-    [pushHr, stopSimulator, source]
+    [disconnect, pushHr, source]
   );
 
   const startSimulator = useCallback(

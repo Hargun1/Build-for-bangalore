@@ -231,6 +231,8 @@ def blood_pressure(i: RiskInputs) -> Score:
     s.value = round(sys_)
     if sys_ > 180 or dia > 120:
         cat, s.level = "hypertensive crisis: seek care now", "high"
+        s.note = ("Repeat the reading after at least 1 minute. If it is still this high, contact a health professional "
+                  "as soon as possible. With chest pain, breathlessness, weakness, vision changes or trouble speaking, call 112 now.")
     elif sys_ >= 140 or dia >= 90:
         cat, s.level = "stage 2 hypertension", "high"
     elif sys_ >= 130 or dia >= 80:
