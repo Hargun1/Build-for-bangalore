@@ -33,7 +33,7 @@ const AVERAGED = ["steps", "sleepHours", "restingHeartRate", "systolic", "diasto
 
 // Averages over the last `days` days that have a value (unlogged days are skipped, not counted as zero).
 async function recentAverages(userId, days = 7) {
-  const rows = await HealthMetrics.find({ userId, day: { $gte: daysAgoKey(days - 1) } }).lean();
+  const rows = await HealthMetrics.find({ userId, source: { $ne: "simulator" }, day: { $gte: daysAgoKey(days - 1) } }).lean();
   const out = { daysLogged: rows.length };
   for (const key of AVERAGED) {
     const vals = rows.map((r) => r[key]).filter((v) => typeof v === "number");

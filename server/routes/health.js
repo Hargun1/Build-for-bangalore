@@ -30,7 +30,7 @@ const metricsSchema = z
     stressLevel: num(0, 10),
     screenTimeHours: num(0, 24),
     hrvMs: num(0, 500),
-    source: z.enum(["manual", "bluetooth", "simulator"]).default("manual"),
+    source: z.enum(["manual", "bluetooth"]).default("manual"),
   })
   .refine((m) => !m.day || m.day <= dayKey(), { message: "Cannot log a future day", path: ["day"] })
   .refine((m) => m.systolic == null || m.diastolic == null || m.systolic > m.diastolic, {
@@ -52,7 +52,14 @@ router.put(
       if (values[key] === null) unset[key] = "";
       else if (values[key] !== undefined) set[key] = values[key];
     }
-    const doc = await HealthMetrics.findOneAndUpdate(
+    // A legacy demo row must not carry simulated fields into a real entry.
+    const demoUnset = Object.fromEntries(METRIC_FIELDS.filter((key) => !(key in set)).map((key) => [key, ""]));
+    const replacedDemo = await HealthMetrics.findOneAndUpdate(
+      { userId: req.user.id, day, source: "simulator" },
+      { $set: set, $unset: demoUnset },
+      { new: true }
+    );
+    const doc = replacedDemo || await HealthMetrics.findOneAndUpdate(
       { userId: req.user.id, day },
       { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
       { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -70,7 +77,7 @@ router.get(
   "/metrics",
   validate(z.object({ days: z.coerce.number().int().min(1).max(365).default(30) }), "query"),
   asyncHandler(async (req, res) => {
-    const rows = await HealthMetrics.find({ userId: req.user.id, day: { $gte: daysAgoKey(req.validatedQuery.days - 1) } })
+    const rows = await HealthMetrics.find({ userId: req.user.id, source: { $ne: "simulator" }, day: { $gte: daysAgoKey(req.validatedQuery.days - 1) } })
       .sort({ day: -1 })
       .lean();
     res.json(rows);
@@ -83,7 +90,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const today = dayKey();
     const [metrics, meals, averages] = await Promise.all([
-      HealthMetrics.findOne({ userId: req.user.id, day: today }).lean(),
+      HealthMetrics.findOne({ userId: req.user.id, day: today, source: { $ne: "simulator" } }).lean(),
       FoodLog.find({ userId: req.user.id, day: today }).lean(),
       recentAverages(req.user.id, 7),
     ]);

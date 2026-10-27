@@ -192,6 +192,35 @@ describe("daily metrics", () => {
     await agent("put", "/api/health/metrics").send({ day: "2999-01-01", steps: 1 }).expect(400);
   });
 
+  test("simulator readings cannot be saved as health metrics", async () => {
+    const { agent, userId } = await signIn();
+    await agent("put", "/api/health/metrics").send({ steps: 80000, source: "simulator" }).expect(400);
+    expect(await HealthMetrics.countDocuments({ userId })).toBe(0);
+  });
+
+  test("legacy demo rows are excluded from the daily log and risk averages", async () => {
+    const { agent, userId } = await signIn();
+    await HealthMetrics.create({ userId, day: dayKey(), source: "simulator", steps: 80000, systolic: 200, diastolic: 110 });
+    expect((await agent("get", "/api/health/metrics").expect(200)).body).toHaveLength(0);
+    const today = await agent("get", "/api/health/today").expect(200);
+    expect(today.body.metrics).toBeNull();
+    expect(today.body.averages).toMatchObject({ daysLogged: 0, steps: null, systolic: null });
+    ai.riskAssess.mockResolvedValueOnce({ scores: [], wellnessScore: null, summary: "No data", recommendations: [], aiSource: "rules" });
+    await agent("post", "/api/health/analyze").expect(200);
+    expect(ai.riskAssess.mock.calls.at(-1)[0].inputs).toMatchObject({ daysLogged: 0 });
+    expect(ai.riskAssess.mock.calls.at(-1)[0].inputs.avgSteps).toBeUndefined();
+  });
+
+  test("logging real data over an old demo row clears the demo values", async () => {
+    const { agent, userId } = await signIn();
+    await HealthMetrics.create({ userId, day: dayKey(), source: "simulator", steps: 80000, systolic: 200, diastolic: 110 });
+    const logged = await agent("put", "/api/health/metrics").send({ steps: 6200, source: "manual" }).expect(200);
+    expect(logged.body).toMatchObject({ steps: 6200, source: "manual" });
+    expect(logged.body.systolic).toBeUndefined();
+    expect(logged.body.diastolic).toBeUndefined();
+    expect(await HealthMetrics.countDocuments({ userId })).toBe(1);
+  });
+
   test("analyze sends 14-day averages to the risk engine and saves the result", async () => {
     const { agent, userId } = await signIn();
     await agent("put", "/api/users/me/profile").send({ heightCm: 170, weightKg: 80 });
@@ -228,6 +257,16 @@ describe("daily metrics", () => {
 });
 
 describe("goals", () => {
+  test("legacy simulator readings cannot complete a metric goal", async () => {
+    const { agent, userId } = await signIn();
+    const goal = await agent("post", "/api/goals")
+      .send({ title: "Walk 8k", metric: "steps", direction: "atLeast", dailyTarget: 8000, weeks: 1 })
+      .expect(201);
+    await HealthMetrics.create({ userId, day: dayKey(), source: "simulator", steps: 9000 });
+    const list = await agent("get", "/api/goals").expect(200);
+    expect(list.body.find((item) => item._id === goal.body._id).progress).toMatchObject({ daysMet: 0, percent: 0 });
+  });
+
   test("progress comes from logged data, not from button presses", async () => {
     const { agent, userId } = await signIn();
     const created = await agent("post", "/api/goals")

@@ -11,7 +11,7 @@ Every feature runs on real data from free sources. When an AI provider is down, 
 | Feature | What it does | Where the data comes from |
 | --- | --- | --- |
 | Risk assessment | Type 2 diabetes risk, 10-year heart and stroke risk with heart age, BMI on Asian cut-offs, blood-pressure category, sleep and activity bands | Indian Diabetes Risk Score (Mohan et al., 2005); Framingham BMI model (D'Agostino et al., 2008); WHO Asia-Pacific BMI; 2017 ACC/AHA BP categories. Computed in code; AI only writes the explanation |
-| Daily log and trends | One entry per day for steps, sleep, BP, heart rate, weight, water, stress, with 14-day charts | Your entries, or a Bluetooth heart-rate monitor |
+| Daily log and trends | One entry per day for steps, sleep, BP, heart rate, weight, water, stress, with 14-day charts. Simulator readings cannot be saved or counted toward scores and goals | Your entries, or a Bluetooth heart-rate monitor |
 | Health chat | Answers stream in word by word, use your profile and last week's logs, and cite numbered sources | Gemini / Groq / OpenRouter free tiers; facts retrieved from 1,016 [MedlinePlus](https://medlineplus.gov) topics (BM25 + embeddings); rule-based and AI emergency checks run before any text is shown |
 | Lab reports | Upload a photo or PDF of a blood test: each value is marked in or out of range, explained with a source, and charted across reports | The AI only copies the printed table; code matches 30 common tests, converts units, rejects impossible values and judges against the lab's printed range |
 | Reminders | Medicine, water and check-up reminders as notifications, even with the app closed | Web Push (VAPID) through the browser's own push service; a scheduler that sends each slot exactly once |
@@ -89,7 +89,7 @@ node scripts/smoke-test.mjs http://localhost:5001/api   # live end-to-end check
 ```
 
 - **AI service, 104 tests:** risk formulas against hand calculations; LLM fallback and streaming with a mocked transport; red-flag rules and the AI safety layer; retrieval and citations; lab-report unit conversion, range parsing and look-alike test names; internal-token enforcement.
-- **API, 81 tests** against an in-memory MongoDB: auth and OTP lockout, mass-assignment protection, cross-user isolation, streaming relay, lab reports re-checked on save, the reminder scheduler (sent once, catch-up after sleep, weekdays, dead devices removed), account deletion.
+- **API, 85 tests** against an in-memory MongoDB: auth and OTP lockout, mass-assignment protection, cross-user isolation, streaming relay, lab reports re-checked on save, the reminder scheduler (sent once, catch-up after sleep, weekdays, dead devices removed), account deletion.
 - **AI evaluation harness** (`ai-service/evals`): red-flag recall, triage accuracy and retrieval quality on labelled datasets, with results in `ai-service/evals/README.md`.
 - **CI** runs both suites and the client build on every push (`.github/workflows/ci.yml`).
 

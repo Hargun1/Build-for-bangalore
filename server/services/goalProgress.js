@@ -24,7 +24,7 @@ async function computeProgress(goal) {
 
   const [metrics, checkins] = await Promise.all([
     goal.metric !== "habit"
-      ? HealthMetrics.find({ userId: goal.userId, day: { $gte: goal.startDate, $lte: goal.endDate } }).sort({ day: 1 }).lean()
+      ? HealthMetrics.find({ userId: goal.userId, source: { $ne: "simulator" }, day: { $gte: goal.startDate, $lte: goal.endDate } }).sort({ day: 1 }).lean()
       : [],
     GoalCheckin.find({ goalId: goal._id }).lean(),
   ]);
