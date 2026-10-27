@@ -9,6 +9,8 @@ export const updateProfile = (data) => api.put("/users/me/profile", data);
 export const updateEmergencyContacts = (contacts) => api.put("/users/me/emergency-contacts", { contacts });
 export const deleteAccount = () => api.delete("/users/me");
 export const getSystemStatus = () => api.get("/system/status");
+export const getProviderCheckAccess = () => api.get("/system/providers/access");
+export const checkAiProvider = (provider) => api.post(`/system/providers/${provider}/check`);
 
 // Daily metrics and risk
 export const logMetrics = (data) => api.put("/health/metrics", data);

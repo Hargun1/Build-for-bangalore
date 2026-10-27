@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import AppShell from "../components/Shared/AppShell";
 import { useAuth } from "../context/AuthContext";
 import { errorMessage } from "../services/api";
-import { deleteAccount, getSystemStatus, updateAccount, updateEmergencyContacts, updateProfile } from "../services/healthService";
+import { checkAiProvider, deleteAccount, getProviderCheckAccess, getSystemStatus, updateAccount, updateEmergencyContacts, updateProfile } from "../services/healthService";
 
 const list = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
 const num = (v) => (v === "" || v == null ? null : Number(v));
@@ -49,10 +49,31 @@ export default function Profile() {
   const [contacts, setContacts] = useState(user?.emergencyContacts?.length ? user.emergencyContacts : []);
   const [status, setStatus] = useState({});
   const [system, setSystem] = useState(null);
+  const [canCheckProviders, setCanCheckProviders] = useState(false);
+  const [checkingProvider, setCheckingProvider] = useState(null);
 
   useEffect(() => {
     getSystemStatus().then((r) => setSystem(r.data)).catch(() => setSystem(null));
-  }, []);
+    if (user && !user.isGuest) {
+      getProviderCheckAccess().then(() => setCanCheckProviders(true)).catch(() => setCanCheckProviders(false));
+    }
+  }, [user?.id, user?.isGuest]);
+
+  const checkProvider = async (provider) => {
+    setCheckingProvider(provider);
+    setStatus((s) => ({ ...s, [provider]: null }));
+    try {
+      const { data } = await checkAiProvider(provider);
+      const label = data.state === "working" ? `Working (${(data.latencyMs / 1000).toFixed(1)} s)` : providerLabels[data.state] || data.state;
+      setStatus((s) => ({ ...s, [provider]: { ok: data.state === "working", text: label } }));
+      const current = await getSystemStatus();
+      setSystem(current.data);
+    } catch (err) {
+      setStatus((s) => ({ ...s, [provider]: { ok: false, text: errorMessage(err) } }));
+    } finally {
+      setCheckingProvider(null);
+    }
+  };
 
   const save = async (key, fn) => {
     setStatus((s) => ({ ...s, [key]: { ok: true, text: "Saving…" } }));
@@ -159,7 +180,13 @@ export default function Profile() {
               <li className="ui-row"><span>Database</span><span className="ui-spacer" /><span className={`ui-badge ${system.database === "connected" ? "ui-badge-good" : "ui-badge-bad"}`}>{system.database}</span></li>
               <li className="ui-row"><span>AI service</span><span className="ui-spacer" /><span className={`ui-badge ${system.ai.aiReady && system.ai.providers?.some((pr) => pr.state) ? "ui-badge-good" : system.ai.reachable ? "ui-badge-warn" : "ui-badge-bad"}`}>{!system.ai.reachable ? "unreachable" : !system.ai.providers?.some((pr) => pr.state) ? "status unavailable" : system.ai.aiReady ? "models available" : "no models available"}</span></li>
               {(system.ai.providers || []).map((pr) => (
-                <li key={pr.provider} className="ui-row"><span className="ui-faint">AI provider: {pr.provider}</span><span className="ui-spacer" /><span className={`ui-badge ${pr.state === "recently-working" ? "ui-badge-good" : pr.state === "available" ? "ui-badge-warn" : ""}`}>{providerLabels[pr.state] || (pr.configured === false ? "not configured" : "status unavailable")}</span></li>
+                <li key={pr.provider} className="ui-row">
+                  <span className="ui-faint">AI provider: {pr.provider}</span>
+                  <span className="ui-spacer" />
+                  <span className={`ui-badge ${pr.state === "recently-working" ? "ui-badge-good" : pr.state === "available" ? "ui-badge-warn" : ""}`}>{providerLabels[pr.state] || (pr.configured === false ? "not configured" : "status unavailable")}</span>
+                  {canCheckProviders && <button type="button" className="ui-btn ui-btn-sm" onClick={() => checkProvider(pr.provider)} disabled={Boolean(checkingProvider) || pr.state === "not-configured"} title={`Test ${pr.provider} with a short request`}>{checkingProvider === pr.provider ? "Testing…" : "Test"}</button>}
+                  <Saved status={status[pr.provider]} />
+                </li>
               ))}
               <li className="ui-row"><span>Email (OTP, SOS)</span><span className="ui-spacer" /><span className={`ui-badge ${system.email === "configured" ? "ui-badge-good" : "ui-badge-warn"}`}>{system.email}</span></li>
             </ul>

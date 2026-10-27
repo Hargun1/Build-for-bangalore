@@ -21,6 +21,7 @@ module.exports = {
   authLimiter: make(15 * 60 * 1000, 20, "Too many attempts. Please wait 15 minutes and try again."),
   // AI endpoints cost free-tier quota; keep any one user from draining it.
   aiLimiter: make(60 * 60 * 1000, 60, "You've reached the hourly AI limit. Please try again later."),
+  diagnosticLimiter: make(60 * 60 * 1000, 6, "Provider checks are limited to six per hour."),
   // SOS emails real people, so cap it hard.
   sosLimiter: make(10 * 60 * 1000, 5, "SOS was sent recently. Call 112 directly if you need help now."),
   apiLimiter: make(60 * 1000, 300, "Too many requests. Please slow down."),

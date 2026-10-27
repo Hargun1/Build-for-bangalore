@@ -35,6 +35,9 @@ services:
       # This service's own URL, e.g. https://pranexusai.onrender.com
       - key: CLIENT_URL
         sync: false
+      # Verified owner account allowed to run bounded provider checks in Profile.
+      - key: AI_DIAGNOSTIC_EMAIL
+        sync: false
       # Free Render services block SMTP; use Brevo's HTTPS transactional API.
       # The sender address must already be verified in Brevo.
       - key: BREVO_API_KEY

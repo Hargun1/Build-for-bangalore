@@ -182,6 +182,31 @@ class LLMClient:
             )
         return rows
 
+    async def probe_provider(self, name: str) -> dict:
+        provider = next((p for p in self.providers if p.name == name), None)
+        if provider is None or not provider.enabled:
+            return {"provider": name, "state": "not-configured"}
+
+        st = self.state[name]
+        if st.disabled_reason:
+            return {"provider": name, "state": "rejected"}
+        models = self.ready_models(provider)
+        if st.resting_until > time.time() or not models:
+            return {"provider": name, "state": "rate-limited" if st.resting_until > time.time() or st.model_resting_until else "unavailable"}
+
+        # A fixed, non-medical prompt keeps the check independent of user health data.
+        messages = [{"role": "user", "content": "Reply with OK."}]
+        for model in models[:2]:
+            try:
+                result = await self._try_model(provider, model, messages, None, 0, 128)
+                return {"provider": name, "state": "working", "model": result.model, "latencyMs": result.latency_ms}
+            except _SkipProvider:
+                return {"provider": name, "state": "rejected"}
+            except _TryNext:
+                continue
+        state = "rate-limited" if all(st.model_resting_until.get(model, 0) > time.time() for model in models[:2]) else "unavailable"
+        return {"provider": name, "state": state}
+
     async def complete(
         self,
         messages: list[dict],

@@ -60,6 +60,31 @@ def test_status_only_counts_usable_text_models():
     assert c.status()[0]["availableTextModels"] == []
 
 
+def test_provider_probe_uses_only_selected_provider_and_records_success():
+    seen = []
+
+    def handler(request):
+        seen.append(request.url.host)
+        return reply("OK")
+
+    c = client_with(handler, [provider("gemini"), provider("openrouter")])
+    result = run(c.probe_provider("openrouter"))
+    assert result == {"provider": "openrouter", "state": "working", "model": "m1", "latencyMs": result["latencyMs"]}
+    assert seen == ["openrouter.test"]
+    assert c.status()[1]["lastOkAt"] is not None
+
+
+def test_provider_probe_reports_missing_rejected_and_rate_limited():
+    c = client_with(lambda request: httpx.Response(401), [provider("openrouter")])
+    assert run(c.probe_provider("groq")) == {"provider": "groq", "state": "not-configured"}
+    assert run(c.probe_provider("openrouter"))["state"] == "rejected"
+    assert c.state["openrouter"].calls == 1
+
+    limited = client_with(lambda request: httpx.Response(429), [provider("groq")])
+    assert run(limited.probe_provider("groq"))["state"] == "rate-limited"
+    assert limited.state["groq"].calls == 1
+
+
 def test_bad_key_disables_provider():
     def handler(request):
         return httpx.Response(401) if request.url.host == "gemini.test" else reply("ok")

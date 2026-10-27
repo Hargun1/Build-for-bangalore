@@ -13,6 +13,7 @@ jest.mock("../services/aiService", () => ({
   readLabReport: jest.fn(),
   evaluateLabs: jest.fn(),
   health: jest.fn(async () => ({ aiReady: false, providers: [] })),
+  probeProvider: jest.fn(),
 }));
 jest.mock("../services/places", () => ({ nearby: jest.fn(async () => [{ name: "City Hospital", distanceKm: 1.2, phone: "+91 80 1234 5678" }]) }));
 
@@ -20,6 +21,8 @@ const request = require("supertest");
 const app = require("../app");
 const db = require("./db");
 const ai = require("../services/aiService");
+const env = require("../config/env");
+const { signToken } = require("../middleware/auth");
 const { HttpError } = require("../middleware/errors");
 const { sendSosAlert } = require("../services/emailService");
 const User = require("../models/User");
@@ -60,6 +63,37 @@ test("system status distinguishes unverified, recently working, rate-limited and
   expect(res.body.ai.providers.map((p) => p.state)).toEqual([
     "available", "recently-working", "rate-limited", "rejected", "not-configured", "unavailable",
   ]);
+});
+
+test("provider checks are limited to the configured verified owner", async () => {
+  const previous = env.aiDiagnosticEmail;
+  env.aiDiagnosticEmail = "owner@example.com";
+  try {
+    await request(app).get("/api/system/providers/access").expect(401);
+    const { agent } = await signIn();
+    await agent("get", "/api/system/providers/access").expect(403);
+    await agent("post", "/api/system/providers/openrouter/check").expect(403);
+    expect(ai.probeProvider).not.toHaveBeenCalled();
+
+    const owner = await User.create({ name: "Owner", email: "owner@example.com", emailVerified: true });
+    const token = signToken(owner);
+    const own = (method, url) => request(app)[method](url).set("Authorization", `Bearer ${token}`);
+    await own("get", "/api/system/providers/access").expect(200, { allowed: true });
+    await own("post", "/api/system/providers/unknown/check").expect(400);
+    ai.probeProvider.mockResolvedValueOnce({ provider: "openrouter", state: "working", model: "test", latencyMs: 12 });
+    const checked = await own("post", "/api/system/providers/openrouter/check").expect(200);
+    expect(checked.body).toMatchObject({ provider: "openrouter", state: "working" });
+    expect(ai.probeProvider).toHaveBeenCalledTimes(1);
+    expect(ai.probeProvider).toHaveBeenCalledWith("openrouter");
+
+    owner.emailVerified = false;
+    await owner.save();
+    await own("post", "/api/system/providers/gemini/check").expect(403);
+    env.aiDiagnosticEmail = "";
+    await own("get", "/api/system/providers/access").expect(403);
+  } finally {
+    env.aiDiagnosticEmail = previous;
+  }
 });
 
 describe("profile and account safety", () => {

@@ -46,6 +46,7 @@ module.exports = {
   call,
   chatStream,
   health: () => client.get("/health", { timeout: 10000 }).then((r) => r.data),
+  probeProvider: (provider) => call(`/diagnostics/providers/${provider}/check`, {}, 120000),
   // Numeric risk scores fall back to local rules if this optional explanation is slow.
   riskAssess: (p) => call("/risk/assess", p, 15000),
   chat: (p) => call("/chat", p),

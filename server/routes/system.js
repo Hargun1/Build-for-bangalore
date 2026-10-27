@@ -1,8 +1,23 @@
 const router = require("express").Router();
 const mongoose = require("mongoose");
+const { z } = require("zod");
 const env = require("../config/env");
 const ai = require("../services/aiService");
-const { asyncHandler } = require("../middleware/errors");
+const auth = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const { diagnosticLimiter } = require("../middleware/rateLimit");
+const User = require("../models/User");
+const { asyncHandler, HttpError } = require("../middleware/errors");
+
+const providerParams = z.object({ provider: z.enum(["gemini", "groq", "openrouter"]) });
+
+const diagnosticOwner = asyncHandler(async (req, res, next) => {
+  const user = await User.findById(req.user.id).select("email emailVerified isGuest").lean();
+  if (!env.aiDiagnosticEmail || !user || user.isGuest || !user.emailVerified || user.email !== env.aiDiagnosticEmail) {
+    throw new HttpError(403, "Provider checks are not available for this account.");
+  }
+  next();
+});
 
 // GET /api/system/status: what is configured and reachable. Shown on the
 // in-app "System status" panel so a demo viewer can see which parts are live.
@@ -37,6 +52,19 @@ router.get(
       googleSignIn: env.googleClientId ? "configured" : "not configured",
       ai: aiStatus,
     });
+  })
+);
+
+router.get("/providers/access", auth, diagnosticOwner, (req, res) => res.json({ allowed: true }));
+
+router.post(
+  "/providers/:provider/check",
+  auth,
+  diagnosticOwner,
+  diagnosticLimiter,
+  validate(providerParams, "params"),
+  asyncHandler(async (req, res) => {
+    res.json(await ai.probeProvider(req.params.provider));
   })
 );
 

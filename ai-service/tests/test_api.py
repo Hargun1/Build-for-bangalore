@@ -54,6 +54,24 @@ def test_internal_token_enforced(client, monkeypatch):
     assert client.post("/risk/assess", json={"inputs": {}}, headers={"X-Internal-Token": "s3cret"}).status_code == 200
 
 
+def test_provider_check_requires_internal_token(client, monkeypatch):
+    from app.config import get_settings
+    from app.routers import diagnostics
+
+    class FakeLLM:
+        async def probe_provider(self, name):
+            return {"provider": name, "state": "working", "model": "test", "latencyMs": 1}
+
+    monkeypatch.setenv("AI_INTERNAL_TOKEN", "s3cret")
+    get_settings.cache_clear()
+    monkeypatch.setattr(diagnostics, "get_llm", lambda: FakeLLM())
+    path = "/diagnostics/providers/openrouter/check"
+    assert client.post(path).status_code == 401
+    assert client.post("/diagnostics/providers/unknown/check", headers={"X-Internal-Token": "s3cret"}).status_code == 422
+    result = client.post(path, headers={"X-Internal-Token": "s3cret"})
+    assert result.status_code == 200 and result.json()["state"] == "working"
+
+
 def test_risk_assess_falls_back_to_rules(client):
     res = client.post("/risk/assess", json={"inputs": {"heightCm": 170, "weightKg": 85, "avgSteps": 3000}})
     body = res.json()

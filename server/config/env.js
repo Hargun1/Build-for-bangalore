@@ -29,6 +29,7 @@ const env = {
   aiServiceUrl: (process.env.AI_SERVICE_URL || "http://localhost:8000").replace(/\/+$/, ""),
   // Shared secret so the AI service only answers this backend, not the internet.
   aiInternalToken: process.env.AI_INTERNAL_TOKEN || "",
+  aiDiagnosticEmail: (process.env.AI_DIAGNOSTIC_EMAIL || "").trim().toLowerCase(),
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   gmailUser: process.env.GMAIL_USER || "",
   gmailPassword: process.env.GMAIL_PASSWORD || "",
