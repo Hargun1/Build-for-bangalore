@@ -1,0 +1,53 @@
+.visit-summary { max-width: 1000px; color: var(--ui-text); }
+.visit-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 20px; border-bottom: 2px solid var(--ui-text); }
+.visit-kicker { font-size: 10px; font-weight: 650; color: var(--ui-text-dim); }
+.visit-header h2 { font-size: 24px; line-height: 1.2; margin: 7px 0 4px; overflow-wrap: anywhere; }
+.visit-header p, .visit-private { color: var(--ui-text-dim); font-size: 11px; }
+.visit-private { white-space: nowrap; }
+.visit-notice { max-width: 85ch; font-size: 11px; line-height: 1.5; color: var(--ui-text-dim); padding: 12px 0; }
+.visit-section { padding: 18px 0; border-top: 1px solid var(--ui-border); min-width: 0; }
+.visit-section-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 5px 14px; margin-bottom: 13px; }
+.visit-section-heading h3 { font-size: 14px; font-weight: 600; margin: 0; }
+.visit-section-heading span, .visit-muted { font-size: 11px; color: var(--ui-text-dim); line-height: 1.5; }
+.visit-averages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.visit-averages > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.visit-averages span, .visit-averages small { font-size: 11px; color: var(--ui-text-dim); }
+.visit-averages strong { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+.visit-muted { margin-top: 8px; }
+.visit-table-wrap { overflow-x: auto; }
+.visit-table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; }
+.visit-table th { color: var(--ui-text-dim); font-weight: 550; }
+.visit-table th, .visit-table td { padding: 8px 10px 8px 0; vertical-align: top; border-bottom: 1px solid var(--ui-border); }
+.visit-table td small { display: block; color: var(--ui-text-dim); margin-top: 2px; }
+.visit-reports { list-style: none; padding: 0; margin: 0 0 13px; display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 11px; }
+.visit-reports li { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.visit-reports span { color: var(--ui-text-dim); }
+.visit-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.visit-details { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 8px 10px; font-size: 11px; }
+.visit-details dt { color: var(--ui-text-dim); }
+.visit-details dd { margin: 0; overflow-wrap: anywhere; }
+.visit-scores { list-style: none; padding: 0; margin: 0; font-size: 11px; }
+.visit-scores li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--ui-border); }
+.visit-scores strong { font-weight: 550; text-align: right; }
+.visit-question-inputs { display: grid; gap: 8px; }
+.visit-question-inputs label { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.visit-question-inputs input { flex: 1; min-width: 0; }
+.visit-print-only { display: none; }
+.visit-footer { padding: 15px 0; border-top: 1px solid var(--ui-border); font-size: 10px; color: var(--ui-text-dim); }
+@media (max-width: 700px) { .visit-columns, .visit-averages { grid-template-columns: 1fr; } .visit-averages { gap: 12px; } .visit-private { white-space: normal; text-align: right; } }
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  body { background: #fff !important; color: #111 !important; }
+  .app-sidebar, .app-topbar, .app-mobile-nav, .app-guest, .ui-header, .visit-screen-only, .visit-error { display: none !important; }
+  .app-workspace { margin: 0 !important; }
+  .app-main, .ui-container { width: 100% !important; max-width: none !important; padding: 0 !important; margin: 0 !important; }
+  .visit-summary { max-width: none; color: #111; }
+  .visit-print-only { display: block; padding-left: 22px; margin: 0; font-size: 10px; }
+  .visit-print-only li { min-height: 18px; }
+  .visit-section { padding: 10px 0; break-inside: avoid; }
+  .visit-header { padding-bottom: 12px; }
+  .visit-notice { padding: 7px 0; }
+  .visit-table th, .visit-table td { padding: 5px 8px 5px 0; }
+  .visit-averages { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .visit-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

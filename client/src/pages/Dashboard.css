@@ -33,7 +33,16 @@
 .overview-empty-trends strong { color: var(--ui-text); font-size: 13px; display: block; margin-bottom: 4px; font-weight: 550; }
 .overview-empty-trends p { font-size: 11px; }
 .health-overview > .ui-grid { gap: 20px; }
+.weekly-recap { border-top: 1px solid var(--ui-border); border-bottom: 1px solid var(--ui-border); padding: 22px 0; }
+.weekly-recap h2 { font-size: 17px; margin-bottom: 4px; }
+.weekly-recap-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin-top: 18px; }
+.weekly-recap-metric { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 4px 18px; border-left: 1px solid var(--ui-border); }
+.weekly-recap-metric:first-child { border-left: 0; padding-left: 0; }
+.weekly-recap-metric strong { font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.weekly-recap-metric small { color: var(--ui-text-dim); font-size: 11px; line-height: 1.4; }
+.weekly-recap-footer { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; border-top: 1px solid var(--ui-border); margin-top: 18px; padding-top: 13px; font-size: 11px; color: var(--ui-text-dim); line-height: 1.5; }
 .health-overview .ui-grid .ui-card { background: transparent; border-radius: 0; border: 0; border-top: 1px solid var(--ui-border); padding: 20px 0 0; }
+@media (max-width: 680px) { .weekly-recap-metrics { grid-template-columns: 1fr; } .weekly-recap-metric { border-left: 0; border-top: 1px solid var(--ui-border); padding: 12px 0; } .weekly-recap-metric:first-child { border-top: 0; } }
 .dashboard-agenda { background: #fff; border-left: 1px solid var(--ui-border); padding: 24px; min-height: 660px; }
 .agenda-eyebrow { font-size: 10px; color: var(--ui-text-faint); font-weight: 600; }
 .agenda-title h2 { font-size: 17px; font-weight: 550; line-height: 1.5; margin: 8px 0 24px; }

@@ -20,6 +20,7 @@ const Emergency = lazy(() => import("./pages/Emergency"));
 const HealthChat = lazy(() => import("./pages/HealthChat"));
 const Labs = lazy(() => import("./pages/Labs"));
 const Reminders = lazy(() => import("./pages/Reminders"));
+const VisitSummary = lazy(() => import("./pages/VisitSummary"));
 
 function PageLoader() {
   return (
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/chat" element={guard(<HealthChat />)} />
         <Route path="/labs" element={guard(<Labs />)} />
         <Route path="/reminders" element={guard(<Reminders />)} />
+        <Route path="/visit-summary" element={guard(<VisitSummary />)} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

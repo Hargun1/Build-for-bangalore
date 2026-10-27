@@ -2,6 +2,7 @@ import { useState } from "react";
 import Modal from "../Shared/Modal";
 import { errorMessage } from "../../services/api";
 import { logMetrics } from "../../services/healthService";
+import { makeCheckInPayload } from "../../utils/checkIn";
 
 const FIELDS = [
   { key: "steps", label: "Steps", step: 1, min: 0, max: 100000, hint: "From your phone's health app" },
@@ -14,20 +15,20 @@ const FIELDS = [
   { key: "spo2", label: "SpO₂ (%)", step: 1, min: 50, max: 100 },
   { key: "stressLevel", label: "Stress (0-10)", step: 1, min: 0, max: 10 },
 ];
+const QUICK_FIELDS = new Set(["steps", "sleepHours", "systolic", "diastolic"]);
 
-/** Log or update today's numbers (one entry per day; only filled fields are sent). */
+/** Log or update today's numbers; unchanged fields are left alone. */
 export default function LogMetricsModal({ open, onClose, initial, onSaved }) {
   const [values, setValues] = useState(() => Object.fromEntries(FIELDS.map((f) => [f.key, initial?.[f.key] ?? ""])));
+  const [edited, setEdited] = useState(() => new Set());
+  const [mode, setMode] = useState("quick");
   const [state, setState] = useState({ busy: false, error: "" });
 
   const submit = async (e) => {
     e.preventDefault();
-    const payload = { source: "manual" };
-    for (const f of FIELDS) {
-      if (values[f.key] !== "" && values[f.key] != null) payload[f.key] = Number(values[f.key]);
-    }
-    if (Object.keys(payload).length === 1) {
-      setState({ busy: false, error: "Fill in at least one number." });
+    const { payload, error } = makeCheckInPayload(values, edited);
+    if (error) {
+      setState({ busy: false, error });
       return;
     }
     setState({ busy: true, error: "" });
@@ -41,11 +42,14 @@ export default function LogMetricsModal({ open, onClose, initial, onSaved }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Log today" width={620}>
-      <p className="ui-faint" style={{ marginBottom: "1rem" }}>Fill in whatever you know. Logging again today updates the same entry.</p>
+    <Modal open={open} onClose={onClose} title="Quick check-in" width={620}>
+      <div className="ui-tabs" role="tablist" aria-label="Check-in readings" style={{ marginBottom: "1rem" }}>
+        <button type="button" role="tab" aria-selected={mode === "quick"} className={mode === "quick" ? "active" : ""} onClick={() => setMode("quick")}>Quick</button>
+        <button type="button" role="tab" aria-selected={mode === "all"} className={mode === "all" ? "active" : ""} onClick={() => setMode("all")}>All readings</button>
+      </div>
       <form className="ui-stack" onSubmit={submit}>
         <div className="ui-form-grid">
-          {FIELDS.map((f) => (
+          {FIELDS.filter((f) => mode === "all" || QUICK_FIELDS.has(f.key)).map((f) => (
             <label key={f.key} className="ui-field">
               <span>{f.label}</span>
               <input
@@ -56,7 +60,10 @@ export default function LogMetricsModal({ open, onClose, initial, onSaved }) {
                 min={f.min}
                 max={f.max}
                 value={values[f.key]}
-                onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                onChange={(e) => {
+                  setValues((v) => ({ ...v, [f.key]: e.target.value }));
+                  setEdited((current) => new Set(current).add(f.key));
+                }}
               />
             </label>
           ))}
@@ -65,7 +72,7 @@ export default function LogMetricsModal({ open, onClose, initial, onSaved }) {
         <div className="ui-row">
           <div className="ui-spacer" />
           <button type="button" className="ui-btn ui-btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="ui-btn ui-btn-primary" disabled={state.busy}>{state.busy ? "Saving…" : "Save"}</button>
+          <button className="ui-btn ui-btn-primary" disabled={state.busy}>{state.busy ? "Saving…" : "Save check-in"}</button>
         </div>
       </form>
     </Modal>

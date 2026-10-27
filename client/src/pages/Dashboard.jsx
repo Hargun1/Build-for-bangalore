@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Accessibility, FilePlus2, Utensils, CalendarDays } from "lucide-react";
+import { ArrowUpRight, ClipboardList, FilePlus2, Utensils, CalendarDays } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import AppShell from "../components/Shared/AppShell";
 import HealthOverview from "../components/Dashboard/HealthOverview";
@@ -9,7 +9,7 @@ import "./Dashboard.css";
 const ACTIONS = [
   { to: "/grocery?tab=meal", label: "Log a meal", detail: "Food & nutrition", icon: Utensils, tone: "mint" },
   { to: "/labs", label: "Add a report", detail: "Lab results", icon: FilePlus2, tone: "blue" },
-  { to: "/glass-body", label: "Explore your body", detail: "Your health in context", icon: Accessibility, tone: "rose" },
+  { to: "/visit-summary", label: "Visit summary", detail: "For your next appointment", icon: ClipboardList, tone: "rose" },
   { to: "/appointments", label: "Plan a doctor visit", detail: "Find care nearby", icon: CalendarDays, tone: "gold" },
 ];
 

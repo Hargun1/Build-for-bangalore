@@ -8,6 +8,7 @@ import { analyzeHealth, getMetrics, getPredictions, getToday } from "../../servi
 import { CHART, axisProps, compactNumber, levelBadge, shortDay, tooltipStyle } from "../../utils/chartTheme";
 import SourceBadge from "../Shared/SourceBadge";
 import LogMetricsModal from "./LogMetricsModal";
+import WeeklyRecap from "./WeeklyRecap";
 import "../../styles/ui.css";
 
 const fmt = (v, digits = 0) => (v == null ? "–" : Number(v).toLocaleString("en-IN", { maximumFractionDigits: digits }));
@@ -184,15 +185,17 @@ export default function HealthOverview() {
         </div>
       )}
 
+      {today?.day && <WeeklyRecap rows={history} todayDay={today.day} onCheckIn={() => setLogOpen(true)} />}
+
       <section className="overview-today">
         <div className="ui-card-title">
           <div><h2 style={{ fontSize: "1.1rem" }}>Your daily snapshot</h2><span className="ui-faint">Today & your 7-day averages</span></div>
-          <button className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => setLogOpen(true)}><Plus /> Log today</button>
+          <button className="ui-btn ui-btn-primary ui-btn-sm" onClick={() => setLogOpen(true)}><Plus /> Quick check-in</button>
         </div>
         <div className="ui-grid overview-metrics">
           <Tile label="Steps" icon={Footprints} tone="mint" value={fmt(m.steps)} sub={`7-day avg ${fmt(avg.steps)}`} />
           <Tile label="Sleep" icon={Moon} tone="lilac" value={fmt(m.sleepHours, 1)} unit="h" sub={`7-day avg ${fmt(avg.sleepHours, 1)} h`} />
-          <Tile label="Resting heart rate" icon={HeartPulse} tone="rose" value={fmt(m.restingHeartRate)} unit="bpm" sub={m.source === "bluetooth" ? "from Bluetooth monitor" : `7-day avg ${fmt(avg.restingHeartRate)}`} />
+          <Tile label="Resting heart rate" icon={HeartPulse} tone="rose" value={fmt(m.restingHeartRate)} unit="bpm" sub={`7-day avg ${fmt(avg.restingHeartRate)}`} />
           <Tile label="Blood pressure" icon={Activity} tone="blue" value={m.systolic ? `${m.systolic}/${m.diastolic ?? "?"}` : "–"} unit="mmHg" sub={avg.systolic ? `7-day avg ${fmt(avg.systolic)}/${fmt(avg.diastolic)}` : "Not logged this week"} />
           <Tile label="Food logged" icon={Utensils} tone="peach" value={fmt(today?.caloriesEaten)} unit="kcal" sub={<Link to="/grocery?tab=log" style={{ textDecoration: "underline" }}>{today?.meals ? `${today.meals} meal(s) logged` : "View food diary"}</Link>} />
           <Tile label="Water" icon={Droplets} tone="aqua" value={fmt(m.waterLitres, 1)} unit="L" sub={`7-day avg ${fmt(avg.waterLitres, 1)} L`} />
