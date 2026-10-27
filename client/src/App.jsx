@@ -21,6 +21,8 @@ const HealthChat = lazy(() => import("./pages/HealthChat"));
 const Labs = lazy(() => import("./pages/Labs"));
 const Reminders = lazy(() => import("./pages/Reminders"));
 const VisitSummary = lazy(() => import("./pages/VisitSummary"));
+const FitbitDemo = lazy(() => import("./pages/FitbitDemo"));
+const SyntheaDemo = lazy(() => import("./pages/SyntheaDemo"));
 
 function PageLoader() {
   return (
@@ -41,6 +43,8 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/demo/fitbit" element={<FitbitDemo />} />
+        <Route path="/demo/patients" element={<SyntheaDemo />} />
 
         <Route path="/dashboard" element={guard(<Dashboard />)} />
         <Route path="/profile" element={guard(<Profile />)} />

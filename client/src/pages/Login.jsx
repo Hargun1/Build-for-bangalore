@@ -42,6 +42,8 @@ export default function Login() {
     <div className="ui-stack">
       {GOOGLE_CLIENT_ID && !/your_|placeholder|example/i.test(GOOGLE_CLIENT_ID) && <GoogleButton disabled={busy} onCredential={(token) => run(() => loginWithGoogle(token))} onError={setError} />}
       <button className="ui-btn" disabled={busy} onClick={() => run(loginAsGuest)}>Continue as guest</button>
+      <Link className="ui-btn ui-btn-ghost" to="/demo/fitbit">Explore activity demo</Link>
+      <Link className="ui-btn ui-btn-ghost" to="/demo/patients">Explore sample patients</Link>
     </div>
   </AuthCard>;
 }

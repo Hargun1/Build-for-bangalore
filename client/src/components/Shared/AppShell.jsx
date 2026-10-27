@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, Link, useLocation } from "react-router-dom";
-import { Activity, ArrowRight, Bell, CalendarDays, ChevronRight, CircleUserRound, ClipboardList, HeartPulse, LayoutDashboard, Menu, MessageCircle, Search, Settings2, ShieldAlert, Target, Utensils, Wind, FileText, Accessibility, X } from "lucide-react";
+import { Activity, ArrowRight, Bell, CalendarDays, ChevronRight, CircleUserRound, ClipboardList, HeartPulse, LayoutDashboard, Menu, MessageCircle, Search, Settings2, ShieldAlert, Target, Utensils, Wind, FileText, Accessibility, UsersRound, Stethoscope, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import Modal from "./Modal";
 import "../../styles/ui.css";
@@ -23,6 +23,10 @@ const GROUPS = [
     { to: "/appointments", label: "Doctors & visits", icon: CalendarDays },
     { to: "/visit-summary", label: "Visit summary", icon: ClipboardList },
     { to: "/emergency", label: "Emergency", icon: ShieldAlert },
+  ] },
+  { label: "Explore", links: [
+    { to: "/demo/patients", label: "Sample patients", icon: Stethoscope },
+    { to: "/demo/fitbit", label: "Activity demo", icon: UsersRound },
   ] },
 ];
 const LINKS = [...GROUPS.flatMap((g) => g.links), { to: "/profile", label: "Profile & settings", icon: Settings2 }];

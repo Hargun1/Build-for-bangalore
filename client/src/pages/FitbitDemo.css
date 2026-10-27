@@ -1,0 +1,58 @@
+.fitbit-demo { display: grid; gap: 18px; }
+.fitbit-demo-notice { display: flex; gap: 10px; flex-wrap: wrap; border-left: 3px solid #278a79; background: #eaf5f1; padding: 11px 15px; color: #244d45; font-size: 12px; }
+.fitbit-demo-notice strong { font-weight: 650; }
+.fitbit-demo-layout { display: grid; grid-template-columns: minmax(230px, 270px) minmax(0, 1fr); gap: 22px; align-items: start; }
+.fitbit-demo-list { background: #fff; border: 1px solid var(--ui-border); border-radius: 6px; min-width: 0; }
+.fitbit-demo-list-head { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--ui-border); font-size: 13px; }
+.fitbit-demo-list-head span { color: var(--ui-text-faint); font-variant-numeric: tabular-nums; }
+.fitbit-demo-search { display: flex; align-items: center; gap: 8px; margin: 12px; padding: 8px 10px; border: 1px solid var(--ui-border); border-radius: 5px; color: var(--ui-text-faint); }
+.fitbit-demo-search:focus-within { border-color: var(--ui-accent); }
+.fitbit-demo-search input { min-width: 0; width: 100%; border: 0; outline: 0; color: var(--ui-text); background: transparent; font-size: 12px; }
+.fitbit-demo-people { max-height: min(650px, 72vh); overflow-y: auto; padding: 0 7px 7px; }
+.fitbit-demo-people > p { padding: 12px; }
+.fitbit-demo-people button { display: flex; align-items: center; width: 100%; gap: 9px; text-align: left; padding: 9px 8px; border: 0; border-radius: 5px; background: transparent; color: var(--ui-text); }
+.fitbit-demo-people button:hover { background: #f4f8f7; }
+.fitbit-demo-people button.selected { background: #eaf5f1; }
+.fitbit-demo-person-mark { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; border-radius: 5px; background: #eef2f5; color: #516476; font-size: 11px; font-weight: 650; }
+.fitbit-demo-people button.selected .fitbit-demo-person-mark { background: #d3ebe3; color: #1b6d5f; }
+.fitbit-demo-people button > span:nth-child(2) { min-width: 0; flex: 1; }
+.fitbit-demo-people strong, .fitbit-demo-people small { display: block; white-space: nowrap; }
+.fitbit-demo-people strong { font-size: 12px; font-weight: 600; }
+.fitbit-demo-people small { font-size: 10px; color: var(--ui-text-faint); }
+.fitbit-demo-person-steps { text-align: right; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fitbit-demo-detail { min-width: 0; }
+.fitbit-demo-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+.fitbit-demo-eyebrow { color: #247765; font-size: 10px; font-weight: 700; }
+.fitbit-demo-heading h2 { font-size: 22px; line-height: 1.25; margin-top: 4px; }
+.fitbit-demo-heading p { font-size: 12px; color: var(--ui-text-faint); margin-top: 5px; }
+.fitbit-demo-source { border: 1px solid #b8d6ca; background: #f0f8f4; color: #276e59; padding: 5px 8px; border-radius: 4px; white-space: nowrap; font-size: 10px; font-weight: 600; }
+.fitbit-demo-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--ui-border); border-radius: 6px; background: #fff; }
+.fitbit-demo-stats > div { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 18px; min-width: 0; }
+.fitbit-demo-stats > div + div { border-left: 1px solid var(--ui-border); }
+.fitbit-demo-stats svg { color: #278a79; }
+.fitbit-demo-stats span { color: var(--ui-text-dim); font-size: 11px; }
+.fitbit-demo-stats strong { font-size: 22px; line-height: 1; font-weight: 650; font-variant-numeric: tabular-nums; }
+.fitbit-demo-stats small { font-size: 11px; font-weight: 400; }
+.fitbit-demo-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--ui-border); }
+.fitbit-demo-section-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.fitbit-demo-section-head h3 { font-size: 15px; font-weight: 650; }
+.fitbit-demo-section-head p { color: var(--ui-text-faint); font-size: 11px; margin-top: 3px; }
+.fitbit-demo-segment { display: flex; padding: 3px; border: 1px solid var(--ui-border); border-radius: 5px; background: #edf1f4; }
+.fitbit-demo-segment button { border: 0; border-radius: 3px; background: transparent; color: var(--ui-text-dim); padding: 5px 11px; font-size: 11px; }
+.fitbit-demo-segment button.active { background: #fff; color: var(--ui-text); box-shadow: 0 1px 3px #2432401c; font-weight: 650; }
+.fitbit-demo-chart { height: 260px; min-width: 0; }
+.fitbit-demo-table-wrap { overflow-x: auto; border: 1px solid var(--ui-border); border-radius: 6px; background: #fff; }
+.fitbit-demo-table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fitbit-demo-table th { color: var(--ui-text-faint); font-size: 10px; font-weight: 650; text-align: right; background: #f7f9fa; }
+.fitbit-demo-table th:first-child, .fitbit-demo-table td:first-child { text-align: left; }
+.fitbit-demo-table th, .fitbit-demo-table td { padding: 10px 14px; border-bottom: 1px solid var(--ui-border); }
+.fitbit-demo-table td { text-align: right; }
+.fitbit-demo-table tr:last-child td { border-bottom: 0; }
+.fitbit-demo-credit { margin: 18px 0 0; color: var(--ui-text-faint); font-size: 11px; }
+.fitbit-demo-credit a { color: var(--ui-accent); text-decoration: underline; }
+.fitbit-demo-public > header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px max(24px, calc((100vw - 1320px) / 2)); border-bottom: 1px solid var(--ui-border); background: #fff; }
+.fitbit-demo-public > main { width: min(1320px, calc(100% - 48px)); margin: 0 auto; padding-bottom: 48px; }
+.fitbit-demo-brand { display: flex; align-items: center; gap: 8px; color: var(--ui-text); font-size: 17px; font-weight: 700; }
+.fitbit-demo-brand svg { color: var(--ui-accent); }
+@media (max-width: 900px) { .fitbit-demo-layout { grid-template-columns: 1fr; } .fitbit-demo-people { max-height: 180px; } }
+@media (max-width: 560px) { .fitbit-demo-stats { grid-template-columns: 1fr; } .fitbit-demo-stats > div + div { border-left: 0; border-top: 1px solid var(--ui-border); } .fitbit-demo-chart { height: 220px; } .fitbit-demo-public > main { width: min(100% - 32px, 1320px); } }
